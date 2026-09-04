@@ -1,0 +1,395 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
+
+import { UserRole, AccountStatus } from '@/types/user';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role?: UserRole;
+  status?: AccountStatus;
+}
+
+export interface SignInResult {
+  error?: string;
+  user?: AuthUser;
+  profileCompleted?: boolean;
+  destination?: string;
+}
+
+interface AuthContextType {
+  user: AuthUser | null;
+  loading: boolean;
+  isConfigured: boolean;
+  signUp: (email: string, password: string, name: string) => Promise<SignInResult>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string; message?: string }>;
+  toggleDevAdmin?: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const LOCAL_STORAGE_USER_KEY = 'crediqly_local_user';
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfileData = async (userId: string, email: string, defaultName: string): Promise<AuthUser> => {
+    let role: UserRole = 'user';
+    let status: AccountStatus = 'active';
+    let name = defaultName;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role, status, first_name, last_name')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (data) {
+          if (data.role) role = data.role as UserRole;
+          if (data.status) status = data.status as AccountStatus;
+          if (data.first_name) {
+            name = `${data.first_name} ${data.last_name || ''}`.trim();
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch user profile role:', err);
+      }
+    }
+
+    // Dedicated Administrator Account (Step 8 / Section 21)
+    if (email.toLowerCase() === 'crediqly@gmail.com') {
+      role = 'admin';
+    }
+
+    // Local dev admin override helper
+    if (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true') {
+      role = 'admin';
+    }
+
+    return { id: userId, email, name, role, status };
+  };
+
+  useEffect(() => {
+    if (isSupabaseConfigured && supabase) {
+      // 1. Live Supabase Auth Session
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+          const email = session.user.email || '';
+          const defaultName = session.user.user_metadata?.name || email.split('@')[0] || 'User';
+          const fullUser = await fetchProfileData(session.user.id, email, defaultName);
+          setUser(fullUser);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+          } catch (e) {}
+        } else {
+          // Check local cached session
+          try {
+            const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              setUser(parsed);
+            }
+          } catch (err) {
+            console.warn('Failed to load local user session', err);
+          }
+        }
+        setLoading(false);
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const email = session.user.email || '';
+          const defaultName = session.user.user_metadata?.name || email.split('@')[0] || 'User';
+          const fullUser = await fetchProfileData(session.user.id, email, defaultName);
+          setUser(fullUser);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+          } catch (e) {}
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          try {
+            localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+          } catch (e) {}
+        }
+        setLoading(false);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    } else {
+      // 2. Safe Local Storage Fallback Mode
+      try {
+        const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true') {
+            parsed.role = 'admin';
+          }
+          setUser(parsed);
+        }
+      } catch (err) {
+        console.error('Failed to load local user session', err);
+      }
+      setLoading(false);
+    }
+  }, []);
+
+  const toggleDevAdmin = () => {
+    if (typeof window === 'undefined') return;
+    const current = localStorage.getItem('crediqly_dev_admin') === 'true';
+    const nextState = !current;
+    localStorage.setItem('crediqly_dev_admin', nextState ? 'true' : 'false');
+    if (user) {
+      setUser({ ...user, role: nextState ? 'admin' : 'user' });
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string) => {
+    if (isSupabaseConfigured && supabase) {
+      const nameParts = name.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            full_name: name,
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        const emailVal = data.user.email || email;
+        const fullUser: AuthUser = {
+          id: data.user.id,
+          email: emailVal,
+          name: name || 'User',
+          role: 'user',
+          status: 'active',
+        };
+        setUser(fullUser);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+        } catch (e) {}
+
+        // Ensure profile row exists in public.profiles table
+        try {
+          await supabase.from('profiles').upsert({
+            user_id: data.user.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: emailVal,
+            role: 'user',
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        } catch (profileErr) {
+          console.warn('Profile sync handled by trigger or permission:', profileErr);
+        }
+
+        return {
+          user: fullUser,
+          profileCompleted: false,
+          destination: '/onboarding',
+        };
+      }
+      return { destination: '/onboarding' };
+    } else {
+      // Local fallback mode
+      const mockUser: AuthUser = {
+        id: `usr_${Date.now()}`,
+        email,
+        name: name || email.split('@')[0],
+        role: 'user',
+        status: 'active',
+      };
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(mockUser));
+      setUser(mockUser);
+      return {
+        user: mockUser,
+        profileCompleted: false,
+        destination: '/onboarding',
+      };
+    }
+  };
+
+  const signIn = async (email: string, password: string): Promise<SignInResult> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        const emailVal = data.user.email || email;
+        const defaultName = data.user.user_metadata?.name || email.split('@')[0];
+        const fullUser = await fetchProfileData(data.user.id, emailVal, defaultName);
+        setUser(fullUser);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+        } catch (e) {}
+
+        // Check profile completion reliably
+        let isProfileComplete = false;
+        if (fullUser.role === 'admin') {
+          isProfileComplete = true;
+        } else {
+          try {
+            const { data: bizData } = await supabase
+              .from('businesses')
+              .select('profile_completed')
+              .eq('user_id', data.user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (bizData && bizData.profile_completed) {
+              isProfileComplete = true;
+            }
+          } catch (bizErr) {
+            console.warn('Could not check business completion from database:', bizErr);
+          }
+
+          // Local storage fallback
+          if (!isProfileComplete && typeof window !== 'undefined') {
+            try {
+              const localBiz = localStorage.getItem('crediqly_business_' + data.user.id);
+              if (localBiz) {
+                const parsed = JSON.parse(localBiz);
+                if (parsed.profileCompleted) {
+                  isProfileComplete = true;
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        const destination = fullUser.role === 'admin'
+          ? '/admin'
+          : isProfileComplete
+          ? '/dashboard'
+          : '/onboarding';
+
+        return {
+          user: fullUser,
+          profileCompleted: isProfileComplete,
+          destination,
+        };
+      }
+      return {};
+    } else {
+      // Local fallback mode
+      const role: UserRole = email.toLowerCase() === 'crediqly@gmail.com'
+        ? 'admin'
+        : (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true' ? 'admin' : 'user');
+
+      const mockUser: AuthUser = {
+        id: 'usr_demo_123',
+        email,
+        name: email.split('@')[0],
+        role,
+        status: 'active',
+      };
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(mockUser));
+      setUser(mockUser);
+
+      let isCompleted = false;
+      if (mockUser.role === 'admin') {
+        isCompleted = true;
+      } else if (typeof window !== 'undefined') {
+        try {
+          const localBiz = localStorage.getItem('crediqly_business_' + mockUser.id);
+          if (localBiz) {
+            const parsed = JSON.parse(localBiz);
+            if (parsed.profileCompleted) isCompleted = true;
+          }
+        } catch (e) {}
+      }
+
+      const destination = mockUser.role === 'admin'
+        ? '/admin'
+        : isCompleted
+        ? '/dashboard'
+        : '/onboarding';
+
+      return {
+        user: mockUser,
+        profileCompleted: isCompleted,
+        destination,
+      };
+    }
+  };
+
+  const signOut = async () => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {}
+    }
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+    } catch (e) {}
+    setUser(null);
+  };
+
+  const resetPassword = async (email: string) => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        return { error: error.message };
+      }
+      return { message: 'Password reset instructions have been sent to your email.' };
+    } else {
+      return { message: 'Password reset simulated. Check your email inbox.' };
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isConfigured: isSupabaseConfigured,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        toggleDevAdmin,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
