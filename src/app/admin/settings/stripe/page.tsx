@@ -349,6 +349,182 @@ export default function AdminStripeSettingsPage() {
         </Card>
       </div>
 
+      {/* DIRECT IN-BROWSER STRIPE CONFIGURATION & EDIT FORM */}
+      <Card className="bg-slate-950 border-brand-500/40 text-white shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl -z-0 pointer-events-none" />
+        <CardHeader className="pb-4 border-b border-slate-800/80 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                <Key className="w-4 h-4 text-brand-400" />
+                <span>Configure & Connect Stripe Credentials</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400 mt-1">
+                Enter your Stripe API keys and Price IDs below to connect Stripe directly from this control panel. Changes are saved to your environment and verified in real-time.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-[11px] border-brand-500/40 text-brand-300 self-start sm:self-center">
+              Direct In-Browser Setup
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6 relative z-10">
+          <form onSubmit={handleSaveConfig} className="space-y-6">
+            {/* Section 1: API Keys & Webhook Secret */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-brand-400" />
+                <span>1. Stripe API Keys & Webhook Secret</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Publishable Key */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    Publishable Key <span className="text-slate-500 font-normal">(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="pk_test_... or pk_live_..."
+                    value={form.publishableKey}
+                    onChange={(e) => setForm({ ...form, publishableKey: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">From Stripe Dashboard &gt; Developers &gt; API keys</p>
+                </div>
+
+                {/* Secret Key */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    Secret Key <span className="text-slate-500 font-normal">(STRIPE_SECRET_KEY)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showSecretKey ? 'text' : 'password'}
+                      placeholder="sk_test_... or sk_live_..."
+                      value={form.secretKey}
+                      onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
+                      className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecretKey(!showSecretKey)}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                      tabIndex={-1}
+                    >
+                      {showSecretKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Kept server-side only, never sent to browsers</p>
+                </div>
+
+                {/* Webhook Secret */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-medium text-slate-300">
+                    Webhook Signing Secret <span className="text-slate-500 font-normal">(STRIPE_WEBHOOK_SECRET)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showWebhookSecret ? 'text' : 'password'}
+                      placeholder="whsec_..."
+                      value={form.webhookSecret}
+                      onChange={(e) => setForm({ ...form, webhookSecret: e.target.value })}
+                      className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                      tabIndex={-1}
+                    >
+                      {showWebhookSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    From Stripe Dashboard &gt; Developers &gt; Webhooks &gt; Select Endpoint &gt; Signing secret
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Product Price IDs */}
+            <div className="space-y-4 pt-4 border-t border-slate-800/80">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+                <span>2. Product Price IDs (Canonical 3-Tier Model)</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Pro Price ID */}
+                <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-brand-300">Crediqly Pro</label>
+                    <span className="text-[10px] font-bold text-emerald-400">$39.00/mo</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="price_..."
+                    value={form.proPriceId}
+                    onChange={(e) => setForm({ ...form, proPriceId: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Monthly recurring subscription</p>
+                </div>
+
+                {/* Advisory Setup Price ID */}
+                <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-purple-300">Advisory Setup</label>
+                    <span className="text-[10px] font-bold text-purple-400">$499.00 one-time</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="price_..."
+                    value={form.advisorySetupPriceId}
+                    onChange={(e) => setForm({ ...form, advisorySetupPriceId: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">DFY credit profile setup</p>
+                </div>
+
+                {/* Advisory Monthly Retainer Price ID */}
+                <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-purple-300">Advisory Retainer</label>
+                    <span className="text-[10px] font-bold text-purple-400">$149.00/mo</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="price_..."
+                    value={form.advisoryMonthlyPriceId}
+                    onChange={(e) => setForm({ ...form, advisoryMonthlyPriceId: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Monthly advisor support</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Bar */}
+            <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] text-slate-400">
+                <span>Values are securely saved to your local <code className="text-brand-300">.env.local</code> and applied immediately.</span>
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white text-xs gap-2 px-5 py-2.5 shadow-md font-semibold"
+                >
+                  <Save className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
+                  <span>{saving ? 'Saving & Verifying...' : 'Save & Verify Connection'}</span>
+                </Button>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
       {/* PRICE CONFIGURATION VALIDATION TABLE */}
       <Card className="bg-slate-950 border-slate-800 text-white">
         <CardHeader className="pb-3 border-b border-slate-800/80">

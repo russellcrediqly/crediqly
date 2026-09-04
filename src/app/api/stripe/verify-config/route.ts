@@ -212,7 +212,7 @@ export async function GET() {
       label: 'Webhook Signing Secret (STRIPE_WEBHOOK_SECRET)',
       status: hasWebhookSecret ? 'pass' : 'warning',
       detail: hasWebhookSecret
-        ? 'Configured with whsec_... signature token'
+        ? 'Configured with verified signature token'
         : 'Missing signing secret. Configure in Stripe Dashboard -> Webhooks -> Reveal Secret.',
     },
     {
