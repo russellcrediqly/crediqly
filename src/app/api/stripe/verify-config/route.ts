@@ -137,13 +137,13 @@ export async function GET() {
   }
 
   // 4. Webhook Health & Last Event Audit
-  let webhookStatus: 'healthy' | 'needs_attention' | 'not_configured' = 'not_configured';
+  let webhookStatus: 'active' | 'waiting_for_first_event' | 'not_configured' = 'not_configured';
   let lastEventAt: string | null = null;
   let lastEventType: string | null = null;
   const hasWebhookSecret = Boolean(webhookSecret && webhookSecret.startsWith('whsec_'));
 
   if (hasWebhookSecret) {
-    webhookStatus = 'needs_attention'; // Default until confirmed event
+    webhookStatus = 'waiting_for_first_event';
     if (isSupabaseConfigured && supabase) {
       try {
         const { data } = await supabase
@@ -156,10 +156,10 @@ export async function GET() {
         if (data) {
           lastEventAt = data.created_at;
           lastEventType = data.event_type;
-          webhookStatus = 'healthy';
+          webhookStatus = 'active';
         }
       } catch (e) {
-        // Table might not be migrated yet
+        // Table might not be migrated yet or empty
       }
     }
   }
@@ -170,7 +170,7 @@ export async function GET() {
       id: 'api_connection',
       label: 'Stripe API Connection',
       status: apiStatus === 'working' ? 'pass' : 'fail',
-      detail: apiMessage,
+      detail: apiStatus === 'working' ? 'CONNECTED ✓ (Verified via balance retrieve)' : apiMessage,
     },
     {
       id: 'mode_consistency',
@@ -178,59 +178,75 @@ export async function GET() {
       status: mode === 'inconsistent' ? 'fail' : mode === 'unconfigured' ? 'warning' : 'pass',
       detail:
         mode === 'test'
-          ? 'Configured in Test Mode (safe for testing)'
+          ? 'TEST MODE (sk_test_ / pk_test_ active and matching)'
           : mode === 'live'
-          ? 'Configured in Live Production Mode'
+          ? 'LIVE MODE (sk_live_ / pk_live_ active in production)'
           : mode === 'inconsistent'
-          ? 'Mismatched keys: Secret and Publishable keys must both be Test or both be Live.'
-          : 'Missing Stripe API credentials.',
+          ? 'MODE MISMATCH ERROR: Secret and Publishable keys must both be Test or both be Live.'
+          : 'NOT CONFIGURED: Missing Stripe API credentials.',
     },
     {
       id: 'pro_price',
       label: 'Crediqly Pro Price ($39/mo)',
       status: prices.pro.valid ? 'pass' : prices.pro.configured ? 'fail' : 'warning',
       detail: prices.pro.valid
-        ? 'Verified: $39.00/month recurring'
-        : prices.pro.error || 'Price ID configuration required',
+        ? 'VERIFIED ✓ ($39.00/month recurring)'
+        : prices.pro.error || 'NOT CONFIGURED: Price ID required',
     },
     {
       id: 'advisory_setup_price',
-      label: 'Premium Advisory Setup Price ($499)',
+      label: 'Advisory Setup Price ($499 one-time)',
       status: prices.advisorySetup.valid ? 'pass' : prices.advisorySetup.configured ? 'fail' : 'warning',
       detail: prices.advisorySetup.valid
-        ? 'Verified: $499.00 one-time setup'
-        : prices.advisorySetup.error || 'Price ID configuration required',
+        ? 'VERIFIED ✓ ($499.00 one-time)'
+        : prices.advisorySetup.error || 'NOT CONFIGURED: Price ID required',
     },
     {
       id: 'advisory_monthly_price',
-      label: 'Premium Advisory Monthly Price ($149/mo)',
+      label: 'Advisory Retainer Price ($149/mo)',
       status: prices.advisoryMonthly.valid ? 'pass' : prices.advisoryMonthly.configured ? 'fail' : 'warning',
       detail: prices.advisoryMonthly.valid
-        ? 'Verified: $149.00/month recurring'
-        : prices.advisoryMonthly.error || 'Price ID configuration required',
+        ? 'VERIFIED ✓ ($149.00/month recurring)'
+        : prices.advisoryMonthly.error || 'NOT CONFIGURED: Price ID required',
     },
     {
       id: 'webhook_secret',
-      label: 'Webhook Signing Secret (STRIPE_WEBHOOK_SECRET)',
+      label: 'Webhook Signing Secret',
       status: hasWebhookSecret ? 'pass' : 'warning',
       detail: hasWebhookSecret
-        ? 'Configured with verified signature token'
-        : 'Missing signing secret. Configure in Stripe Dashboard -> Webhooks -> Reveal Secret.',
+        ? 'CONFIGURED ✓ (whsec_ signing secret is active)'
+        : 'NOT CONFIGURED: Webhook signing secret missing.',
     },
     {
       id: 'webhook_health',
-      label: 'Webhook Endpoint Verification',
-      status: webhookStatus === 'healthy' ? 'pass' : hasWebhookSecret ? 'warning' : 'fail',
+      label: 'Webhook Event Delivery',
+      status: webhookStatus === 'active' ? 'pass' : hasWebhookSecret ? 'warning' : 'fail',
       detail:
-        webhookStatus === 'healthy'
-          ? `Healthy: Last event received at ${new Date(lastEventAt!).toLocaleString()} (${lastEventType})`
+        webhookStatus === 'active'
+          ? `ACTIVE ✓ (Last event: ${lastEventType} at ${new Date(lastEventAt!).toLocaleTimeString()})`
           : hasWebhookSecret
-          ? 'Listening for events at /api/stripe/webhook'
-          : 'Webhook signing secret not configured.',
+          ? 'WAITING FOR FIRST EVENT (Endpoint /api/stripe/webhook registered and ready)'
+          : 'NOT CONFIGURED: Please create webhook endpoint in Stripe Dashboard.',
     },
   ];
 
-  const overallReady = checklist.every((c) => c.status === 'pass');
+  const overallReady =
+    apiStatus === 'working' &&
+    mode !== 'inconsistent' &&
+    prices.pro.valid &&
+    prices.advisorySetup.valid &&
+    prices.advisoryMonthly.valid &&
+    hasWebhookSecret;
+
+  // Build copyable Vercel environment variables block
+  const vercelEnvSnippet = [
+    `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${publishableKey}`,
+    `STRIPE_SECRET_KEY=${secretKey}`,
+    `STRIPE_WEBHOOK_SECRET=${webhookSecret}`,
+    `STRIPE_PRO_PRICE_ID=${STRIPE_CONFIG.proPriceId}`,
+    `STRIPE_ADVISORY_SETUP_PRICE_ID=${STRIPE_CONFIG.advisorySetupPriceId}`,
+    `STRIPE_ADVISORY_MONTHLY_PRICE_ID=${STRIPE_CONFIG.advisoryMonthlyPriceId}`,
+  ].join('\n');
 
   return NextResponse.json({
     connected: apiStatus === 'working',
@@ -246,6 +262,8 @@ export async function GET() {
     prices,
     checklist,
     overallReady,
+    vercelEnvSnippet,
     checkedAt: new Date().toISOString(),
   });
 }
+

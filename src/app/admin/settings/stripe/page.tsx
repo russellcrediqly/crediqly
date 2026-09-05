@@ -6,45 +6,50 @@ import {
   CreditCard,
   CheckCircle2,
   AlertCircle,
-  Clock,
   RefreshCw,
   ArrowLeft,
-  ExternalLink,
   Shield,
   Lock,
   Sparkles,
-  Layers,
-  HelpCircle,
   FileCheck,
   Check,
-  X,
   AlertTriangle,
   Key,
   Save,
   Eye,
   EyeOff,
   Copy,
+  Terminal,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 
+interface PriceCheck {
+  id: string;
+  configured: boolean;
+  valid: boolean;
+  expected: string;
+  actual?: string;
+  error?: string;
+}
+
 interface VerificationData {
   connected: boolean;
   mode: 'test' | 'live' | 'inconsistent' | 'unconfigured';
   apiStatus: 'working' | 'error' | 'unconfigured';
   apiMessage: string;
-  webhookStatus: 'healthy' | 'needs_attention' | 'not_configured';
+  webhookStatus: 'active' | 'waiting_for_first_event' | 'not_configured';
   lastEventAt: string | null;
   lastEventType: string | null;
   hasPublishableKey: boolean;
   hasSecretKey: boolean;
   hasWebhookSecret: boolean;
   prices: {
-    pro: { id: string; configured: boolean; valid: boolean; expected: string; actual?: string; error?: string };
-    advisorySetup: { id: string; configured: boolean; valid: boolean; expected: string; actual?: string; error?: string };
-    advisoryMonthly: { id: string; configured: boolean; valid: boolean; expected: string; actual?: string; error?: string };
+    pro: PriceCheck;
+    advisorySetup: PriceCheck;
+    advisoryMonthly: PriceCheck;
   };
   checklist: {
     id: string;
@@ -53,6 +58,7 @@ interface VerificationData {
     detail: string;
   }[];
   overallReady: boolean;
+  vercelEnvSnippet?: string;
   checkedAt: string;
 }
 
@@ -65,12 +71,7 @@ export default function AdminStripeSettingsPage() {
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
-
-  const handleCopyWebhook = () => {
-    navigator.clipboard.writeText('https://crediqly.vercel.app/api/stripe/webhook');
-    setCopiedWebhook(true);
-    setTimeout(() => setCopiedWebhook(false), 2000);
-  };
+  const [copiedEnv, setCopiedEnv] = useState(false);
 
   const [form, setForm] = useState({
     publishableKey: '',
@@ -85,8 +86,16 @@ export default function AdminStripeSettingsPage() {
     try {
       const res = await fetch('/api/stripe/verify-config');
       if (res.ok) {
-        const json = await res.json();
+        const json: VerificationData = await res.json();
         setData(json);
+        // Pre-fill price IDs and publishable key if available
+        setForm((prev) => ({
+          ...prev,
+          publishableKey: prev.publishableKey || (json.hasPublishableKey ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '' : ''),
+          proPriceId: prev.proPriceId || json.prices.pro?.id || '',
+          advisorySetupPriceId: prev.advisorySetupPriceId || json.prices.advisorySetup?.id || '',
+          advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || json.prices.advisoryMonthly?.id || '',
+        }));
       } else {
         setFeedback({
           type: 'error',
@@ -107,18 +116,6 @@ export default function AdminStripeSettingsPage() {
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
-
-  // Sync existing price IDs from server into form fields
-  useEffect(() => {
-    if (data?.prices) {
-      setForm((prev) => ({
-        ...prev,
-        proPriceId: prev.proPriceId || data.prices.pro?.id || '',
-        advisorySetupPriceId: prev.advisorySetupPriceId || data.prices.advisorySetup?.id || '',
-        advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || data.prices.advisoryMonthly?.id || '',
-      }));
-    }
-  }, [data]);
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -142,19 +139,37 @@ export default function AdminStripeSettingsPage() {
     setSaving(true);
     setFeedback(null);
     try {
+      const payload: Record<string, string> = {};
+      if (form.publishableKey.trim()) payload.publishableKey = form.publishableKey.trim();
+      if (form.secretKey.trim()) payload.secretKey = form.secretKey.trim();
+      if (form.webhookSecret.trim()) payload.webhookSecret = form.webhookSecret.trim();
+      if (form.proPriceId.trim()) payload.proPriceId = form.proPriceId.trim();
+      if (form.advisorySetupPriceId.trim()) payload.advisorySetupPriceId = form.advisorySetupPriceId.trim();
+      if (form.advisoryMonthlyPriceId.trim()) payload.advisoryMonthlyPriceId = form.advisoryMonthlyPriceId.trim();
+
       const res = await fetch('/api/stripe/save-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
+
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error || 'Failed to save Stripe configuration.');
       }
+
       setFeedback({
         type: 'success',
-        message: `${json.message} Connection: ${json.connectionMessage}`,
+        message: `${json.message} ${json.connectionMessage}`,
       });
+
+      // Clear the secret fields from input form so they remain masked
+      setForm((prev) => ({
+        ...prev,
+        secretKey: '',
+        webhookSecret: '',
+      }));
+
       await fetchStatus();
     } catch (err: any) {
       setFeedback({
@@ -166,6 +181,29 @@ export default function AdminStripeSettingsPage() {
     }
   };
 
+  const handleCopyWebhook = () => {
+    navigator.clipboard.writeText('https://crediqly.vercel.app/api/stripe/webhook');
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 2500);
+  };
+
+  const handleCopyEnvSnippet = () => {
+    const textToCopy =
+      data?.vercelEnvSnippet ||
+      [
+        `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${form.publishableKey || ''}`,
+        `STRIPE_SECRET_KEY=${form.secretKey || ''}`,
+        `STRIPE_WEBHOOK_SECRET=${form.webhookSecret || ''}`,
+        `STRIPE_PRO_PRICE_ID=${form.proPriceId || ''}`,
+        `STRIPE_ADVISORY_SETUP_PRICE_ID=${form.advisorySetupPriceId || ''}`,
+        `STRIPE_ADVISORY_MONTHLY_PRICE_ID=${form.advisoryMonthlyPriceId || ''}`,
+      ].join('\n');
+
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedEnv(true);
+    setTimeout(() => setCopiedEnv(false), 2500);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
@@ -174,9 +212,11 @@ export default function AdminStripeSettingsPage() {
     );
   }
 
-  const isLive = data?.mode === 'live';
-  const isTest = data?.mode === 'test';
-  const isConnected = data?.connected;
+  const isConnected = data?.connected ?? false;
+  const isReady = data?.overallReady ?? false;
+  const mode = data?.mode || 'unconfigured';
+  const isLive = mode === 'live';
+  const isTest = mode === 'test';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans">
@@ -190,7 +230,7 @@ export default function AdminStripeSettingsPage() {
           <span>Back to Platform Settings</span>
         </Link>
         <span className="text-[11px] font-mono text-slate-500">
-          Diagnostic Endpoint: /api/stripe/verify-config
+          Stripe Diagnostic API: /api/stripe/verify-config
         </span>
       </div>
 
@@ -203,19 +243,19 @@ export default function AdminStripeSettingsPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                Stripe Infrastructure & Payments Setup
+                Stripe Payments & Checkout Setup
               </h1>
 
-              {/* Connection Status Badge */}
+              {/* Overall Ready Badge */}
               <span
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                  isConnected
+                  isReady
                     ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                    : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                {isConnected ? 'Connected' : 'Connection Failed'}
+                <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                {isReady ? 'STRIPE READY ✓' : 'SETUP REQUIRED'}
               </span>
 
               {/* Mode Badge */}
@@ -228,22 +268,31 @@ export default function AdminStripeSettingsPage() {
                     : 'bg-slate-800 text-slate-300 border-slate-700'
                 }`}
               >
-                {data?.mode ? `${data.mode} Mode` : 'Unconfigured'}
+                {mode === 'test' ? 'TEST MODE' : mode === 'live' ? 'LIVE MODE' : 'NOT CONFIGURED'}
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Verify Stripe API connectivity, price configurations, webhook integrity, and environment variable completeness without exposing sensitive secret keys.
+              Configure your Stripe credentials, canonical product prices, and verify end-to-end checkout connectivity.
             </p>
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-2.5">
+        {/* Header Action Buttons */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <Button
+            size="sm"
+            onClick={handleCopyEnvSnippet}
+            className="bg-slate-800 hover:bg-slate-700 text-white text-xs gap-1.5 shadow-sm border border-slate-700"
+          >
+            {copiedEnv ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedEnv ? 'Copied to Clipboard!' : 'Copy for Vercel'}</span>
+          </Button>
+
           <Button
             size="sm"
             onClick={handleTestConnection}
             disabled={testing}
-            className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5 shadow-sm"
+            className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5 shadow-sm font-semibold"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
             <span>{testing ? 'Testing API...' : 'Test Stripe Connection'}</span>
@@ -277,51 +326,60 @@ export default function AdminStripeSettingsPage() {
         </div>
       )}
 
-      {/* 4 Telemetry Status Cards */}
+      {/* Real Server Telemetry Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Stripe Connection */}
+        {/* 1. Stripe API Connection */}
         <Card className="bg-slate-950 border-slate-800 text-white p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 uppercase font-semibold">Stripe Connection</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold">Stripe API</span>
             <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
           </div>
           <div className="text-xl font-black text-white">
-            {isConnected ? 'Connected' : 'Not Connected'}
+            {isConnected ? 'CONNECTED ✓' : 'NOT CONFIGURED'}
           </div>
-          <p className="text-[11px] text-slate-400">
-            {isConnected ? 'API keys communicating with Stripe' : 'Check server STRIPE_SECRET_KEY'}
+          <p className="text-[11px] text-slate-400 truncate" title={data?.apiMessage}>
+            {data?.apiMessage || 'No secret key verified yet.'}
           </p>
         </Card>
 
         {/* 2. Mode */}
         <Card className="bg-slate-950 border-slate-800 text-white p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 uppercase font-semibold">Operational Mode</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold">Environment Mode</span>
             <Badge variant={isLive ? 'success' : isTest ? 'warning' : 'neutral'} className="text-[10px]">
-              {data?.mode?.toUpperCase()}
+              {mode.toUpperCase()}
             </Badge>
           </div>
-          <div className="text-xl font-black text-white capitalize">
-            {data?.mode || 'Unknown'}
+          <div className="text-xl font-black text-white">
+            {isLive ? 'LIVE MODE' : isTest ? 'TEST MODE' : 'UNCONFIGURED'}
           </div>
           <p className="text-[11px] text-slate-400">
-            {isLive ? 'Real customer charges active' : 'Simulated test payments safe for testing'}
+            {isLive ? 'Real card transactions enabled' : 'Safe simulated test payments'}
           </p>
         </Card>
 
-        {/* 3. API Status */}
+        {/* 3. Pricing Validation */}
         <Card className="bg-slate-950 border-slate-800 text-white p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 uppercase font-semibold">API Status</span>
-            <Badge variant={data?.apiStatus === 'working' ? 'success' : 'danger'} className="text-[10px]">
-              {data?.apiStatus === 'working' ? 'Operational' : 'Error'}
+            <span className="text-xs text-slate-400 uppercase font-semibold">Price IDs (3 Tiers)</span>
+            <Badge
+              variant={
+                data?.prices.pro.valid && data?.prices.advisorySetup.valid && data?.prices.advisoryMonthly.valid
+                  ? 'success'
+                  : 'warning'
+              }
+              className="text-[10px]"
+            >
+              {[data?.prices.pro.valid, data?.prices.advisorySetup.valid, data?.prices.advisoryMonthly.valid].filter(Boolean).length}/3 Verified
             </Badge>
           </div>
-          <div className="text-xl font-black text-white capitalize">
-            {data?.apiStatus === 'working' ? 'Working' : 'Check Logs'}
+          <div className="text-xl font-black text-white">
+            {data?.prices.pro.valid && data?.prices.advisorySetup.valid && data?.prices.advisoryMonthly.valid
+              ? 'VERIFIED ✓'
+              : 'INCOMPLETE'}
           </div>
-          <p className="text-[11px] text-slate-400 truncate" title={data?.apiMessage}>
-            {data?.apiMessage}
+          <p className="text-[11px] text-slate-400">
+            Pro ($39) • Advisory Setup ($499) • Retainer ($149)
           </p>
         </Card>
 
@@ -331,33 +389,37 @@ export default function AdminStripeSettingsPage() {
             <span className="text-xs text-slate-400 uppercase font-semibold">Webhook Status</span>
             <Badge
               variant={
-                data?.webhookStatus === 'healthy'
+                data?.webhookStatus === 'active'
                   ? 'success'
-                  : data?.webhookStatus === 'needs_attention'
+                  : data?.webhookStatus === 'waiting_for_first_event'
                   ? 'warning'
                   : 'neutral'
               }
               className="text-[10px]"
             >
-              {data?.webhookStatus === 'healthy'
-                ? 'Healthy'
-                : data?.webhookStatus === 'needs_attention'
-                ? 'Listening'
-                : 'Not Configured'}
+              {data?.webhookStatus === 'active'
+                ? 'ACTIVE ✓'
+                : data?.webhookStatus === 'waiting_for_first_event'
+                ? 'WAITING'
+                : 'NOT CONFIGURED'}
             </Badge>
           </div>
-          <div className="text-xl font-black text-white capitalize">
-            {data?.webhookStatus === 'healthy' ? 'Healthy' : 'Needs Attention'}
+          <div className="text-xl font-black text-white">
+            {data?.webhookStatus === 'active'
+              ? 'ACTIVE ✓'
+              : data?.webhookStatus === 'waiting_for_first_event'
+              ? 'WAITING FOR FIRST EVENT'
+              : 'NOT CONFIGURED'}
           </div>
           <p className="text-[11px] text-slate-400">
             {data?.lastEventAt
-              ? `Last: ${new Date(data.lastEventAt).toLocaleTimeString()}`
-              : 'No webhook events logged yet'}
+              ? `Last received: ${new Date(data.lastEventAt).toLocaleTimeString()}`
+              : 'Endpoint listening at /api/stripe/webhook'}
           </p>
         </Card>
       </div>
 
-      {/* DIRECT IN-BROWSER STRIPE CONFIGURATION & EDIT FORM */}
+      {/* STRIPE CREDENTIALS & PRICE IDS CONFIGURATION FORM */}
       <Card className="bg-slate-950 border-brand-500/40 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl -z-0 pointer-events-none" />
         <CardHeader className="pb-4 border-b border-slate-800/80 relative z-10">
@@ -365,14 +427,14 @@ export default function AdminStripeSettingsPage() {
             <div>
               <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                 <Key className="w-4 h-4 text-brand-400" />
-                <span>Configure & Connect Stripe Credentials</span>
+                <span>Configure Stripe Credentials & Product IDs</span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-400 mt-1">
-                Enter your Stripe API keys and Price IDs below to connect Stripe directly from this control panel. Changes are saved to your environment and verified in real-time.
+                Enter your credentials below and click <strong>&quot;Save &amp; Verify Stripe&quot;</strong>. Keys are tested with live Stripe API calls immediately.
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-[11px] border-brand-500/40 text-brand-300 self-start sm:self-center">
-              Direct In-Browser Setup
+              Direct Server Configuration
             </Badge>
           </div>
         </CardHeader>
@@ -425,13 +487,13 @@ export default function AdminStripeSettingsPage() {
                           : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                       }`}
                     >
-                      {data?.hasSecretKey || form.secretKey ? 'Configured ✓' : 'Not Configured ⚠'}
+                      {data?.hasSecretKey ? 'Configured ✓' : form.secretKey ? 'Unsaved' : 'Not Configured ⚠'}
                     </span>
                   </div>
                   <div className="relative">
                     <input
                       type={showSecretKey ? 'text' : 'password'}
-                      placeholder="sk_test_... or sk_live_..."
+                      placeholder={data?.hasSecretKey ? '•••••••••••••••• (Leave blank to preserve existing)' : 'sk_test_... or sk_live_...'}
                       value={form.secretKey}
                       onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
                       className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
@@ -445,7 +507,7 @@ export default function AdminStripeSettingsPage() {
                       {showSecretKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-500">Kept server-side only, never sent to browsers</p>
+                  <p className="text-[10px] text-slate-500">Stored strictly server-side. Never exposed to browsers or logged.</p>
                 </div>
 
                 {/* Webhook Secret */}
@@ -461,13 +523,13 @@ export default function AdminStripeSettingsPage() {
                           : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                       }`}
                     >
-                      {data?.hasWebhookSecret || form.webhookSecret ? 'Configured ✓' : 'Not Configured ⚠'}
+                      {data?.hasWebhookSecret ? 'Configured ✓' : form.webhookSecret ? 'Unsaved' : 'Not Configured ⚠'}
                     </span>
                   </div>
                   <div className="relative">
                     <input
                       type={showWebhookSecret ? 'text' : 'password'}
-                      placeholder="whsec_..."
+                      placeholder={data?.hasWebhookSecret ? '•••••••••••••••• (Leave blank to preserve existing)' : 'whsec_...'}
                       value={form.webhookSecret}
                       onChange={(e) => setForm({ ...form, webhookSecret: e.target.value })}
                       className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
@@ -482,20 +544,20 @@ export default function AdminStripeSettingsPage() {
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    From Stripe Dashboard &gt; Developers &gt; Webhooks &gt; Select Endpoint &gt; Signing secret
+                    From Stripe Dashboard &gt; Developers &gt; Webhooks &gt; Select Endpoint &gt; Reveal Signing secret
                   </p>
                 </div>
               </div>
 
-              {/* Webhook Endpoint & Events Direct Card */}
+              {/* Webhook Endpoint & Events Info Box */}
               <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FileCheck className="w-4 h-4 text-brand-400" />
                     <span className="text-xs font-bold text-white">Production Webhook Endpoint & Events</span>
                   </div>
-                  <Badge variant={data?.webhookStatus === 'healthy' ? 'success' : 'neutral'} className="text-[10px] self-start sm:self-auto">
-                    {data?.webhookStatus === 'healthy' ? 'Registered & Receiving Events ✓' : 'Listening Endpoint'}
+                  <Badge variant={data?.webhookStatus === 'active' ? 'success' : 'neutral'} className="text-[10px] self-start sm:self-auto">
+                    {data?.webhookStatus === 'active' ? 'Active & Receiving Events ✓' : 'Listening Endpoint'}
                   </Badge>
                 </div>
 
@@ -519,7 +581,7 @@ export default function AdminStripeSettingsPage() {
 
                 <div>
                   <span className="text-[11px] font-semibold text-slate-400 block mb-1.5">
-                    Required Webhook Events (Enabled in Stripe):
+                    Required Webhook Events (Enabled in Stripe Dashboard):
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 text-[11px] font-mono text-slate-300">
                     {[
@@ -541,15 +603,15 @@ export default function AdminStripeSettingsPage() {
               </div>
             </div>
 
-            {/* Section 2: Product Price IDs */}
+            {/* Section 2: Canonical Pricing & Product Price IDs */}
             <div className="space-y-4 pt-4 border-t border-slate-800/80">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                <span>2. Product Price IDs (Canonical 3-Tier Model)</span>
+                <span>2. Canonical Product Price IDs (3 Plans)</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Pro Price ID */}
+                {/* 1. Pro Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-brand-300">Crediqly Pro</label>
@@ -571,10 +633,10 @@ export default function AdminStripeSettingsPage() {
                     onChange={(e) => setForm({ ...form, proPriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">Monthly recurring subscription</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_PRO_PRICE_ID</p>
                 </div>
 
-                {/* Advisory Setup Price ID */}
+                {/* 2. Advisory Setup Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-purple-300">Advisory Setup</label>
@@ -596,10 +658,10 @@ export default function AdminStripeSettingsPage() {
                     onChange={(e) => setForm({ ...form, advisorySetupPriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">One-time file audit & onboarding</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_ADVISORY_SETUP_PRICE_ID</p>
                 </div>
 
-                {/* Advisory Monthly Retainer Price ID */}
+                {/* 3. Advisory Monthly Retainer Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-purple-300">Advisory Retainer</label>
@@ -621,24 +683,33 @@ export default function AdminStripeSettingsPage() {
                     onChange={(e) => setForm({ ...form, advisoryMonthlyPriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">Monthly advisor support</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_ADVISORY_MONTHLY_PRICE_ID</p>
                 </div>
               </div>
             </div>
 
-            {/* Submit Bar */}
+            {/* Submit & Vercel Copy Bar */}
             <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-[11px] text-slate-400">
-                <span>Values are securely saved to your local <code className="text-brand-300">.env.local</code> and applied immediately.</span>
+                <span>Variables are saved to server runtime and tested immediately.</span>
               </div>
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <Button
+                  type="button"
+                  onClick={handleCopyEnvSnippet}
+                  className="bg-slate-800 hover:bg-slate-700 text-white text-xs gap-1.5 px-4 py-2 border border-slate-700"
+                >
+                  {copiedEnv ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedEnv ? 'Copied to Clipboard!' : 'Copy for Vercel'}</span>
+                </Button>
+
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white text-xs gap-2 px-5 py-2.5 shadow-md font-semibold"
+                  className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white text-xs gap-2 px-6 py-2.5 shadow-md font-semibold"
                 >
                   <Save className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
-                  <span>{saving ? 'Saving & Verifying...' : 'Save & Verify Connection'}</span>
+                  <span>{saving ? 'Verifying...' : 'Save & Verify Stripe'}</span>
                 </Button>
               </div>
             </div>
@@ -646,15 +717,15 @@ export default function AdminStripeSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* PRICE CONFIGURATION VALIDATION TABLE */}
+      {/* PRICE VALIDATION AUDIT TABLE */}
       <Card className="bg-slate-950 border-slate-800 text-white">
         <CardHeader className="pb-3 border-b border-slate-800/80">
           <CardTitle className="text-base font-bold text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-brand-400" />
-            <span>Product & Price ID Validation Audit</span>
+            <span>Product & Price ID Live Verification Audit</span>
           </CardTitle>
           <CardDescription className="text-xs text-slate-400">
-            Crediqly requires exactly three verified Price IDs in Stripe matching the canonical 3-tier offer model.
+            Real Stripe API retrieval validating exact amounts, intervals, and active status.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -662,7 +733,7 @@ export default function AdminStripeSettingsPage() {
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-900/60 text-slate-400 font-semibold border-b border-slate-800">
                 <tr>
-                  <th className="py-3 px-4">Plan / Deliverable</th>
+                  <th className="py-3 px-4">Plan / Offer</th>
                   <th className="py-3 px-4">Expected Price</th>
                   <th className="py-3 px-4">Configured Price ID</th>
                   <th className="py-3 px-4">Stripe Verified Amount</th>
@@ -670,7 +741,7 @@ export default function AdminStripeSettingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {/* 1. Pro */}
+                {/* Pro */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
                     Crediqly Pro Subscription
@@ -686,15 +757,15 @@ export default function AdminStripeSettingsPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant={data?.prices.pro.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.pro.valid ? 'Verified' : 'Configuration Required'}
+                      {data?.prices.pro.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
                     </Badge>
                   </td>
                 </tr>
 
-                {/* 2. Advisory Setup */}
+                {/* Advisory Setup */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Premium Advisory Setup Fee
+                    Advisory Setup Fee
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-purple-400">
                     $499.00 one-time
@@ -710,15 +781,15 @@ export default function AdminStripeSettingsPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant={data?.prices.advisorySetup.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.advisorySetup.valid ? 'Verified' : 'Configuration Required'}
+                      {data?.prices.advisorySetup.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
                     </Badge>
                   </td>
                 </tr>
 
-                {/* 3. Advisory Monthly */}
+                {/* Advisory Monthly */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Premium Advisory Monthly Maintenance
+                    Advisory Retainer
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-purple-400">
                     $149.00 / month
@@ -734,7 +805,7 @@ export default function AdminStripeSettingsPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant={data?.prices.advisoryMonthly.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.advisoryMonthly.valid ? 'Verified' : 'Configuration Required'}
+                      {data?.prices.advisoryMonthly.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
                     </Badge>
                   </td>
                 </tr>
@@ -744,21 +815,23 @@ export default function AdminStripeSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 9-ITEM READINESS CHECKLIST */}
+      {/* 7-POINT PRODUCTION READINESS CHECKLIST */}
       <Card className="bg-slate-950 border-slate-800 text-white">
         <CardHeader className="pb-3 border-b border-slate-800/80">
-          <CardTitle className="text-base font-bold text-white flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-emerald-400" />
-              <span>Production Payments Readiness Checklist</span>
-            </span>
-            <Badge variant={data?.overallReady ? 'success' : 'warning'} className="text-xs">
-              {data?.overallReady ? '100% Production Ready' : 'Setup Steps Remaining'}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-emerald-400" />
+                <span>Production Payments Readiness Checklist</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Systematic verification of all infrastructure, security, and webhook prerequisites.
+              </CardDescription>
+            </div>
+            <Badge variant={data?.overallReady ? 'success' : 'warning'} className="text-xs self-start sm:self-auto">
+              {data?.overallReady ? 'STRIPE READY ✓' : 'SETUP REQUIRED'}
             </Badge>
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-400">
-            Systematic verification of all infrastructure, security, and webhook prerequisites.
-          </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-3">
@@ -794,176 +867,46 @@ export default function AdminStripeSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* ENVIRONMENT SECRETS SECURITY POLICY & STATUS */}
+      {/* VERCEL PRODUCTION ENVIRONMENT VARIABLES GUIDE */}
       <Card className="bg-slate-950 border-slate-800 text-white">
         <CardHeader className="pb-3 border-b border-slate-800/80">
           <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Lock className="w-4 h-4 text-brand-400" />
-            <span>Environment Variable Status & Security Policy</span>
+            <Terminal className="w-4 h-4 text-brand-400" />
+            <span>Vercel Production Deployment Instructions</span>
           </CardTitle>
           <CardDescription className="text-xs text-slate-400">
-            Secrets are loaded securely via server environment variables. In strict compliance with security standards, secret tokens are NEVER stored in ordinary database tables or returned to the browser.
+            How to ensure your Stripe integration is active on your deployed domain (<code className="text-teal-300">crediqly.vercel.app</code>).
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-            {[
-              { key: 'STRIPE_SECRET_KEY', configured: data?.hasSecretKey, desc: 'Server Secret Key (sk_...)' },
-              { key: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', configured: data?.hasPublishableKey, desc: 'Client Key (pk_...)' },
-              { key: 'STRIPE_WEBHOOK_SECRET', configured: data?.hasWebhookSecret, desc: 'Signing Secret (whsec_...)' },
-              { key: 'STRIPE_PRO_PRICE_ID', configured: data?.prices.pro.configured, desc: 'Pro $39/mo Price ID' },
-              { key: 'STRIPE_ADVISORY_SETUP_PRICE_ID', configured: data?.prices.advisorySetup.configured, desc: 'Advisory $499 Setup ID' },
-              { key: 'STRIPE_ADVISORY_MONTHLY_PRICE_ID', configured: data?.prices.advisoryMonthly.configured, desc: 'Advisory $149/mo Price ID' },
-            ].map((env) => (
-              <div key={env.key} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] text-white font-bold">{env.key}</span>
-                  <Badge variant={env.configured ? 'success' : 'neutral'} className="text-[10px]">
-                    {env.configured ? 'Configured' : 'Missing'}
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-slate-400">{env.desc}</p>
-              </div>
-            ))}
-          </div>
-
           <div className="p-4 rounded-xl bg-brand-950/20 border border-brand-800/40 text-xs text-brand-300 flex items-start gap-3">
             <Shield className="w-5 h-5 flex-shrink-0 text-brand-400 mt-0.5" />
-            <p className="leading-relaxed">
-              To update these variables in local development, edit your project&apos;s <code className="bg-slate-900 px-1 py-0.5 rounded font-mono text-white">.env.local</code> file. In production (Vercel, AWS, or Docker), add them to your hosting provider&apos;s Environment Variables settings and redeploy.
-            </p>
+            <div className="space-y-1">
+              <p className="font-semibold text-white">Why Vercel Environment Variables Are Required:</p>
+              <p className="text-slate-300 leading-relaxed">
+                Vercel runs production apps on serverless execution environments with read-only filesystems. When you click <strong>Save &amp; Verify Stripe</strong>, your keys are saved and verified in the live server runtime immediately. To ensure your keys persist permanently across all future Vercel deployments, copy them to Vercel Project Settings using the button below.
+              </p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* STEP-BY-STEP OWNER SETUP GUIDE (STEPS 1 TO 9) */}
-      <Card className="bg-slate-950 border-slate-800 text-white">
-        <CardHeader className="pb-3 border-b border-slate-800/80">
-          <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-            <HelpCircle className="w-4 h-4 text-brand-400" />
-            <span>Owner Setup Guide: Step-by-Step Instructions</span>
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-400">
-            Follow these 9 exact steps to activate and verify production payments in Stripe.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                1
-              </span>
-              <div>
-                <strong className="text-white block">Log in to your Stripe Dashboard</strong>
-                Navigate to{' '}
-                <a
-                  href="https://dashboard.stripe.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-400 hover:underline inline-flex items-center gap-1"
-                >
-                  dashboard.stripe.com <ExternalLink className="w-3 h-3" />
-                </a>
-                . Ensure your payout commercial bank account is connected and verified.
-              </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-300">Environment Variables Block</span>
+              <Button
+                size="sm"
+                onClick={handleCopyEnvSnippet}
+                className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5 px-3 py-1"
+              >
+                {copiedEnv ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedEnv ? 'Copied!' : 'Copy All 6 Variables'}</span>
+              </Button>
             </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                2
-              </span>
-              <div>
-                <strong className="text-white block">Create Product 1: Crediqly Pro Subscription</strong>
-                Under <em>Product catalog</em>, create a product named &quot;Crediqly Pro&quot;. Add a recurring price of{' '}
-                <strong className="text-white">$39.00 USD billed monthly</strong>. Copy the generated Price ID (e.g. <code className="font-mono text-emerald-300">price_1...</code>).
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                3
-              </span>
-              <div>
-                <strong className="text-white block">Create Product 2: Premium Advisory Setup Fee</strong>
-                Create a product named &quot;Crediqly Premium Advisory — Initial File Audit &amp; Onboarding&quot;. Add a one-time price of{' '}
-                <strong className="text-white">$499.00 USD</strong>. Copy the Price ID.
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                4
-              </span>
-              <div>
-                <strong className="text-white block">Create Product 3: Premium Advisory Monthly Retainer</strong>
-                Under the same product or as a separate price, add a recurring price of{' '}
-                <strong className="text-white">$149.00 USD billed monthly</strong>. Copy the Price ID.
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                5
-              </span>
-              <div>
-                <strong className="text-white block">Configure API Keys</strong>
-                In <em>Developers → API keys</em>, copy your <strong>Publishable key</strong> and <strong>Secret key</strong> (use Test keys for testing, or Live keys when launching).
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                6
-              </span>
-              <div>
-                <strong className="text-white block">Configure Production Webhook</strong>
-                In <em>Developers → Webhooks</em>, add an endpoint pointing to:{' '}
-                <code className="bg-slate-900 px-2 py-1 rounded font-mono text-teal-300">
-                  https://crediqly.vercel.app/api/stripe/webhook
-                </code>
-                . Select the following 7 events:
-                <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-400 font-mono text-[11px]">
-                  <li>checkout.session.completed</li>
-                  <li>customer.subscription.created</li>
-                  <li>customer.subscription.updated</li>
-                  <li>customer.subscription.deleted</li>
-                  <li>invoice.payment_succeeded</li>
-                  <li>invoice.payment_failed</li>
-                  <li>payment_intent.succeeded</li>
-                </ul>
-                Reveal and copy the <strong>Signing secret</strong> (<code className="font-mono text-amber-300">whsec_...</code>).
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                7
-              </span>
-              <div>
-                <strong className="text-white block">Set Environment Variables in Deployment</strong>
-                Assign the copied values to the 6 required environment variables in your hosting environment.
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                8
-              </span>
-              <div>
-                <strong className="text-white block">Click &quot;Test Stripe Connection&quot;</strong>
-                Click the blue test button at the top of this page to run the automated diagnostic validation.
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs">
-                9
-              </span>
-              <div>
-                <strong className="text-white block">Confirm All 9 Checklist Badges are Green</strong>
-                Once all items show <Badge variant="success" className="text-[10px]">PASS</Badge>, real customers can purchase Pro and Premium Advisory safely.
-              </div>
-            </div>
+            <pre className="p-4 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto select-all">
+              {data?.vercelEnvSnippet || 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=\nSTRIPE_SECRET_KEY=\nSTRIPE_WEBHOOK_SECRET=\nSTRIPE_PRO_PRICE_ID=\nSTRIPE_ADVISORY_SETUP_PRICE_ID=\nSTRIPE_ADVISORY_MONTHLY_PRICE_ID='}
+            </pre>
+            <p className="text-[11px] text-slate-400">
+              Go to: <strong>Vercel Dashboard &gt; Crediqly Project &gt; Settings &gt; Environment Variables</strong> and paste these keys.
+            </p>
           </div>
         </CardContent>
       </Card>

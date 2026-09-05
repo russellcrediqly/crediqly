@@ -368,53 +368,8 @@ export async function getAllPaymentsAdmin(): Promise<AdminPaymentListItem[]> {
     }
   }
 
-  // Fallback demo payment records for local demonstration
-  return [
-    {
-      id: 'pay_demo_001',
-      userId: 'usr_founder_001',
-      userEmail: 'founder@crediqly.com',
-      userName: 'Alex Morgan',
-      businessName: 'Apex Transport LLC',
-      amount: 49900,
-      currency: 'usd',
-      paymentType: 'advisory_setup',
-      status: 'paid',
-      stripeCheckoutSessionId: 'cs_live_setup_001',
-      stripePaymentIntentId: 'pi_live_setup_001',
-      createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 'pay_demo_002',
-      userId: 'usr_founder_001',
-      userEmail: 'founder@crediqly.com',
-      userName: 'Alex Morgan',
-      businessName: 'Apex Transport LLC',
-      amount: 14900,
-      currency: 'usd',
-      paymentType: 'advisory_subscription',
-      status: 'paid',
-      stripeCheckoutSessionId: 'cs_live_advisory_002',
-      stripePaymentIntentId: 'pi_live_advisory_002',
-      createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 'pay_demo_003',
-      userId: 'usr_client_003',
-      userEmail: 'david@titanbuilds.com',
-      userName: 'David Chen',
-      businessName: 'Titan General Contracting Inc',
-      amount: 3900,
-      currency: 'usd',
-      paymentType: 'subscription',
-      status: 'paid',
-      stripeCheckoutSessionId: 'cs_live_pro_003',
-      stripePaymentIntentId: 'pi_live_pro_003',
-      createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-  ];
+  // Return empty list if database is empty or unconfigured (no fake/placeholder demo data)
+  return [];
 }
+
 
