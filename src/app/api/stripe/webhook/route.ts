@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { stripe, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
+import { stripe, STRIPE_CONFIG, syncStripeConfigFromStorage } from '@/lib/stripe/stripeServer';
 import { upsertSubscription, recordPayment } from '@/lib/supabase/subscriptionService';
 import { updateConsultationPaymentStatus } from '@/lib/supabase/consultationService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  await syncStripeConfigFromStorage();
   return NextResponse.json({
     status: 'active',
     endpoint: '/api/stripe/webhook',
@@ -16,6 +17,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  await syncStripeConfigFromStorage();
   if (!stripe) {
     return NextResponse.json(
       { error: 'Stripe is not configured on this server.' },

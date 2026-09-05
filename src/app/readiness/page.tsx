@@ -658,6 +658,14 @@ function ReadinessPageContent() {
               </div>
             </CardContent>
           </Card>
+
+          {/* EDUCATIONAL REGULATORY DISCLAIMER (Prompt Req 5 & 28) */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-start gap-3">
+            <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <strong className="text-slate-700">Educational Disclaimer:</strong> The Crediqly Commercial Readiness Index is an educational benchmark calculated from your self-reported business profile and compliance milestones. It is an internal readiness assessment and not an official commercial credit bureau score from Dun &amp; Bradstreet, Experian Commercial, or Equifax Business. Crediqly is not a lender, broker, or credit repair organization and never guarantees funding or approvals. Funding eligibility and underwriting decisions remain at the sole discretion of individual lenders.
+            </p>
+          </div>
         </div>
   );
 }

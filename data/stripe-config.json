@@ -1,0 +1,13 @@
+{
+  "publishableKey": "pk_test_NTHHzrzlE6jjB63uiufyfV1r",
+  "encryptedSecretKey": "c2f4effda7ccd4be39364ebf:bc56825ae9cc568c86cc31c21aeac0d4:0f070cc635127ee9939247566c96394f78a2a63812f9bcb04a54854bc1c631f3",
+  "encryptedWebhookSecret": "498325d0eef0de58cadf2d8c:6e3353c1e707c234cd2cc0348af2c8fc:105d1bba93fd2f60d76672d6c9d9eca4ed089a7835f297353f9a13ad78fe1d243c9ef792e578",
+  "proPriceId": "price_1UCGDNDzJxX7FxJaozgSxNbC",
+  "advisorySetupPriceId": "price_1UCGEcDzJxX7FxJaPY9eMuNK",
+  "advisoryMonthlyPriceId": "price_1UCIXzDzJxX7FxJaQ2BIUoLs",
+  "mode": "test",
+  "configured": true,
+  "lastVerifiedAt": "2026-09-05T13:48:57.899Z",
+  "lastVerificationStatus": "verified",
+  "updatedAt": "2026-09-05T13:48:57.901Z"
+}

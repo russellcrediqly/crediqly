@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { refreshStripeConfig, getStripeClient, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
+import Stripe from 'stripe';
+import {
+  savePersistentStripeConfig,
+  loadPersistentStripeConfig,
+  verifyAdminRequest,
+  maskSecret,
+  cleanString,
+} from '@/lib/stripe/stripeConfigStorage';
+import { refreshStripeConfig, getStripeClient } from '@/lib/stripe/stripeServer';
 
 interface SaveConfigRequest {
   publishableKey?: string;
@@ -14,188 +20,214 @@ interface SaveConfigRequest {
 
 export async function POST(req: Request) {
   try {
+    // 1. Server-side Admin Authorization Verification (Phase 4)
+    const authResult = await verifyAdminRequest(req);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error || 'Unauthorized. Administrator privileges required.' },
+        { status: 401 }
+      );
+    }
+
+    // Extract bearer token to authenticate Supabase RLS write
+    const authHeader = req.headers.get('authorization') || '';
+    const userAccessToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : undefined;
+
     const body: SaveConfigRequest = await req.json().catch(() => ({}));
 
-    const {
-      publishableKey,
-      secretKey,
-      webhookSecret,
-      proPriceId,
-      advisorySetupPriceId,
-      advisoryMonthlyPriceId,
-    } = body;
+    const trimmedPub = cleanString(body.publishableKey);
+    const trimmedSec = cleanString(body.secretKey);
+    const trimmedWh = cleanString(body.webhookSecret);
+    const trimmedPro = cleanString(body.proPriceId);
+    const trimmedSetup = cleanString(body.advisorySetupPriceId);
+    const trimmedMonthly = cleanString(body.advisoryMonthlyPriceId);
 
-    const trimmedPub = (publishableKey || '').trim();
-    const trimmedSec = (secretKey || '').trim();
-    const trimmedWh = (webhookSecret || '').trim();
-    const trimmedPro = (proPriceId || '').trim();
-    const trimmedSetup = (advisorySetupPriceId || '').trim();
-    const trimmedMonthly = (advisoryMonthlyPriceId || '').trim();
-
-    // Validate key formats ONLY IF provided
+    // 2. Format Validations (Only for newly provided values)
     if (trimmedPub && !trimmedPub.startsWith('pk_')) {
       return NextResponse.json(
-        { error: 'Invalid Publishable Key. Stripe publishable keys must begin with "pk_test_" or "pk_live_".' },
+        { error: 'Invalid Publishable Key format. Stripe publishable keys must begin with "pk_test_" or "pk_live_".' },
         { status: 400 }
       );
     }
 
     if (trimmedSec && !trimmedSec.startsWith('sk_')) {
       return NextResponse.json(
-        { error: 'Invalid Secret Key. Stripe secret keys must begin with "sk_test_" or "sk_live_".' },
+        { error: 'Invalid Secret Key format. Stripe secret keys must begin with "sk_test_" or "sk_live_".' },
         { status: 400 }
       );
     }
 
     if (trimmedWh && !trimmedWh.startsWith('whsec_')) {
       return NextResponse.json(
-        { error: 'Invalid Webhook Signing Secret. Stripe webhook secrets must begin with "whsec_".' },
+        { error: 'Invalid Webhook Signing Secret format. Stripe webhook secrets must begin with "whsec_".' },
         { status: 400 }
       );
     }
 
     if (trimmedPro && !trimmedPro.startsWith('price_')) {
       return NextResponse.json(
-        { error: 'Invalid Pro Price ID. Stripe Price IDs must begin with "price_".' },
+        { error: 'Invalid Pro Price ID format. Stripe Price IDs must begin with "price_".' },
         { status: 400 }
       );
     }
 
     if (trimmedSetup && !trimmedSetup.startsWith('price_')) {
       return NextResponse.json(
-        { error: 'Invalid Advisory Setup Price ID. Stripe Price IDs must begin with "price_".' },
+        { error: 'Invalid Advisory Setup Price ID format. Stripe Price IDs must begin with "price_".' },
         { status: 400 }
       );
     }
 
     if (trimmedMonthly && !trimmedMonthly.startsWith('price_')) {
       return NextResponse.json(
-        { error: 'Invalid Advisory Monthly Price ID. Stripe Price IDs must begin with "price_".' },
+        { error: 'Invalid Advisory Monthly Price ID format. Stripe Price IDs must begin with "price_".' },
         { status: 400 }
       );
     }
 
-    // Prepare dictionary of environment variables to update
-    // CRITICAL: Only include variables that have actual non-empty values!
-    // NEVER overwrite an existing secret with empty string or delete it from process.env.
-    const envUpdates: Record<string, string> = {};
-    if (trimmedPub) envUpdates['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'] = trimmedPub;
-    if (trimmedSec) envUpdates['STRIPE_SECRET_KEY'] = trimmedSec;
-    if (trimmedWh) envUpdates['STRIPE_WEBHOOK_SECRET'] = trimmedWh;
-    if (trimmedPro) envUpdates['STRIPE_PRO_PRICE_ID'] = trimmedPro;
-    if (trimmedSetup) envUpdates['STRIPE_ADVISORY_SETUP_PRICE_ID'] = trimmedSetup;
-    if (trimmedMonthly) envUpdates['STRIPE_ADVISORY_MONTHLY_PRICE_ID'] = trimmedMonthly;
+    // 3. Load currently active persistent configuration to merge and preserve existing values
+    const { config: currentConfig } = await loadPersistentStripeConfig(userAccessToken);
+    const candidateSecret = trimmedSec || currentConfig.secretKey;
+    const candidatePub = trimmedPub || currentConfig.publishableKey;
+    const candidateWh = trimmedWh || currentConfig.webhookSecret;
+    const candidatePro = trimmedPro || currentConfig.proPriceId;
+    const candidateSetup = trimmedSetup || currentConfig.advisorySetupPriceId;
+    const candidateMonthly = trimmedMonthly || currentConfig.advisoryMonthlyPriceId;
 
-    // 1. Update runtime process.env for provided variables
-    for (const [key, val] of Object.entries(envUpdates)) {
-      if (val) {
-        process.env[key] = val;
-      }
-    }
+    // 4. Test Stripe Live API BEFORE Overwriting Configuration (Phase 15 & 16 Failure Safety)
+    let liveStripeClient: Stripe | null = null;
+    let balanceVerified = false;
 
-    // Refresh active stripe server instance
-    refreshStripeConfig();
-
-    // 2. Safely attempt to persist to .env.local on disk (local development)
-    let envPersisted = false;
-    let envPersistNote = 'Configuration updated in runtime memory.';
-    try {
-      const envFilePath = path.join(process.cwd(), '.env.local');
-      let envContent = '';
-      if (fs.existsSync(envFilePath)) {
-        envContent = fs.readFileSync(envFilePath, 'utf8');
-      }
-
-      // Parse and update lines
-      const lines = envContent.split(/\r?\n/);
-      const updatedKeys = new Set<string>();
-
-      const updatedLines = lines.map((line) => {
-        const match = line.match(/^\s*([A-Za-z0-9_]+)\s*=/);
-        if (match) {
-          const key = match[1];
-          if (key in envUpdates) {
-            updatedKeys.add(key);
-            return `${key}=${envUpdates[key]}`;
-          }
-        }
-        return line;
-      });
-
-      // Append any keys that weren't already present in .env.local
-      const missingKeys = Object.entries(envUpdates).filter(([key]) => !updatedKeys.has(key));
-      if (missingKeys.length > 0) {
-        if (updatedLines.length > 0 && updatedLines[updatedLines.length - 1].trim() !== '') {
-          updatedLines.push('');
-        }
-        updatedLines.push('# Stripe Production & Testing Configuration');
-        for (const [key, val] of missingKeys) {
-          updatedLines.push(`${key}=${val}`);
-        }
-      }
-
-      fs.writeFileSync(envFilePath, updatedLines.join('\n'), 'utf8');
-      envPersisted = true;
-      envPersistNote = 'Configuration saved to .env.local and active in runtime.';
-    } catch (fsErr: any) {
-      // On Vercel / serverless environments, writeFileSync throws EROFS (Read-only filesystem).
-      // We gracefully catch this and notify the user to also copy variables to Vercel dashboard.
-      envPersisted = false;
-      envPersistNote = 'Saved in runtime memory. On Vercel production, also add these variables in Vercel Project Settings.';
-    }
-
-    // 3. Test Stripe connectivity & validate prices
-    let connectionStatus: 'connected' | 'error' | 'unconfigured' = 'unconfigured';
-    let connectionMessage = 'No Stripe Secret Key configured.';
-    let balanceAvailable = false;
-    const client = getStripeClient();
-
-    if (client) {
+    if (candidateSecret) {
       try {
-        await client.balance.retrieve();
-        connectionStatus = 'connected';
-        connectionMessage = 'Successfully verified connection to Stripe API.';
-        balanceAvailable = true;
-      } catch (err: any) {
-        connectionStatus = 'error';
-        connectionMessage = err.message || 'Failed to authenticate with Stripe API.';
+        const testClient = new Stripe(candidateSecret, {
+          apiVersion: '2024-11-20.acacia' as any,
+          typescript: true,
+          timeout: 15000,
+          maxNetworkRetries: 1,
+        });
+
+        await testClient.balance.retrieve();
+        liveStripeClient = testClient;
+        balanceVerified = true;
+      } catch (testErr: any) {
+        // If the user submitted an explicit new secret key that failed, reject immediately
+        // to prevent corrupting a previously working configuration
+        if (trimmedSec) {
+          return NextResponse.json(
+            {
+              error: `Stripe connection test failed with provided Secret Key: ${testErr.message || 'Invalid API key'}`,
+              preservedPrevious: Boolean(currentConfig.secretKey),
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
-    // Build copyable Vercel environment variables block
-    const activePublishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
-    const activeSecret = process.env.STRIPE_SECRET_KEY || '';
-    const activeWebhook = process.env.STRIPE_WEBHOOK_SECRET || '';
-    const activePro = process.env.STRIPE_PRO_PRICE_ID || '';
-    const activeSetup = process.env.STRIPE_ADVISORY_SETUP_PRICE_ID || '';
-    const activeMonthly = process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID || '';
+    // 5. Verify Candidate Price IDs against live Stripe account
+    const priceAudit: Record<string, { valid: boolean; actual?: string; error?: string }> = {
+      pro: { valid: false },
+      advisorySetup: { valid: false },
+      advisoryMonthly: { valid: false },
+    };
 
-    const vercelEnvSnippet = [
-      `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${activePublishable}`,
-      `STRIPE_SECRET_KEY=${activeSecret}`,
-      `STRIPE_WEBHOOK_SECRET=${activeWebhook}`,
-      `STRIPE_PRO_PRICE_ID=${activePro}`,
-      `STRIPE_ADVISORY_SETUP_PRICE_ID=${activeSetup}`,
-      `STRIPE_ADVISORY_MONTHLY_PRICE_ID=${activeMonthly}`,
-    ].join('\n');
+    if (liveStripeClient) {
+      // Validate Pro Price
+      if (candidatePro) {
+        try {
+          const p = await liveStripeClient.prices.retrieve(candidatePro);
+          const amount = p.unit_amount || 0;
+          const interval = p.recurring?.interval;
+          priceAudit.pro.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
+          if (amount === 3900 && interval === 'month') {
+            priceAudit.pro.valid = true;
+          } else {
+            priceAudit.pro.error = `Price amount does not match expected $39/month (Found: ${priceAudit.pro.actual})`;
+          }
+        } catch (err: any) {
+          priceAudit.pro.error = `Price ID ${candidatePro} not found in Stripe account.`;
+        }
+      }
+
+      // Validate Advisory Setup Price
+      if (candidateSetup) {
+        try {
+          const p = await liveStripeClient.prices.retrieve(candidateSetup);
+          const amount = p.unit_amount || 0;
+          priceAudit.advisorySetup.actual = `$${(amount / 100).toFixed(2)} one-time`;
+          if (amount === 49900 && p.type === 'one_time') {
+            priceAudit.advisorySetup.valid = true;
+          } else {
+            priceAudit.advisorySetup.error = `Price amount does not match expected $499 one-time (Found: ${priceAudit.advisorySetup.actual})`;
+          }
+        } catch (err: any) {
+          priceAudit.advisorySetup.error = `Price ID ${candidateSetup} not found in Stripe account.`;
+        }
+      }
+
+      // Validate Advisory Monthly Price
+      if (candidateMonthly) {
+        try {
+          const p = await liveStripeClient.prices.retrieve(candidateMonthly);
+          const amount = p.unit_amount || 0;
+          const interval = p.recurring?.interval;
+          priceAudit.advisoryMonthly.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
+          if (amount === 14900 && interval === 'month') {
+            priceAudit.advisoryMonthly.valid = true;
+          } else {
+            priceAudit.advisoryMonthly.error = `Price amount does not match expected $149/month (Found: ${priceAudit.advisoryMonthly.actual})`;
+          }
+        } catch (err: any) {
+          priceAudit.advisoryMonthly.error = `Price ID ${candidateMonthly} not found in Stripe account.`;
+        }
+      }
+    }
+
+    // 6. Persist to Multi-Tier Backend (Supabase Database + Local Server File Store)
+    const isLive = candidateSecret.startsWith('sk_live_');
+    const mode = isLive ? 'live' : 'test';
+
+    const persistResult = await savePersistentStripeConfig(
+      {
+        publishableKey: candidatePub,
+        secretKey: candidateSecret,
+        webhookSecret: candidateWh,
+        proPriceId: candidatePro,
+        advisorySetupPriceId: candidateSetup,
+        advisoryMonthlyPriceId: candidateMonthly,
+        mode,
+        lastVerificationStatus: balanceVerified ? 'verified' : 'unverified',
+      },
+      userAccessToken
+    );
+
+    refreshStripeConfig();
 
     return NextResponse.json({
       success: true,
-      message: 'Stripe configuration successfully updated and verified.',
-      envPersisted,
-      envPersistNote,
-      connectionStatus,
-      connectionMessage,
-      balanceAvailable,
-      vercelEnvSnippet,
+      message: persistResult.message,
+      persistedDb: persistResult.persistedDb,
+      persistedFile: persistResult.persistedFile,
+      storageBackend: persistResult.storageBackend,
+      connectionStatus: balanceVerified ? 'connected' : candidateSecret ? 'error' : 'unconfigured',
+      connectionMessage: balanceVerified
+        ? 'Successfully authenticated and verified connection with Stripe API.'
+        : 'Stripe credentials saved, awaiting live connection verification.',
+      mode,
+      publishableKey: candidatePub,
+      hasSecretKey: Boolean(candidateSecret),
+      maskedSecretKey: maskSecret(candidateSecret),
+      hasWebhookSecret: Boolean(candidateWh),
+      maskedWebhookSecret: maskSecret(candidateWh, 'whsec_'),
+      priceAudit,
       updatedAt: new Date().toISOString(),
     });
   } catch (err: any) {
-    console.error('Error saving Stripe configuration:', err);
+    console.error('Error saving persistent Stripe configuration:', err);
     return NextResponse.json(
-      { error: err.message || 'An unexpected error occurred while saving Stripe configuration.' },
+      { error: err.message || 'An unexpected error occurred while persisting Stripe configuration.' },
       { status: 500 }
     );
   }
 }
-
