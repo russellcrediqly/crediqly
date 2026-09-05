@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -43,9 +45,12 @@ interface VerificationData {
   webhookStatus: 'active' | 'waiting_for_first_event' | 'not_configured';
   lastEventAt: string | null;
   lastEventType: string | null;
+  publishableKey?: string;
   hasPublishableKey: boolean;
   hasSecretKey: boolean;
+  maskedSecretKey?: string;
   hasWebhookSecret: boolean;
+  maskedWebhookSecret?: string;
   prices: {
     pro: PriceCheck;
     advisorySetup: PriceCheck;
@@ -88,10 +93,10 @@ export default function AdminStripeSettingsPage() {
       if (res.ok) {
         const json: VerificationData = await res.json();
         setData(json);
-        // Pre-fill price IDs and publishable key if available
+        // Pre-fill price IDs and publishable key from server
         setForm((prev) => ({
           ...prev,
-          publishableKey: prev.publishableKey || (json.hasPublishableKey ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '' : ''),
+          publishableKey: prev.publishableKey || json.publishableKey || '',
           proPriceId: prev.proPriceId || json.prices.pro?.id || '',
           advisorySetupPriceId: prev.advisorySetupPriceId || json.prices.advisorySetup?.id || '',
           advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || json.prices.advisoryMonthly?.id || '',
@@ -124,7 +129,7 @@ export default function AdminStripeSettingsPage() {
       await fetchStatus();
       setFeedback({
         type: 'success',
-        message: 'Stripe infrastructure diagnostic test completed successfully.',
+        message: 'Stripe live diagnostic test completed.',
       });
     } catch {
       setFeedback({
@@ -160,7 +165,7 @@ export default function AdminStripeSettingsPage() {
 
       setFeedback({
         type: 'success',
-        message: `${json.message} ${json.connectionMessage}`,
+        message: `${json.message} Status: ${json.connectionMessage}`,
       });
 
       // Clear the secret fields from input form so they remain masked
@@ -493,7 +498,7 @@ export default function AdminStripeSettingsPage() {
                   <div className="relative">
                     <input
                       type={showSecretKey ? 'text' : 'password'}
-                      placeholder={data?.hasSecretKey ? '•••••••••••••••• (Leave blank to preserve existing)' : 'sk_test_... or sk_live_...'}
+                      placeholder={data?.maskedSecretKey ? `${data.maskedSecretKey} (Leave blank to keep)` : 'sk_test_... or sk_live_...'}
                       value={form.secretKey}
                       onChange={(e) => setForm({ ...form, secretKey: e.target.value })}
                       className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
@@ -529,7 +534,7 @@ export default function AdminStripeSettingsPage() {
                   <div className="relative">
                     <input
                       type={showWebhookSecret ? 'text' : 'password'}
-                      placeholder={data?.hasWebhookSecret ? '•••••••••••••••• (Leave blank to preserve existing)' : 'whsec_...'}
+                      placeholder={data?.maskedWebhookSecret ? `${data.maskedWebhookSecret} (Leave blank to keep)` : 'whsec_...'}
                       value={form.webhookSecret}
                       onChange={(e) => setForm({ ...form, webhookSecret: e.target.value })}
                       className="w-full px-3 py-2 pr-9 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { APP_VERSION } from '@/lib/version';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -180,6 +181,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
           </button>
+
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 px-1 pt-1 border-t border-slate-900">
+            <span>Crediqly Platform</span>
+            <span>v{APP_VERSION}</span>
+          </div>
         </div>
       </aside>
 

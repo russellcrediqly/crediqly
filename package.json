@@ -1,10 +1,12 @@
 {
   "name": "crediqly",
-  "version": "0.1.0",
+  "version": "3.8.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/update-version.js",
     "build": "next build",
+    "version:bump": "node scripts/update-version.js",
     "start": "next start",
     "lint": "next lint"
   },

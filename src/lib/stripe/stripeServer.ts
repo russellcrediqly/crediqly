@@ -3,8 +3,12 @@ import Stripe from 'stripe';
 let cachedStripe: Stripe | null = null;
 let cachedKey = '';
 
+export function cleanKey(val?: string): string {
+  return (val || '').trim().replace(/^["']|["']$/g, '');
+}
+
 export function getStripeClient(): Stripe | null {
-  const secret = (process.env.STRIPE_SECRET_KEY || '').trim();
+  const secret = cleanKey(process.env.STRIPE_SECRET_KEY);
   if (!secret || !secret.startsWith('sk_')) {
     cachedStripe = null;
     cachedKey = '';
@@ -17,6 +21,8 @@ export function getStripeClient(): Stripe | null {
   cachedStripe = new Stripe(secret, {
     apiVersion: '2024-11-20.acacia' as any,
     typescript: true,
+    timeout: 20000,
+    maxNetworkRetries: 2,
     appInfo: {
       name: 'Crediqly Commercial Credit Platform',
       version: '1.0.0',
@@ -26,11 +32,11 @@ export function getStripeClient(): Stripe | null {
 }
 
 export let isStripeConfigured = Boolean(
-  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.trim().startsWith('sk_')
+  cleanKey(process.env.STRIPE_SECRET_KEY).startsWith('sk_')
 );
 
 export function refreshStripeConfig() {
-  const secret = (process.env.STRIPE_SECRET_KEY || '').trim();
+  const secret = cleanKey(process.env.STRIPE_SECRET_KEY);
   isStripeConfigured = Boolean(secret && secret.startsWith('sk_'));
   cachedStripe = null;
   cachedKey = '';
@@ -50,19 +56,19 @@ export const stripe = new Proxy({} as Stripe, {
 
 export const STRIPE_CONFIG = {
   get proPriceId() {
-    return (process.env.STRIPE_PRO_PRICE_ID || '').trim();
+    return cleanKey(process.env.STRIPE_PRO_PRICE_ID);
   },
   get consultationPriceId() {
-    return (process.env.STRIPE_CONSULTATION_PRICE_ID || '').trim();
+    return cleanKey(process.env.STRIPE_CONSULTATION_PRICE_ID);
   },
   get advisorySetupPriceId() {
-    return (process.env.STRIPE_ADVISORY_SETUP_PRICE_ID || '').trim();
+    return cleanKey(process.env.STRIPE_ADVISORY_SETUP_PRICE_ID);
   },
   get advisoryMonthlyPriceId() {
-    return (process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID || '').trim();
+    return cleanKey(process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID);
   },
   get webhookSecret() {
-    return (process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+    return cleanKey(process.env.STRIPE_WEBHOOK_SECRET);
   },
   proPriceCents: 3900, // $39.00
   consultationPriceCents: 9900, // $99.00

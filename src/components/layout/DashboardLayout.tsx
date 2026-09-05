@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/Button';
 import { ConsultationModal } from '@/components/ui/ConsultationModal';
 import { usePlatformSections } from '@/lib/usePlatformSections';
@@ -231,6 +232,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
           </button>
+
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1 pt-1 border-t border-slate-200/50">
+            <span>Crediqly</span>
+            <span>v{APP_VERSION}</span>
+          </div>
         </div>
       </aside>
 

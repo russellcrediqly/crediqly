@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { APP_VERSION } from '@/lib/version';
 
 export const Footer: React.FC = () => {
   return (
@@ -77,7 +78,12 @@ export const Footer: React.FC = () => {
             <strong>Disclaimer:</strong> Crediqly is an educational and business-credit readiness platform. Crediqly is not a lender, credit repair organization, or credit reporting agency. Crediqly does not guarantee funding approval, credit line amounts, or credit score increases. All financial decisions are made solely by prospective lenders and bureaus based on their independent criteria.
           </p>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-slate-400">
-            <p>© {new Date().getFullYear()} Crediqly. All rights reserved.</p>
+            <div className="flex items-center gap-2.5">
+              <p>© {new Date().getFullYear()} Crediqly. All rights reserved.</p>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-navy-900 text-slate-400 border border-navy-700/80">
+                v{APP_VERSION}
+              </span>
+            </div>
             <p>Built for U.S. Small-Business Owners.</p>
           </div>
         </div>
@@ -85,3 +91,4 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+
