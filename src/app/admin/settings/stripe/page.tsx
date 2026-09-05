@@ -22,61 +22,11 @@ import {
   EyeOff,
   Copy,
   Terminal,
-  Database,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { supabase } from '@/lib/supabase/client';
-
-const SUPABASE_MIGRATION_SQL = `-- ==============================================================================
--- STRIPE CONFIGURATION PERSISTENCE TABLE (Admin Stripe Setup)
--- Authoritative persistent store for Crediqly Stripe credentials and Price IDs
--- Run this in Supabase SQL Editor: Dashboard -> SQL Editor -> New Query -> Run
--- ==============================================================================
-
-create table if not exists public.stripe_configuration (
-  id text primary key default 'default',
-  publishable_key text,
-  encrypted_secret_key text,
-  encrypted_webhook_secret text,
-  pro_price_id text,
-  advisory_setup_price_id text,
-  advisory_monthly_price_id text,
-  mode text default 'test' check (mode in ('test', 'live')),
-  configured boolean default false,
-  last_verified_at timestamptz,
-  last_verification_status text,
-  last_error text,
-  created_at timestamptz default now() not null,
-  updated_at timestamptz default now() not null
-);
-
--- Enable Row Level Security (RLS)
-alter table public.stripe_configuration enable row level security;
-
--- Policies: Only verified administrators can read and update Stripe configuration
-drop policy if exists "Admins can view stripe configuration" on public.stripe_configuration;
-create policy "Admins can view stripe configuration"
-  on public.stripe_configuration for select
-  using (public.is_admin());
-
-drop policy if exists "Admins can insert stripe configuration" on public.stripe_configuration;
-create policy "Admins can insert stripe configuration"
-  on public.stripe_configuration for insert
-  with check (public.is_admin());
-
-drop policy if exists "Admins can update stripe configuration" on public.stripe_configuration;
-create policy "Admins can update stripe configuration"
-  on public.stripe_configuration for update
-  using (public.is_admin());
-
--- Seed single default configuration record
-insert into public.stripe_configuration (id, mode, configured)
-values ('default', 'test', false)
-on conflict (id) do nothing;
-`;
 
 interface PriceCheck {
   id: string;
@@ -106,8 +56,6 @@ interface VerificationData {
     advisorySetup: PriceCheck;
     advisoryMonthly: PriceCheck;
   };
-  storageBackend?: 'supabase_database' | 'server_file' | 'environment_variables';
-  supabaseTableFound?: boolean;
   checklist: {
     id: string;
     label: string;
@@ -129,8 +77,6 @@ export default function AdminStripeSettingsPage() {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedEnv, setCopiedEnv] = useState(false);
-  const [copiedSql, setCopiedSql] = useState(false);
-  const [showSqlMigration, setShowSqlMigration] = useState(false);
 
   const [form, setForm] = useState({
     publishableKey: '',
@@ -141,48 +87,24 @@ export default function AdminStripeSettingsPage() {
     advisoryMonthlyPriceId: '',
   });
 
-  const getAuthHeaders = async () => {
-    const headers: Record<string, string> = {};
-    if (supabase) {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-      } catch (e) {
-        console.warn('Could not retrieve Supabase session token:', e);
-      }
-    }
-    return headers;
-  };
-
   const fetchStatus = useCallback(async () => {
     try {
-      const authHeaders = await getAuthHeaders();
-      const res = await fetch('/api/stripe/verify-config', {
-        headers: {
-          ...authHeaders,
-        },
-        cache: 'no-store',
-      });
+      const res = await fetch('/api/stripe/verify-config');
       if (res.ok) {
         const json: VerificationData = await res.json();
         setData(json);
         // Pre-fill price IDs and publishable key from server
         setForm((prev) => ({
-          publishableKey: json.publishableKey || prev.publishableKey || '',
-          secretKey: prev.secretKey,
-          webhookSecret: prev.webhookSecret,
-          proPriceId: json.prices?.pro?.id || prev.proPriceId || '',
-          advisorySetupPriceId: json.prices?.advisorySetup?.id || prev.advisorySetupPriceId || '',
-          advisoryMonthlyPriceId: json.prices?.advisoryMonthly?.id || prev.advisoryMonthlyPriceId || '',
+          ...prev,
+          publishableKey: prev.publishableKey || json.publishableKey || '',
+          proPriceId: prev.proPriceId || json.prices.pro?.id || '',
+          advisorySetupPriceId: prev.advisorySetupPriceId || json.prices.advisorySetup?.id || '',
+          advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || json.prices.advisoryMonthly?.id || '',
         }));
       } else {
-        const errJson = await res.json().catch(() => ({}));
         setFeedback({
           type: 'error',
-          message: errJson.error || 'Failed to retrieve Stripe configuration diagnostics from server.',
+          message: 'Failed to retrieve Stripe configuration diagnostics from server.',
         });
       }
     } catch (e: any) {
@@ -230,13 +152,9 @@ export default function AdminStripeSettingsPage() {
       if (form.advisorySetupPriceId.trim()) payload.advisorySetupPriceId = form.advisorySetupPriceId.trim();
       if (form.advisoryMonthlyPriceId.trim()) payload.advisoryMonthlyPriceId = form.advisoryMonthlyPriceId.trim();
 
-      const authHeaders = await getAuthHeaders();
       const res = await fetch('/api/stripe/save-config', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -247,18 +165,15 @@ export default function AdminStripeSettingsPage() {
 
       setFeedback({
         type: 'success',
-        message: `${json.message} Status: ${json.connectionMessage || 'Verified ✓'}`,
+        message: `${json.message} Status: ${json.connectionMessage}`,
       });
 
       // Clear the secret fields from input form so they remain masked
-      setForm({
-        publishableKey: json.config?.publishableKey || form.publishableKey,
+      setForm((prev) => ({
+        ...prev,
         secretKey: '',
         webhookSecret: '',
-        proPriceId: json.config?.proPriceId || form.proPriceId,
-        advisorySetupPriceId: json.config?.advisorySetupPriceId || form.advisorySetupPriceId,
-        advisoryMonthlyPriceId: json.config?.advisoryMonthlyPriceId || form.advisoryMonthlyPriceId,
-      });
+      }));
 
       await fetchStatus();
     } catch (err: any) {
@@ -275,12 +190,6 @@ export default function AdminStripeSettingsPage() {
     navigator.clipboard.writeText('https://crediqly.vercel.app/api/stripe/webhook');
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2500);
-  };
-
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(SUPABASE_MIGRATION_SQL);
-    setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   const handleCopyEnvSnippet = () => {
@@ -365,14 +274,6 @@ export default function AdminStripeSettingsPage() {
                 }`}
               >
                 {mode === 'test' ? 'TEST MODE' : mode === 'live' ? 'LIVE MODE' : 'NOT CONFIGURED'}
-              </span>
-
-              {/* Persistent Storage Badge */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                <Database className="w-3.5 h-3.5 text-indigo-400" />
-                {data?.storageBackend === 'supabase_database'
-                  ? 'SUPABASE DB PERSISTED ✓'
-                  : 'SERVER PERSISTED (AES-256) ✓'}
               </span>
             </div>
             <p className="text-xs text-slate-400">
@@ -522,85 +423,6 @@ export default function AdminStripeSettingsPage() {
           </p>
         </Card>
       </div>
-
-      {/* Storage Persistence Engine Status & Migration Helper */}
-      <div className="p-4 rounded-2xl border bg-slate-950/90 border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
-        <div className="flex items-start gap-3.5">
-          <div className={`p-2.5 rounded-xl ${data?.storageBackend === 'supabase_database' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'} flex-shrink-0 mt-0.5`}>
-            <Shield className="w-5 h-5" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-white tracking-wide">
-                Configuration Storage Engine:
-              </span>
-              <Badge variant={data?.storageBackend === 'supabase_database' ? 'success' : 'info'} className="text-[10px]">
-                {data?.storageBackend === 'supabase_database'
-                  ? 'Supabase Database (public.stripe_configuration) ✓'
-                  : 'Server Persistent Storage (AES-256-GCM Encrypted) ✓'}
-              </Badge>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {data?.storageBackend === 'supabase_database'
-                ? 'Your credentials and canonical price IDs are permanently encrypted at rest with AES-256-GCM and persisted in your Supabase database table with Row-Level Security.'
-                : 'Your credentials and canonical price IDs are encrypted with AES-256-GCM and saved in local persistent storage. They will never disappear on page refresh or browser restarts.'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0 self-start md:self-center">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setShowSqlMigration(!showSqlMigration)}
-            className="text-xs bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 gap-1.5"
-          >
-            <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{showSqlMigration ? 'Hide Supabase SQL' : 'Supabase SQL Table'}</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleCopySql}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs gap-1.5 shadow-sm font-semibold"
-          >
-            {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedSql ? 'SQL Copied!' : 'Copy Migration SQL'}</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Collapsible Supabase SQL Migration Card */}
-      {showSqlMigration && (
-        <Card className="bg-slate-950 border-indigo-500/30 text-white shadow-xl">
-          <CardHeader className="pb-3 border-b border-slate-800/80">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-sm font-bold text-indigo-300 flex items-center gap-2">
-                  <Database className="w-4 h-4 text-indigo-400" />
-                  <span>Supabase Database Schema: public.stripe_configuration</span>
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-400 mt-0.5">
-                  Execute this SQL in Supabase SQL Editor (Dashboard &gt; SQL Editor &gt; New Query &gt; Run) to persist Stripe config directly in your Supabase project.
-                </CardDescription>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleCopySql}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs gap-1.5 self-start sm:self-auto"
-              >
-                {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedSql ? 'Copied!' : 'Copy SQL Script'}</span>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <pre className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto select-all max-h-60 overflow-y-auto leading-relaxed">
-              {SUPABASE_MIGRATION_SQL}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
 
       {/* STRIPE CREDENTIALS & PRICE IDS CONFIGURATION FORM */}
       <Card className="bg-slate-950 border-brand-500/40 text-white shadow-2xl relative overflow-hidden">

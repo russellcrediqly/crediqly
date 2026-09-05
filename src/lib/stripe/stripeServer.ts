@@ -1,5 +1,4 @@
 import Stripe from 'stripe';
-import { loadPersistentStripeConfig } from './stripeConfigStorage';
 
 let cachedStripe: Stripe | null = null;
 let cachedKey = '';
@@ -41,29 +40,6 @@ export function refreshStripeConfig() {
   isStripeConfigured = Boolean(secret && secret.startsWith('sk_'));
   cachedStripe = null;
   cachedKey = '';
-}
-
-/**
- * Synchronize runtime process.env with the authoritative persistent configuration (Supabase / server storage)
- */
-export async function syncStripeConfigFromStorage(userAccessToken?: string) {
-  try {
-    const { config, supabaseTableFound } = await loadPersistentStripeConfig(userAccessToken);
-    if (config.publishableKey) {
-      const pubKeyName = ['NEXT', 'PUBLIC', 'STRIPE', 'PUBLISHABLE', 'KEY'].join('_');
-      (process.env as any)[pubKeyName] = config.publishableKey;
-    }
-    if (config.secretKey) process.env.STRIPE_SECRET_KEY = config.secretKey;
-    if (config.webhookSecret) process.env.STRIPE_WEBHOOK_SECRET = config.webhookSecret;
-    if (config.proPriceId) process.env.STRIPE_PRO_PRICE_ID = config.proPriceId;
-    if (config.advisorySetupPriceId) process.env.STRIPE_ADVISORY_SETUP_PRICE_ID = config.advisorySetupPriceId;
-    if (config.advisoryMonthlyPriceId) process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID = config.advisoryMonthlyPriceId;
-    refreshStripeConfig();
-    return { config, supabaseTableFound };
-  } catch (e) {
-    refreshStripeConfig();
-    return null;
-  }
 }
 
 export const stripe = new Proxy({} as Stripe, {

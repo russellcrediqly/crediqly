@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { stripe, isStripeConfigured, STRIPE_CONFIG, getAppBaseUrl, syncStripeConfigFromStorage } from '@/lib/stripe/stripeServer';
+import { stripe, isStripeConfigured, STRIPE_CONFIG, getAppBaseUrl } from '@/lib/stripe/stripeServer';
 
 export async function POST(req: Request) {
   try {
-    await syncStripeConfigFromStorage();
     const body = await req.json().catch(() => ({}));
     const { userId, customerEmail } = body;
 
