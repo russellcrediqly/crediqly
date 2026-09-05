@@ -75,22 +75,22 @@ export default function OnboardingPage() {
     industry: '',
     businessAge: '',
 
-    hasEIN: 'not_sure',
-    hasBusinessBankAccount: 'not_sure',
-    hasWebsite: 'not_sure',
-    hasBusinessPhone: 'not_sure',
-    hasBusinessEmail: 'not_sure',
-    hasBusinessAddress: 'not_sure',
-    hasBusinessLicense: 'not_sure',
-    hasDuns: 'not_sure',
+    hasEIN: undefined,
+    hasBusinessBankAccount: undefined,
+    hasWebsite: undefined,
+    hasBusinessPhone: undefined,
+    hasBusinessEmail: undefined,
+    hasBusinessAddress: undefined,
+    hasBusinessLicense: undefined,
+    hasDuns: undefined,
 
-    hasBusinessCreditProfile: 'not_sure',
-    knowsBusinessCreditScore: 'not_sure',
+    hasBusinessCreditProfile: undefined,
+    knowsBusinessCreditScore: undefined,
     businessCreditScore: '',
-    businessCreditAccountCount: 'not_sure',
-    hasReportingAccounts: 'not_sure',
-    hasBusinessCreditCard: 'not_sure',
-    hasFundingHistory: 'not_sure',
+    businessCreditAccountCount: undefined,
+    hasReportingAccounts: undefined,
+    hasBusinessCreditCard: undefined,
+    hasFundingHistory: undefined,
 
     annualRevenueRange: '',
     personalCreditRange: '',
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // Helper counts for review screen
+  // Helper counts for review screen (all answered questions count)
   const foundationCompletedCount = [
     formData.hasEIN,
     formData.hasBusinessBankAccount,
@@ -192,7 +192,7 @@ export default function OnboardingPage() {
     formData.hasBusinessAddress,
     formData.hasBusinessLicense,
     formData.hasDuns,
-  ].filter((v) => v && v !== 'not_sure').length;
+  ].filter(Boolean).length;
 
   const creditCompletedCount = [
     formData.hasBusinessCreditProfile,
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
     formData.hasReportingAccounts,
     formData.hasBusinessCreditCard,
     formData.hasFundingHistory,
-  ].filter((v) => v && v !== 'not_sure').length;
+  ].filter(Boolean).length;
 
   const fundingCompletedCount = [
     formData.annualRevenueRange,
@@ -214,19 +214,29 @@ export default function OnboardingPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          {/* Header & Logo */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm">
+          {/* Header & Logo with direct Return to Dashboard option */}
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-base shadow-xs">
                 C
               </div>
-              <span className="font-extrabold text-slate-900 text-xl tracking-tight">
-                Crediqly
-              </span>
+              <div>
+                <span className="font-extrabold text-slate-900 text-lg tracking-tight block">
+                  Crediqly
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium block">
+                  Business Onboarding Wizard
+                </span>
+              </div>
             </div>
-            <div className="text-xs text-slate-500 font-medium">
-              Business Onboarding Wizard
-            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs"
+            >
+              Save &amp; Return to Dashboard
+            </button>
           </div>
 
           {/* Progress Indicator */}
@@ -366,7 +376,7 @@ export default function OnboardingPage() {
                       label="Do you have an EIN?"
                       description="We only need to know whether you have one. Do NOT enter your actual EIN."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasEIN || 'not_sure'}
+                      value={formData.hasEIN || ''}
                       onChange={(v) => updateField('hasEIN', v)}
                     />
                   </div>
@@ -376,7 +386,7 @@ export default function OnboardingPage() {
                       label="Do you have a business bank account?"
                       description="A dedicated commercial checking account separate from your personal finances."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessBankAccount || 'not_sure'}
+                      value={formData.hasBusinessBankAccount || ''}
                       onChange={(v) => updateField('hasBusinessBankAccount', v)}
                     />
                   </div>
@@ -386,7 +396,7 @@ export default function OnboardingPage() {
                       label="Do you have a business website?"
                       description="A public website or online landing page representing your business."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasWebsite || 'not_sure'}
+                      value={formData.hasWebsite || ''}
                       onChange={(v) => updateField('hasWebsite', v)}
                     />
                   </div>
@@ -396,7 +406,7 @@ export default function OnboardingPage() {
                       label="Do you have a dedicated business phone number?"
                       description="A commercial phone line listed in directory assistance."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessPhone || 'not_sure'}
+                      value={formData.hasBusinessPhone || ''}
                       onChange={(v) => updateField('hasBusinessPhone', v)}
                     />
                   </div>
@@ -406,7 +416,7 @@ export default function OnboardingPage() {
                       label="Do you have a professional business email?"
                       description="e.g. name@yourbusiness.com rather than a personal @gmail.com address."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessEmail || 'not_sure'}
+                      value={formData.hasBusinessEmail || ''}
                       onChange={(v) => updateField('hasBusinessEmail', v)}
                     />
                   </div>
@@ -416,7 +426,7 @@ export default function OnboardingPage() {
                       label="Do you have a commercial business address?"
                       description="A physical commercial location, office, or registered commercial address."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessAddress || 'not_sure'}
+                      value={formData.hasBusinessAddress || ''}
                       onChange={(v) => updateField('hasBusinessAddress', v)}
                     />
                   </div>
@@ -426,7 +436,7 @@ export default function OnboardingPage() {
                       label="Do you have a business license if your industry/state requires one?"
                       description="State, county, or municipal permits necessary for legal operations."
                       options={LICENSE_OPTIONS}
-                      value={formData.hasBusinessLicense || 'not_sure'}
+                      value={formData.hasBusinessLicense || ''}
                       onChange={(v) => updateField('hasBusinessLicense', v)}
                     />
                   </div>
@@ -436,7 +446,7 @@ export default function OnboardingPage() {
                       label="Do you have a D-U-N-S number?"
                       description="Dun & Bradstreet identifier. We do not need your actual number yet."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasDuns || 'not_sure'}
+                      value={formData.hasDuns || ''}
                       onChange={(v) => updateField('hasDuns', v)}
                     />
                   </div>
@@ -463,7 +473,7 @@ export default function OnboardingPage() {
                     <RadioCardGroup
                       label="Do you currently have a business credit profile?"
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessCreditProfile || 'not_sure'}
+                      value={formData.hasBusinessCreditProfile || ''}
                       onChange={(v) => updateField('hasBusinessCreditProfile', v)}
                     />
                   </div>
@@ -472,7 +482,7 @@ export default function OnboardingPage() {
                     <RadioCardGroup
                       label="Do you know your business credit score?"
                       options={TRI_STATE_OPTIONS}
-                      value={formData.knowsBusinessCreditScore || 'not_sure'}
+                      value={formData.knowsBusinessCreditScore || ''}
                       onChange={(v) => updateField('knowsBusinessCreditScore', v)}
                     />
 
@@ -499,7 +509,7 @@ export default function OnboardingPage() {
                     <RadioCardGroup
                       label="How many business credit accounts do you currently have?"
                       options={CREDIT_ACCOUNT_COUNT_OPTIONS}
-                      value={formData.businessCreditAccountCount || 'not_sure'}
+                      value={formData.businessCreditAccountCount || ''}
                       onChange={(v) => updateField('businessCreditAccountCount', v)}
                     />
                   </div>
@@ -509,7 +519,7 @@ export default function OnboardingPage() {
                       label="Do you currently have accounts that report to business credit bureaus?"
                       description="Vendor credit, net-30 suppliers, or commercial lenders that report payment history."
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasReportingAccounts || 'not_sure'}
+                      value={formData.hasReportingAccounts || ''}
                       onChange={(v) => updateField('hasReportingAccounts', v)}
                     />
                   </div>
@@ -518,7 +528,7 @@ export default function OnboardingPage() {
                     <RadioCardGroup
                       label="Do you currently have a business credit card?"
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasBusinessCreditCard || 'not_sure'}
+                      value={formData.hasBusinessCreditCard || ''}
                       onChange={(v) => updateField('hasBusinessCreditCard', v)}
                     />
                   </div>
@@ -527,7 +537,7 @@ export default function OnboardingPage() {
                     <RadioCardGroup
                       label="Have you ever applied for business funding?"
                       options={TRI_STATE_OPTIONS}
-                      value={formData.hasFundingHistory || 'not_sure'}
+                      value={formData.hasFundingHistory || ''}
                       onChange={(v) => updateField('hasFundingHistory', v)}
                     />
                   </div>

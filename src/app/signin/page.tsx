@@ -27,15 +27,10 @@ export default function SignInPage() {
         router.replace('/admin');
         return;
       }
-      if (!businessLoading) {
-        if (business && business.profileCompleted) {
-          router.replace('/dashboard');
-        } else {
-          router.replace('/onboarding');
-        }
-      }
+      // Returning customer is always sent directly to /dashboard
+      router.replace('/dashboard');
     }
-  }, [user, authLoading, business, businessLoading, router]);
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,14 +46,11 @@ export default function SignInPage() {
         return;
       }
 
-      // Direct navigation using verified synchronously-resolved destination
+      // Existing customer login ALWAYS routes to /dashboard (or /admin for administrators)
       const targetDestination =
-        res.destination ||
-        (res.user?.role === 'admin'
+        res.user?.role === 'admin'
           ? '/admin'
-          : res.profileCompleted
-          ? '/dashboard'
-          : '/onboarding');
+          : '/dashboard';
 
       router.replace(targetDestination);
     } catch (err: any) {

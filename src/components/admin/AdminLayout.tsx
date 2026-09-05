@@ -156,10 +156,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-3">
           <Link
             href="/dashboard"
+            onClick={() => setMobileMenuOpen(false)}
             className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-850 transition-colors"
           >
             <span>Return to User App</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
           </Link>
 
           <div className="flex items-center justify-between px-1">

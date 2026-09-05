@@ -11,7 +11,7 @@ export interface RadioCardGroupProps {
   label?: string;
   description?: string;
   options: RadioOption[];
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
   layout?: 'horizontal' | 'grid' | 'vertical';
   error?: string;
@@ -44,7 +44,7 @@ export const RadioCardGroup: React.FC<RadioCardGroupProps> = ({
       )}
       <div className={layoutClasses[layout]} role="radiogroup">
         {options.map((option) => {
-          const isSelected = value === option.value;
+          const isSelected = Boolean(value) && value === option.value;
           return (
             <button
               key={option.value}

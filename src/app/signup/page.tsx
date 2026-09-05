@@ -27,15 +27,9 @@ export default function SignupPage() {
         router.replace('/admin');
         return;
       }
-      if (!businessLoading) {
-        if (business && business.profileCompleted) {
-          router.replace('/dashboard');
-        } else {
-          router.replace('/onboarding');
-        }
-      }
+      router.replace('/dashboard');
     }
-  }, [user, authLoading, business, businessLoading, router]);
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

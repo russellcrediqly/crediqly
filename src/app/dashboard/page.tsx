@@ -13,8 +13,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ConsultationModal } from '@/components/ui/ConsultationModal';
-import { calculateReadiness } from '@/lib/scoring';
+import { calculateReadiness, calculateProfileCompletion } from '@/lib/scoring';
 import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
+import { calculateCustomerJourney } from '@/lib/roadmap/customerJourney';
+import { CustomerJourneyCard } from '@/components/dashboard/CustomerJourneyCard';
 import { ScoreLevel } from '@/types/business';
 import { MilestoneTimeline } from '@/components/dashboard/MilestoneTimeline';
 import { StageProgressList } from '@/components/dashboard/StageProgressList';
@@ -80,12 +82,6 @@ export default function DashboardPage() {
     }
   }, [refreshSubscription]);
 
-  // Keep administrator and customer experiences strictly separated
-  useEffect(() => {
-    if (!authLoading && user && user.role === 'admin') {
-      router.replace('/admin');
-    }
-  }, [user, authLoading, router]);
 
   // Step 6: Activity, History, and Session State
   const [activities, setActivities] = useState<ActivityLogItem[]>([]);
@@ -119,6 +115,22 @@ export default function DashboardPage() {
   // Compute live readiness metrics from profile
   const readiness = calculateReadiness(business);
   const fundingReadiness = useMemo(() => calculateFundingReadiness(business), [business]);
+
+  // Compute profile completion percentage (distinct from readiness scores)
+  const profileCompletionPercentage = useMemo(() => {
+    return calculateProfileCompletion(business);
+  }, [business]);
+
+  // Compute deterministic 6-stage Customer Journey
+  const customerJourney = useMemo(() => {
+    return calculateCustomerJourney(
+      business,
+      readiness.businessReadiness,
+      readiness.creditReadiness,
+      fundingReadiness,
+      trackedApps.length
+    );
+  }, [business, readiness.businessReadiness, readiness.creditReadiness, fundingReadiness, trackedApps.length]);
 
   // Compute deterministic milestones from real data
   const milestones = useMemo(() => {
@@ -410,38 +422,62 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Incomplete Profile Prompt */}
+          {/* Incomplete Profile Progress Card */}
           {!isProfileComplete && sections.business_profile !== false && (
-            <Card className="border-amber-200 bg-amber-50/40">
-              <CardContent className="p-6 sm:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-slate-900">
-                      Complete Your Business Profile
-                    </h3>
-                    <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
-                      Answer a few simple questions so we can build your personalized roadmap. Zero sensitive info like SSN or bank logins required.
-                    </p>
-                    <div className="text-xs text-slate-500 pt-1">
-                      Current Stage: <strong>&ldquo;Complete your business profile&rdquo;</strong>
+            <Card className="border-amber-300 bg-amber-50/60 shadow-xs overflow-hidden">
+              <CardContent className="p-6 sm:p-7 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
+                      <AlertCircle className="w-6 h-6 text-amber-700" />
                     </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Complete Your Business Profile
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-200/80 text-amber-900 border border-amber-300">
+                          Profile completion: {profileCompletionPercentage}%
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
+                        Answer a few quick foundational questions to activate your live commercial credit readiness scores and generate your tailored 6-stage funding roadmap.
+                      </p>
+                      <div className="text-xs text-slate-500 pt-0.5">
+                        Current Stage: <strong className="text-slate-800">Stage 1 of 6 — Build Your Business Profile</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    <Link href="/onboarding">
+                      <Button variant="primary" size="md" className="gap-2 shadow-xs font-bold whitespace-nowrap bg-amber-600 hover:bg-amber-500 text-white">
+                        <span>Continue Setup</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
-                <div className="flex-shrink-0">
-                  <Link href="/onboarding">
-                    <Button variant="primary" size="lg" className="gap-2 shadow-sm">
-                      Complete Profile
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
+                {/* Profile Completion Progress Bar */}
+                <div className="space-y-1.5 pt-3 border-t border-amber-200/70">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+                    <span>Profile Questions Answered</span>
+                    <span className="text-amber-800 font-bold">{profileCompletionPercentage}% Complete</span>
+                  </div>
+                  <div className="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-amber-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(4, profileCompletionPercentage)}%` }}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* 6-STAGE CUSTOMER JOURNEY & NEXT STEP GUIDANCE */}
+          <CustomerJourneyCard journey={customerJourney} />
 
           {/* SINCE YOUR LAST VISIT (Section 12) */}
           <SinceLastVisitCard summary={sinceLastVisit} loading={sinceLastVisitLoading} />
@@ -667,10 +703,10 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                    YOUR PROGRESS
+                    YOUR READINESS &amp; PERFORMANCE METRICS
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Internal readiness metrics and real-time roadmap progression.
+                    Profile Completion: <strong className="text-slate-800">{profileCompletionPercentage}%</strong> • Business Readiness: <strong className="text-slate-800">{isProfileComplete ? `${readiness.businessReadiness.score}/100` : 'Pending'}</strong> • Credit Readiness: <strong className="text-slate-800">{isProfileComplete ? `${readiness.creditReadiness.score}/100` : 'Pending'}</strong>
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">

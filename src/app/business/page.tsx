@@ -100,7 +100,8 @@ export default function BusinessProfilePage() {
   };
 
   const formatDisplay = (val?: string) => {
-    if (!val || val === 'not_sure') return 'Not sure';
+    if (!val) return 'Not answered';
+    if (val === 'not_sure') return 'Not sure';
     if (val === 'yes') return 'Yes';
     if (val === 'no') return 'No';
     if (val === 'not_applicable') return 'Not applicable';
@@ -413,49 +414,49 @@ export default function BusinessProfilePage() {
                   <RadioCardGroup
                     label="Do you have an EIN?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasEIN || 'not_sure'}
+                    value={editFormData.hasEIN || ''}
                     onChange={(v) => updateEditField('hasEIN', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a business bank account?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessBankAccount || 'not_sure'}
+                    value={editFormData.hasBusinessBankAccount || ''}
                     onChange={(v) => updateEditField('hasBusinessBankAccount', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a business website?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasWebsite || 'not_sure'}
+                    value={editFormData.hasWebsite || ''}
                     onChange={(v) => updateEditField('hasWebsite', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a dedicated business phone number?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessPhone || 'not_sure'}
+                    value={editFormData.hasBusinessPhone || ''}
                     onChange={(v) => updateEditField('hasBusinessPhone', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a professional business email?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessEmail || 'not_sure'}
+                    value={editFormData.hasBusinessEmail || ''}
                     onChange={(v) => updateEditField('hasBusinessEmail', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a commercial business address?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessAddress || 'not_sure'}
+                    value={editFormData.hasBusinessAddress || ''}
                     onChange={(v) => updateEditField('hasBusinessAddress', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a required business license?"
                     options={LICENSE_OPTIONS}
-                    value={editFormData.hasBusinessLicense || 'not_sure'}
+                    value={editFormData.hasBusinessLicense || ''}
                     onChange={(v) => updateEditField('hasBusinessLicense', v)}
                   />
                   <RadioCardGroup
                     label="Do you have a D-U-N-S number?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasDuns || 'not_sure'}
+                    value={editFormData.hasDuns || ''}
                     onChange={(v) => updateEditField('hasDuns', v)}
                   />
                 </div>
@@ -570,13 +571,13 @@ export default function BusinessProfilePage() {
                   <RadioCardGroup
                     label="Do you currently have a business credit profile?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessCreditProfile || 'not_sure'}
+                    value={editFormData.hasBusinessCreditProfile || ''}
                     onChange={(v) => updateEditField('hasBusinessCreditProfile', v)}
                   />
                   <RadioCardGroup
                     label="Do you know your business credit score?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.knowsBusinessCreditScore || 'not_sure'}
+                    value={editFormData.knowsBusinessCreditScore || ''}
                     onChange={(v) => updateEditField('knowsBusinessCreditScore', v)}
                   />
                   {editFormData.knowsBusinessCreditScore === 'yes' && (
@@ -592,25 +593,25 @@ export default function BusinessProfilePage() {
                   <RadioCardGroup
                     label="How many business credit accounts do you currently have?"
                     options={CREDIT_ACCOUNT_COUNT_OPTIONS}
-                    value={editFormData.businessCreditAccountCount || 'not_sure'}
+                    value={editFormData.businessCreditAccountCount || ''}
                     onChange={(v) => updateEditField('businessCreditAccountCount', v)}
                   />
                   <RadioCardGroup
                     label="Do you currently have accounts that report to credit bureaus?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasReportingAccounts || 'not_sure'}
+                    value={editFormData.hasReportingAccounts || ''}
                     onChange={(v) => updateEditField('hasReportingAccounts', v)}
                   />
                   <RadioCardGroup
                     label="Do you currently have a business credit card?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasBusinessCreditCard || 'not_sure'}
+                    value={editFormData.hasBusinessCreditCard || ''}
                     onChange={(v) => updateEditField('hasBusinessCreditCard', v)}
                   />
                   <RadioCardGroup
                     label="Have you ever applied for business funding?"
                     options={TRI_STATE_OPTIONS}
-                    value={editFormData.hasFundingHistory || 'not_sure'}
+                    value={editFormData.hasFundingHistory || ''}
                     onChange={(v) => updateEditField('hasFundingHistory', v)}
                   />
                 </div>

@@ -285,3 +285,57 @@ export function calculateCreditReadiness(profile: Partial<BusinessProfile> | nul
     breakdown,
   };
 }
+
+/**
+ * Calculates Profile Completion Percentage (0 - 100%)
+ * Distinct from Business Readiness Score or Credit Readiness Score.
+ * Evaluates how many of the 23 profile questions the customer has answered.
+ */
+export function calculateProfileCompletion(profile: Partial<BusinessProfile> | null): number {
+  if (!profile) return 0;
+  if (profile.profileCompleted) return 100;
+
+  const fieldsToCheck: (keyof BusinessProfile)[] = [
+    // Step 1: Business Information (5 fields)
+    'businessName',
+    'entityType',
+    'state',
+    'industry',
+    'businessAge',
+
+    // Step 2: Foundation (8 fields)
+    'hasEIN',
+    'hasBusinessBankAccount',
+    'hasWebsite',
+    'hasBusinessPhone',
+    'hasBusinessEmail',
+    'hasBusinessAddress',
+    'hasBusinessLicense',
+    'hasDuns',
+
+    // Step 3: Credit Profile (6 fields)
+    'hasBusinessCreditProfile',
+    'knowsBusinessCreditScore',
+    'businessCreditAccountCount',
+    'hasReportingAccounts',
+    'hasBusinessCreditCard',
+    'hasFundingHistory',
+
+    // Step 4: Funding (4 fields)
+    'annualRevenueRange',
+    'personalCreditRange',
+    'fundingAmount',
+    'fundingPurpose',
+  ];
+
+  let answeredCount = 0;
+  for (const key of fieldsToCheck) {
+    const val = profile[key];
+    if (val === undefined || val === null) continue;
+    if (typeof val === 'string' && val.trim() === '') continue;
+    if (Array.isArray(val) && val.length === 0) continue;
+    answeredCount++;
+  }
+
+  return Math.min(100, Math.round((answeredCount / fieldsToCheck.length) * 100));
+}
