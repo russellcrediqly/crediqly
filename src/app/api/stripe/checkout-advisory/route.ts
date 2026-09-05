@@ -46,8 +46,14 @@ export async function POST(req: Request) {
           quantity: 1,
         };
 
-    const monthlyLineItem: any = STRIPE_CONFIG.advisoryMonthlyPriceId
-      ? { price: STRIPE_CONFIG.advisoryMonthlyPriceId, quantity: 1 }
+    // Resolve monthly recurring price ID (guarding against legacy one-time price ID)
+    let monthlyPriceId = STRIPE_CONFIG.advisoryMonthlyPriceId;
+    if (monthlyPriceId === 'price_1UCGFADzJxX7FxJayDvw7XVZ') {
+      monthlyPriceId = 'price_1UCIXzDzJxX7FxJaQ2BIUoLs';
+    }
+
+    const monthlyLineItem: any = monthlyPriceId
+      ? { price: monthlyPriceId, quantity: 1 }
       : {
           price_data: {
             currency: 'usd',
@@ -72,14 +78,19 @@ export async function POST(req: Request) {
       cancel_url: `${baseUrl}/advisory?canceled=true`,
       metadata: {
         userId,
+        crediqly_user_id: userId,
         plan: 'premium_advisory',
+        crediqly_plan: 'advisory',
         paymentType: 'advisory',
         supersededProSubscriptionId: existingProSubId,
       },
       subscription_data: {
         metadata: {
           userId,
+          crediqly_user_id: userId,
           plan: 'premium_advisory',
+          crediqly_plan: 'advisory',
+          paymentType: 'advisory',
           supersededProSubscriptionId: existingProSubId,
         },
       },

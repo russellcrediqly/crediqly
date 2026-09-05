@@ -66,8 +66,19 @@ export default function DashboardPage() {
   const { business, loading: businessLoading } = useBusiness();
   const { roadmap, toggleTaskCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
-  const { isPro, isAdvisory, upgradeToPro, upgradeToAdvisory, openCustomerPortal } = useSubscription();
+  const { isPro, isAdvisory, upgradeToPro, upgradeToAdvisory, openCustomerPortal, refreshSubscription } = useSubscription();
+  const [upgradedNotice, setUpgradedNotice] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('upgraded') === 'true') {
+        setUpgradedNotice(true);
+        refreshSubscription();
+      }
+    }
+  }, [refreshSubscription]);
 
   // Keep administrator and customer experiences strictly separated
   useEffect(() => {
@@ -268,6 +279,31 @@ export default function DashboardPage() {
                   {settings.messaging.dashboardAnnouncement}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Pro Upgrade Welcome Banner */}
+          {upgradedNotice && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-md flex items-start justify-between gap-3.5 border border-emerald-400/30">
+              <div className="flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base font-bold text-white tracking-tight">
+                    Welcome to Crediqly Pro! Your full access is now active.
+                  </h4>
+                  <p className="text-xs text-emerald-100 mt-1 leading-relaxed">
+                    Your account has been upgraded. Full commercial credit building roadmap stages, verified reporting tradelines, and advanced funding readiness insights are completely unlocked.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUpgradedNotice(false)}
+                className="text-white/80 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg bg-black/10 hover:bg-black/20 flex-shrink-0"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 

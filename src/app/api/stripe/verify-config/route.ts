@@ -123,6 +123,8 @@ export async function GET() {
         prices.advisoryMonthly.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
         if (amount === 14900 && interval === 'month') {
           prices.advisoryMonthly.valid = true;
+        } else if (p.type === 'one_time') {
+          prices.advisoryMonthly.error = `Price is configured as one-time instead of monthly recurring. Recommended recurring price ID: price_1UCIXzDzJxX7FxJaQ2BIUoLs`;
         } else {
           prices.advisoryMonthly.error = `Price exists but does not match expected $149/month (Found: ${prices.advisoryMonthly.actual})`;
         }

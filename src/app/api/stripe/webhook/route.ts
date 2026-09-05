@@ -60,22 +60,23 @@ export async function POST(req: Request) {
 
   try {
     const eventType = event.type;
-    const dataObject = event.data?.object;
+    const dataObject = event.data?.object || {};
 
-    // Log webhook event for diagnostic health and auditability
+    // Phase 18: Idempotency Verification — prevent duplicate execution of the same Stripe event
     if (isSupabaseConfigured && supabase && event.id) {
       try {
-        await supabase.from('stripe_webhook_logs').insert([
-          {
-            event_id: event.id,
-            event_type: event.type,
-            status: 'success',
-            summary: `Processed ${event.type} for ${dataObject?.id || 'event'}`,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      } catch (logErr) {
-        console.warn('Could not record webhook event log:', logErr);
+        const { data: existingEvent } = await supabase
+          .from('stripe_webhook_logs')
+          .select('id')
+          .eq('event_id', event.id)
+          .maybeSingle();
+
+        if (existingEvent) {
+          console.log(`Webhook event ${event.id} (${event.type}) already processed. Returning idempotent 200.`);
+          return NextResponse.json({ received: true, idempotent: true });
+        }
+      } catch (idempErr) {
+        console.warn('Could not query webhook idempotency log:', idempErr);
       }
     }
 
@@ -83,14 +84,15 @@ export async function POST(req: Request) {
       // 1. Checkout Session Completed (Subscriptions, Advisory, or One-Time Consultations)
       case 'checkout.session.completed': {
         const session = dataObject;
-        const userId = session.metadata?.userId || session.client_reference_id;
-        const plan = session.metadata?.plan;
-        const paymentType = session.metadata?.paymentType || (session.mode === 'subscription' ? 'subscription' : 'consultation');
+        const userId = session.metadata?.crediqly_user_id || session.metadata?.userId || session.client_reference_id;
+        const plan = session.metadata?.crediqly_plan || session.metadata?.plan;
+        const isAdvisory = plan === 'advisory' || plan === 'premium_advisory';
+        const paymentType = session.metadata?.paymentType || (isAdvisory ? 'advisory' : session.mode === 'subscription' ? 'subscription' : 'consultation');
         const consultationId = session.metadata?.consultationId;
 
         if (userId) {
           // Handle Premium Advisory Checkout ($499 Setup + $149/mo Subscription)
-          if (plan === 'premium_advisory') {
+          if (isAdvisory) {
             // 1. Record $499 Setup Payment
             await recordPayment({
               userId,
@@ -161,7 +163,7 @@ export async function POST(req: Request) {
             }
 
             // Handle Pro Subscription Checkout
-            if (paymentType === 'subscription') {
+            if (paymentType === 'subscription' || plan === 'pro') {
               await upsertSubscription({
                 userId,
                 plan: 'pro',
@@ -179,13 +181,13 @@ export async function POST(req: Request) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = dataObject;
-        const userId = sub.metadata?.userId;
+        const userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
         const customerId = sub.customer as string;
-        const planMetadata = sub.metadata?.plan;
+        const planMetadata = sub.metadata?.crediqly_plan || sub.metadata?.plan;
 
         // Map Stripe subscription status to Crediqly status
         let mappedStatus: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'expired' = 'active';
-        let mappedPlan: 'free' | 'pro' | 'premium_advisory' = planMetadata === 'premium_advisory' ? 'premium_advisory' : 'pro';
+        let mappedPlan: 'free' | 'pro' | 'premium_advisory' = (planMetadata === 'premium_advisory' || planMetadata === 'advisory') ? 'premium_advisory' : 'pro';
 
         if (sub.status === 'active') {
           mappedStatus = 'active';
@@ -216,7 +218,7 @@ export async function POST(req: Request) {
       // 3. Subscription Deleted (Expired / Terminated)
       case 'customer.subscription.deleted': {
         const sub = dataObject;
-        const userId = sub.metadata?.userId;
+        const userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
 
         if (userId) {
           await upsertSubscription({
@@ -230,27 +232,31 @@ export async function POST(req: Request) {
       }
 
       // 4. Invoice Paid (Recurring monthly renewal success)
-      case 'invoice.paid': {
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
         const invoice = dataObject;
         const customerId = invoice.customer as string;
         const subscriptionId = invoice.subscription as string;
+        const lineMeta = invoice.lines?.data?.[0]?.metadata;
+        const userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
+        const planMeta = lineMeta?.crediqly_plan || lineMeta?.plan || invoice.subscription_details?.metadata?.crediqly_plan || invoice.subscription_details?.metadata?.plan;
 
-        if (invoice.lines?.data?.[0]?.metadata?.userId) {
-          const userId = invoice.lines.data[0].metadata.userId;
+        if (userId) {
+          const isAdvisory = planMeta === 'advisory' || planMeta === 'premium_advisory';
           await recordPayment({
             userId,
             stripeCustomerId: customerId,
             stripeCheckoutSessionId: `inv_${invoice.id}`,
             stripePaymentIntentId: (invoice.payment_intent as string) || undefined,
-            amount: invoice.amount_paid || 3900,
+            amount: invoice.amount_paid || (isAdvisory ? 14900 : 3900),
             currency: invoice.currency || 'usd',
-            paymentType: 'subscription',
+            paymentType: isAdvisory ? 'advisory_subscription' : 'subscription',
             status: 'paid',
           });
 
           await upsertSubscription({
             userId,
-            plan: 'pro',
+            plan: isAdvisory ? 'premium_advisory' : 'pro',
             status: 'active',
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
@@ -263,7 +269,8 @@ export async function POST(req: Request) {
       case 'invoice.payment_failed': {
         const invoice = dataObject;
         const customerId = invoice.customer as string;
-        const userId = invoice.lines?.data?.[0]?.metadata?.userId;
+        const lineMeta = invoice.lines?.data?.[0]?.metadata;
+        const userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
 
         if (userId) {
           await recordPayment({
@@ -284,9 +291,48 @@ export async function POST(req: Request) {
         break;
       }
 
+      // 6. Payment Intent Succeeded
+      case 'payment_intent.succeeded': {
+        const paymentIntent = dataObject;
+        const userId = paymentIntent.metadata?.crediqly_user_id || paymentIntent.metadata?.userId;
+        const plan = paymentIntent.metadata?.crediqly_plan || paymentIntent.metadata?.plan;
+
+        if (userId) {
+          const isAdvisory = plan === 'advisory' || plan === 'premium_advisory';
+          await recordPayment({
+            userId,
+            stripeCustomerId: (paymentIntent.customer as string) || undefined,
+            stripeCheckoutSessionId: `pi_${paymentIntent.id}`,
+            stripePaymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount_received || paymentIntent.amount,
+            currency: paymentIntent.currency || 'usd',
+            paymentType: isAdvisory ? 'advisory_setup' : 'subscription',
+            status: 'paid',
+          });
+        }
+        break;
+      }
+
       default:
         // Other events received and acknowledged cleanly
         break;
+    }
+
+    // Record processed event in stripe_webhook_logs for auditability and future idempotency
+    if (isSupabaseConfigured && supabase && event.id) {
+      try {
+        await supabase.from('stripe_webhook_logs').insert([
+          {
+            event_id: event.id,
+            event_type: event.type,
+            status: 'success',
+            summary: `Successfully processed ${event.type} for ${dataObject?.id || 'event'}`,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (logErr) {
+        console.warn('Could not record webhook event log:', logErr);
+      }
     }
 
     return NextResponse.json({ received: true });

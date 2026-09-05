@@ -51,6 +51,7 @@ export default function AdminBillingPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'payments'>('subscriptions');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'past_due' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadData = useCallback(async () => {
@@ -102,6 +103,7 @@ export default function AdminBillingPage() {
   });
 
   const filteredSubs = (metrics?.recentSubscriptions || []).filter((s) => {
+    if (statusFilter !== 'all' && s.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -419,7 +421,28 @@ export default function AdminBillingPage() {
 
         {/* Tab 1: Subscriptions Table */}
         {activeTab === 'subscriptions' && (
-          <Card className="bg-slate-900 border-slate-800 overflow-hidden">
+          <div className="space-y-3">
+            {/* Status Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <span className="text-xs font-semibold text-slate-400 mr-2 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-slate-500" /> Status:
+              </span>
+              {(['all', 'active', 'past_due', 'cancelled'] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-colors ${
+                    statusFilter === st
+                      ? 'bg-brand-500 text-white shadow-xs'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {st === 'past_due' ? 'Past Due' : st === 'cancelled' ? 'Canceled' : st}
+                </button>
+              ))}
+            </div>
+
+            <Card className="bg-slate-900 border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -495,7 +518,8 @@ export default function AdminBillingPage() {
               </table>
             </div>
           </Card>
-        )}
+        </div>
+      )}
 
         {/* Tab 2: Payments Table */}
         {activeTab === 'payments' && (

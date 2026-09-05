@@ -53,11 +53,16 @@ export async function POST(req: Request) {
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
         userId,
+        crediqly_user_id: userId,
+        crediqly_plan: 'pro',
         paymentType: 'subscription',
       },
       subscription_data: {
         metadata: {
           userId,
+          crediqly_user_id: userId,
+          crediqly_plan: 'pro',
+          paymentType: 'subscription',
         },
       },
       allow_promotion_codes: true,

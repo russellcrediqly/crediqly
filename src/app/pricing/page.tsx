@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Check,
@@ -13,6 +13,8 @@ import {
   Briefcase,
   CheckCircle2,
   Headphones,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +25,16 @@ import { useSubscription } from '@/context/SubscriptionContext';
 export default function PricingPage() {
   const { user } = useAuth();
   const { isPro, isAdvisory, upgradeToPro, upgradeToAdvisory, openCustomerPortal } = useSubscription();
+  const [canceledNotice, setCanceledNotice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('canceled') === 'true') {
+        setCanceledNotice(true);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -62,6 +74,30 @@ export default function PricingPage() {
           </div>
         </div>
       </header>
+
+      {/* Canceled Notice Banner */}
+      {canceledNotice && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-start justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <h4 className="font-bold text-sm text-amber-950">Checkout Canceled</h4>
+                <p className="text-amber-800 leading-relaxed">
+                  Checkout was not completed. No charges were made. You can upgrade anytime.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setCanceledNotice(false)}
+              className="text-amber-600 hover:text-amber-900 p-1"
+              aria-label="Close notice"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Pricing Hero */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
