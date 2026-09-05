@@ -38,6 +38,11 @@ import { calculateReadiness } from '@/lib/scoring';
 import { getFundingReadiness } from '@/lib/supabase/fundingService';
 import { FundingReadinessResult } from '@/types/funding';
 import { FundingGapAnalysis } from '@/components/readiness/FundingGapAnalysis';
+import { RecentActivityList } from '@/components/dashboard/RecentActivityList';
+import { ProgressHistoryCard } from '@/components/dashboard/ProgressHistoryCard';
+import { getRecentActivities } from '@/lib/supabase/activityService';
+import { getProgressHistory } from '@/lib/supabase/progressService';
+import { ActivityLogItem, ProgressHistoryItem } from '@/types/progress';
 
 function ReadinessPageContent() {
   const { user } = useAuth();
@@ -51,6 +56,10 @@ function ReadinessPageContent() {
   const [loading, setLoading] = useState(true);
   const [fundingResult, setFundingResult] = useState<FundingReadinessResult | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'business' | 'credit' | 'funding'>('overview');
+  const [activities, setActivities] = useState<ActivityLogItem[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [history, setHistory] = useState<ProgressHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   const isProfileComplete = Boolean(business && business.profileCompleted);
 
@@ -69,12 +78,20 @@ function ReadinessPageContent() {
       if (!user?.id) return;
       try {
         setLoading(true);
-        const funding = await getFundingReadiness(user.id, business);
+        const [funding, recentActs, hist] = await Promise.all([
+          getFundingReadiness(user.id, business),
+          getRecentActivities(user.id, 8).catch(() => []),
+          getProgressHistory(user.id, 8).catch(() => []),
+        ]);
         if (isMounted) {
           setFundingResult(funding);
+          setActivities(recentActs);
+          setActivitiesLoading(false);
+          setHistory(hist);
+          setHistoryLoading(false);
         }
       } catch (err) {
-        console.warn('Error fetching funding readiness in /readiness:', err);
+        console.warn('Error fetching readiness data:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -622,6 +639,30 @@ function ReadinessPageContent() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Audit History & Activity Log */}
+          <div className="space-y-4 pt-2">
+            <div className="border-b border-slate-200/80 pb-2.5">
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                Readiness Progress History &amp; Audit Log
+              </h2>
+              <p className="text-xs text-slate-500">
+                Track historical score improvements and verified business profile updates over time.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ProgressHistoryCard
+                history={history}
+                currentBusinessReadiness={readiness.businessReadiness.score}
+                currentCreditReadiness={readiness.creditReadiness.score}
+                loading={historyLoading}
+              />
+              <RecentActivityList
+                activities={activities}
+                loading={activitiesLoading}
+              />
             </div>
           </div>
 

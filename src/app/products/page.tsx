@@ -12,6 +12,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { ProductDetailModal } from '@/components/products/ProductDetailModal';
 import { SectionInactiveNotice } from '@/components/common/SectionInactiveNotice';
 import { ProGate } from '@/components/subscription/ProGate';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { usePlatformSections } from '@/lib/usePlatformSections';
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
@@ -45,6 +46,7 @@ const CATEGORY_TABS: { key: string; label: string }[] = [
 
 function CreditProductsContent() {
   const { user } = useAuth();
+  const { isPro } = useSubscription();
   const { business, loading: businessLoading } = useBusiness();
   const { roadmap, loading: roadmapLoading } = useRoadmap();
   const { sections } = usePlatformSections();
@@ -252,17 +254,20 @@ function CreditProductsContent() {
                 product={prod}
                 onOpenDetail={handleOpenDetail}
                 onVisitProvider={handleVisitProvider}
+                isPro={isPro}
               />
             ))}
           </div>
         </div>
 
         {/* PRO GATE: ADVANCED VENDOR TRADELINES & REVOLVING ACCOUNTS */}
-        <ProGate
-          compact
-          featureName="Tier 2 & Tier 3 Vendor Tradelines & High-Limit Business Accounts"
-          description="Unlock advanced vendor accounts, revolving credit lines, and full bureau reporting profiles with Crediqly Pro."
-        />
+        {!isPro && (
+          <ProGate
+            compact
+            featureName="Tier 2 & Tier 3 Vendor Tradelines & High-Limit Business Accounts"
+            description="Unlock advanced vendor accounts, revolving credit lines, and full bureau reporting profiles with Crediqly Pro."
+          />
+        )}
 
         {/* 2. EXPLORE ALL PRODUCTS SECTION (Prompt 13, 14, 16) */}
         <div className="space-y-6 pt-4">
@@ -294,22 +299,50 @@ function CreditProductsContent() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               {CATEGORY_TABS.map((tab) => {
                 const isActive = activeCategory === tab.key;
+                const isTabLocked = !isPro && (tab.key === 'net_60' || tab.key === 'business_credit_cards');
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveCategory(tab.key)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {isTabLocked && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-indigo-50 text-indigo-700 border border-indigo-200/60'
+                        }`}
+                      >
+                        🔒 Pro
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
+
+          {/* Dedicated Category Pro Lock Notice */}
+          {!isPro && (activeCategory === 'net_60' || activeCategory === 'business_credit_cards') && (
+            <ProGate
+              featureName={
+                activeCategory === 'net_60'
+                  ? 'Tier 2 & Tier 3 Net-60 Vendor Tradelines'
+                  : 'Business Credit Cards & Revolving Credit Lines'
+              }
+              description={
+                activeCategory === 'net_60'
+                  ? 'Upgrade to Crediqly Pro to unlock vetted Tier 2 and Tier 3 Net-60 vendor accounts, higher credit limits, and multiple bureau reporting.'
+                  : 'Upgrade to Crediqly Pro to access unsecured corporate credit cards, 0% introductory APR lines, and underwriting qualification criteria.'
+              }
+            />
+          )}
 
           {/* Product Cards Grid */}
           {filteredCatalog.length === 0 ? (
@@ -347,6 +380,7 @@ function CreditProductsContent() {
                   product={prod}
                   onOpenDetail={handleOpenDetail}
                   onVisitProvider={handleVisitProvider}
+                  isPro={isPro}
                 />
               ))}
             </div>

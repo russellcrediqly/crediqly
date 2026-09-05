@@ -46,6 +46,7 @@ import {
 import { getAllProductsAdmin } from '@/lib/supabase/productService';
 import { adminUpdateConsultation } from '@/lib/supabase/consultationService';
 import { updateFundingApplication } from '@/lib/supabase/fundingApplicationService';
+import { logAdminAction } from '@/lib/supabase/adminAuditService';
 import { AdminUserDetail } from '@/types/admin';
 import { UserRole, AccountStatus } from '@/types/user';
 import { BusinessProfile } from '@/types/business';
@@ -66,7 +67,8 @@ type ActiveTab =
   | 'advisory'
   | 'applications'
   | 'recommendations'
-  | 'account';
+  | 'account'
+  | 'dashboard_view';
 
 export default function AdminCustomerDetailPage() {
   const params = useParams();
@@ -143,6 +145,17 @@ export default function AdminCustomerDetailPage() {
       });
       if (!nameRes.success) throw new Error(nameRes.error || 'Failed to update user profile information');
 
+      await logAdminAction({
+        adminEmail: 'crediqly@gmail.com',
+        action: 'UPDATE_USER_PROFILE',
+        entityType: 'customer',
+        entityId: userDetail.profile.userId,
+        entityName: userDetail.profile.email,
+        description: `Updated account profile and permissions for ${userDetail.profile.email}`,
+        previousValue: { firstName: userDetail.profile.firstName, lastName: userDetail.profile.lastName, role: userDetail.profile.role, status: userDetail.profile.status },
+        newValue: { firstName, lastName, role, status },
+      });
+
       setFeedback({
         type: 'success',
         message: 'Account profile and access permissions updated successfully.',
@@ -166,6 +179,16 @@ export default function AdminCustomerDetailPage() {
       const res = await updateAdminBusinessProfile(userDetail.profile.userId, businessData);
       if (!res.success) throw new Error(res.error || 'Failed to update business profile');
 
+      await logAdminAction({
+        adminEmail: 'crediqly@gmail.com',
+        action: 'UPDATE_BUSINESS_PROFILE',
+        entityType: 'customer',
+        entityId: userDetail.profile.userId,
+        entityName: userDetail.profile.email,
+        description: `Updated business profile parameters for ${businessData.businessName || userDetail.profile.email}`,
+        newValue: businessData,
+      });
+
       setFeedback({
         type: 'success',
         message: 'Business profile parameters updated successfully.',
@@ -187,6 +210,15 @@ export default function AdminCustomerDetailPage() {
     try {
       const res = await triggerAdminPasswordReset(userDetail.profile.email);
       if (res.success) {
+        await logAdminAction({
+          adminEmail: 'crediqly@gmail.com',
+          action: 'TRIGGER_PASSWORD_RESET',
+          entityType: 'customer',
+          entityId: userDetail.profile.userId,
+          entityName: userDetail.profile.email,
+          description: `Dispatched single-use password reset link to ${userDetail.profile.email}`,
+        });
+
         setFeedback({
           type: 'success',
           message: res.message || `Password reset link sent to ${userDetail.profile.email}`,
@@ -446,6 +478,7 @@ export default function AdminCustomerDetailPage() {
           { id: 'applications', label: '7. Applications', icon: FileText },
           { id: 'recommendations', label: '8. Product Matches', icon: Sparkles },
           { id: 'account', label: '9. Account & Security', icon: Lock },
+          { id: 'dashboard_view', label: '10. Command Center View', icon: Layers },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1407,6 +1440,292 @@ export default function AdminCustomerDetailPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      )}
+
+      {/* 10. Live Command Center Inspector Tab */}
+      {activeTab === 'dashboard_view' && (
+        <div className="space-y-6">
+          {/* Admin Notice Banner */}
+          <div className="p-4 rounded-xl bg-slate-900 border border-brand-500/30 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 flex-shrink-0 mt-0.5">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Live Client Command Center Mirror
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Administrative live inspection of customer <strong className="text-white">{userDetail.profile.email}</strong>&apos;s personal dashboard view, real-time readiness scores, prioritized next steps, and matched credit opportunities.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/admin/customers`}
+              className="text-xs text-brand-400 hover:text-brand-300 underline whitespace-nowrap self-center"
+            >
+              Return to Customers
+            </Link>
+          </div>
+
+          {/* Core Command Center Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left 2 Cols: Readiness & What Should I Do Next */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Readiness Hero Card */}
+              <Card className="bg-slate-950 border-slate-800 text-white">
+                <CardContent className="p-6 space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                        Real-Time Funding Readiness
+                      </span>
+                      <h2 className="text-2xl font-black text-white mt-1">
+                        {fundingReadiness?.score ?? 0}
+                        <span className="text-sm font-normal text-slate-400"> / 100 Overall Score</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Computed from {bizProfile?.businessName || 'Business'}&apos;s profile attributes, compliance data, and Bureau trade-lines.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                          (fundingReadiness?.score ?? 0) >= 80
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : (fundingReadiness?.score ?? 0) >= 50
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                        }`}
+                      >
+                        {(fundingReadiness?.score ?? 0) >= 80
+                          ? 'Funding Ready'
+                          : (fundingReadiness?.score ?? 0) >= 50
+                          ? 'Progressing'
+                          : 'Needs Foundation'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4 Readiness Category Breakdown Bars */}
+                  {fundingReadiness?.categories && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-900">
+                      {Object.values(fundingReadiness.categories).map((cat) => (
+                        <div key={cat.category} className="p-3 rounded-xl bg-slate-900/70 border border-slate-800/80 space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-300 font-medium truncate">{cat.label}</span>
+                            <span className="font-bold text-white font-mono">
+                              {cat.score} / {cat.maxScore} ({cat.percentage}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                cat.percentage >= 80
+                                  ? 'bg-emerald-400'
+                                  : cat.percentage >= 50
+                                  ? 'bg-amber-400'
+                                  : 'bg-rose-400'
+                              }`}
+                              style={{ width: `${cat.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* "What Should I Do Next?" Focus Card Mirror */}
+              <Card className="bg-slate-950 border-brand-500/30 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/5 rounded-full blur-2xl pointer-events-none" />
+                <CardHeader className="pb-3 border-b border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-brand-400" />
+                      <CardTitle className="text-sm font-bold text-white">
+                        Customer&apos;s Active Focus (&ldquo;What Should I Do Next?&rdquo;)
+                      </CardTitle>
+                    </div>
+                    {fundingReadiness?.nextBestAction?.priority && (
+                      <Badge variant="warning" className="text-[10px] uppercase tracking-wider">
+                        {fundingReadiness.nextBestAction.priority} Priority
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-5 space-y-3">
+                  {nextBest ? (
+                    <div>
+                      <h4 className="text-base font-bold text-white">{nextBest.title}</h4>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">{nextBest.explanation}</p>
+                      {nextBest.actionLabel && (
+                        <div className="mt-3">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-brand-400 text-xs font-semibold">
+                            <span>Recommended CTA: {nextBest.actionLabel}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">({nextBest.actionHref})</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-slate-400 text-xs">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1.5" />
+                      <p>All core readiness tasks completed for this customer profile!</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 5-Stage Roadmap Progress Bar */}
+              <Card className="bg-slate-950 border-slate-800 text-white">
+                <CardHeader className="pb-3 border-b border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                      <Target className="w-4 h-4 text-brand-400" />
+                      <span>5-Stage Roadmap Status</span>
+                    </CardTitle>
+                    <span className="text-xs font-mono text-slate-400">
+                      {roadmap.completedCount} / {roadmap.totalCount} Tasks Complete
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-5 space-y-4">
+                  <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-brand-500 to-indigo-500 transition-all duration-500"
+                      style={{
+                        width: `${roadmap.totalCount > 0 ? (roadmap.completedCount / roadmap.totalCount) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
+                    {roadmap.stages.map((stage) => {
+                      const isFinished = stage.totalCount > 0 && stage.completedCount === stage.totalCount;
+                      return (
+                        <div
+                          key={stage.id}
+                          className={`p-2.5 rounded-xl border text-center space-y-1 ${
+                            isFinished
+                              ? 'bg-emerald-950/30 border-emerald-800/60'
+                              : stage.completedCount > 0
+                              ? 'bg-slate-900 border-brand-500/40'
+                              : 'bg-slate-900/40 border-slate-800'
+                          }`}
+                        >
+                          <div className="text-[10px] font-bold text-slate-400 uppercase truncate">
+                            Stage {stage.order}
+                          </div>
+                          <div className="text-xs font-bold text-white truncate">{stage.title}</div>
+                          <div className="text-[10px] font-mono text-slate-400">
+                            {stage.completedCount}/{stage.totalCount}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Funding Opportunities & Profile Snapshot */}
+            <div className="space-y-6">
+              {/* Business Profile Snapshot Card */}
+              <Card className="bg-slate-950 border-slate-800 text-white">
+                <CardHeader className="pb-3 border-b border-slate-800">
+                  <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-brand-400" />
+                    <span>Business Profile</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 space-y-3 text-xs">
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Legal Entity:</span>
+                    <span className="font-semibold text-white">{bizProfile?.entityType || 'Not set'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Industry:</span>
+                    <span className="font-semibold text-white">{bizProfile?.industry || 'Not set'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Time in Business:</span>
+                    <span className="font-semibold text-white">
+                      {bizProfile?.businessAge || 'Not set'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Annual Revenue:</span>
+                    <span className="font-semibold text-brand-400 font-mono">
+                      {bizProfile?.annualRevenueRange || 'Not set'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Business Bank:</span>
+                    <span className="font-semibold text-white">
+                      {bizProfile?.hasBusinessBankAccount === 'yes' ? 'Commercial Account Active' : 'Not linked'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">D-U-N-S Number:</span>
+                    <span className="font-mono text-slate-300">
+                      {bizProfile?.hasDuns === 'yes' ? 'Registered' : 'None'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Matched Funding Opportunities */}
+              <Card className="bg-slate-950 border-slate-800 text-white">
+                <CardHeader className="pb-3 border-b border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-brand-400" />
+                      <span>Matched Opportunities</span>
+                    </CardTitle>
+                    <Badge variant="neutral" className="text-[10px]">
+                      {recommendedProducts.length} Matches
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-2.5">
+                  {recommendedProducts.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-4">
+                      No funding matches found yet for current profile attributes.
+                    </p>
+                  ) : (
+                    recommendedProducts.slice(0, 4).map((rec, i) => (
+                      <div
+                        key={rec.id || i}
+                        className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white truncate max-w-[170px]">
+                            {rec.name}
+                          </span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              rec.matchScore >= 80
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-amber-500/20 text-amber-400'
+                            }`}
+                          >
+                            {rec.matchScore}% Match
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>{CATEGORY_LABELS[rec.category] || rec.category}</span>
+                          <span className="font-mono text-brand-400 font-semibold">{rec.matchLabel}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       )}

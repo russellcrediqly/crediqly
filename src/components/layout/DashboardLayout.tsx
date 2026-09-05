@@ -8,6 +8,7 @@ import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/Button';
 import { ConsultationModal } from '@/components/ui/ConsultationModal';
 import { usePlatformSections } from '@/lib/usePlatformSections';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { DashboardSectionKey } from '@/types/settings';
 import {
   LayoutDashboard,
@@ -26,40 +27,75 @@ import {
   Shield,
   Sparkles,
   Headphones,
+  Lock,
 } from 'lucide-react';
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/business', label: 'My Business', icon: Building2 },
-  { href: '/readiness', label: 'Readiness Audit', icon: ShieldCheck },
-  { href: '/roadmap', label: 'Credit Roadmap', icon: GitFork },
-  { href: '/funding', label: 'Funding', icon: DollarSign },
-  { href: '/products', label: 'Credit Products', icon: CreditCard },
-  { href: '/learn', label: 'Learn', icon: BookOpen },
-  { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck },
-  { href: '/advisory', label: 'Premium Advisory', icon: Headphones },
-  { href: '/pricing', label: 'Plans & Pricing', icon: Sparkles },
-  { href: '/profile', label: 'Profile', icon: User },
-];
+export interface DashboardLayoutProps {
+  children: React.ReactNode;
+}
 
-const ROUTE_SECTION_MAP: Partial<Record<string, DashboardSectionKey>> = {
-  '/business': 'business_profile',
-  '/readiness': 'funding_readiness',
-  '/roadmap': 'roadmap',
-  '/funding': 'funding',
-  '/products': 'products',
-  '/funding-tracker': 'funding_tracker',
-};
+interface NavItemDef {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  sectionKey?: DashboardSectionKey;
+  proBadge?: 'Pro' | 'VIP';
+}
+
+interface NavGroupDef {
+  title?: string;
+  items: NavItemDef[];
+}
+
+const NAV_GROUPS: NavGroupDef[] = [
+  {
+    items: [
+      { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'MY BUSINESS',
+    items: [
+      { href: '/business', label: 'Business Profile', icon: Building2, sectionKey: 'business_profile' },
+      { href: '/readiness', label: 'Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
+      { href: '/roadmap', label: 'Credit Roadmap', icon: GitFork, sectionKey: 'roadmap' },
+    ],
+  },
+  {
+    title: 'BUILD CREDIT',
+    items: [
+      { href: '/products', label: 'Credit Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
+      { href: '/advisory', label: 'Premium Advisory', icon: Headphones, proBadge: 'VIP' },
+      { href: '/learn', label: 'Resource Library', icon: BookOpen },
+    ],
+  },
+  {
+    title: 'FUNDING',
+    items: [
+      { href: '/funding', label: 'Funding Matches', icon: DollarSign, sectionKey: 'funding' },
+      { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck, sectionKey: 'funding_tracker' },
+    ],
+  },
+  {
+    title: 'ACCOUNT',
+    items: [
+      { href: '/pricing', label: 'Plans & Pricing', icon: Sparkles },
+      { href: '/profile', label: 'Account Profile', icon: User },
+      { href: '/check-in', label: 'Monthly Check-In', icon: CalendarCheck },
+    ],
+  },
+];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { sections } = usePlatformSections();
+  const { isPro } = useSubscription();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
 
@@ -69,13 +105,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   };
 
   const isConsultationEnabled = sections.consultation !== false;
-
-  // Filter navigation items based on active platform settings
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    const secKey = ROUTE_SECTION_MAP[item.href];
-    if (!secKey) return true;
-    return sections[secKey] !== false;
-  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
@@ -88,12 +117,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       />
 
       {/* Mobile Top Bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
+      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-sm">
+          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-sm shadow-2xs">
             C
           </div>
-          <span className="font-bold text-slate-900 tracking-tight text-lg">Crediqly</span>
+          <span className="font-extrabold text-slate-900 tracking-tight text-lg">Crediqly</span>
         </Link>
         <div className="flex items-center gap-2">
           {isConsultationEnabled && (
@@ -101,7 +130,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               <Button
                 size="sm"
                 variant="outline"
-                className="text-xs py-1.5 px-2.5 flex items-center gap-1 border-brand-300 text-brand-700 bg-brand-50/60"
+                className="text-xs py-1 px-2.5 flex items-center gap-1 border-brand-300 text-brand-700 bg-brand-50/60 font-semibold"
               >
                 <CalendarCheck className="w-3.5 h-3.5" />
                 <span>Consult</span>
@@ -110,7 +139,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           )}
           <button
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+            className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
             aria-label="Toggle navigation"
           >
             {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -124,55 +153,81 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Top Branding */}
-        <div>
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        {/* Top Branding & Navigation */}
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-navy-900 flex items-center justify-center text-white font-black text-base shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-navy-900 flex items-center justify-center text-white font-black text-base shadow-xs">
                 C
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-black tracking-tight text-slate-900 font-sans">
                   Crediqly
                 </span>
-                <span className="text-[10px] font-semibold tracking-wide uppercase text-brand-700 -mt-1">
-                  Business Hub
+                <span className="text-[10px] font-bold tracking-wider uppercase text-brand-700 -mt-1">
+                  Command Center
                 </span>
               </div>
             </Link>
             <button
               onClick={() => setMobileNavOpen(false)}
-              className="md:hidden p-1 text-slate-400 hover:text-slate-600"
+              className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="p-4 space-y-1">
-            {visibleNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+          {/* Grouped Navigation Links */}
+          <nav className="p-3 space-y-4 overflow-y-auto flex-1">
+            {NAV_GROUPS.map((group, groupIdx) => {
+              const visibleItems = group.items.filter((item) => {
+                if (!item.sectionKey) return true;
+                return sections[item.sectionKey] !== false;
+              });
+
+              if (visibleItems.length === 0) return null;
 
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileNavOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-800 font-semibold border-l-4 border-brand-600 pl-2.5 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon
-                    className={`w-4 h-4 ${
-                      isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
-                    }`}
-                  />
-                  <span>{item.label}</span>
-                </Link>
+                <div key={groupIdx} className="space-y-0.5">
+                  {group.title && (
+                    <div className="px-3 pt-1 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {group.title}
+                    </div>
+                  )}
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      item.href === '/dashboard'
+                        ? pathname === '/dashboard'
+                        : pathname === item.href || pathname?.startsWith(item.href + '/');
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileNavOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                          isActive
+                            ? 'bg-brand-50 text-brand-900 font-bold border-l-4 border-brand-600 pl-2 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 shrink-0 ${
+                            isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
+                          }`}
+                        />
+                        <span className="truncate">{item.label}</span>
+                        {item.proBadge && !isPro && (
+                          <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-300/60 flex items-center gap-0.5 shrink-0">
+                            <Lock className="w-2.5 h-2.5 text-amber-700" />
+                            <span>{item.proBadge}</span>
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>

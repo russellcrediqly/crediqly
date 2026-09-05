@@ -27,6 +27,9 @@ import {
   Settings,
   Zap,
   Receipt,
+  Layers,
+  Target,
+  Activity,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -611,6 +614,86 @@ export default function AdminOverviewPage() {
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-violet-400 transition-colors" />
+              </div>
+            </Card>
+          </Link>
+
+          {/* Affiliates & Partner Placements */}
+          <Link href="/admin/affiliates">
+            <Card className="bg-slate-950 border-slate-800 hover:border-amber-500/50 transition-all p-4 cursor-pointer group shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                      Affiliates & Partners
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Links, placements & CTR</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 transition-colors" />
+              </div>
+            </Card>
+          </Link>
+
+          {/* Roadmap Milestones & Stages */}
+          <Link href="/admin/roadmap">
+            <Card className="bg-slate-950 border-slate-800 hover:border-indigo-500/50 transition-all p-4 cursor-pointer group shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Target className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
+                      Roadmap Milestones
+                    </h4>
+                    <p className="text-[11px] text-slate-400">5 stages & task overrides</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+              </div>
+            </Card>
+          </Link>
+
+          {/* Action Guidance & Recommendations */}
+          <Link href="/admin/recommendations">
+            <Card className="bg-slate-950 border-slate-800 hover:border-emerald-500/50 transition-all p-4 cursor-pointer group shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
+                      Action Guidance
+                    </h4>
+                    <p className="text-[11px] text-slate-400">What Should I Do Next?</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors" />
+              </div>
+            </Card>
+          </Link>
+
+          {/* Activity Stream & Admin Audit Trail */}
+          <Link href="/admin/activity">
+            <Card className="bg-slate-950 border-slate-800 hover:border-blue-500/50 transition-all p-4 cursor-pointer group shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors">
+                      Audit Trail & Activity
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Admin logs & platform feeds</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors" />
               </div>
             </Card>
           </Link>

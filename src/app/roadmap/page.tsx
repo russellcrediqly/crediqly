@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -17,6 +17,9 @@ import { useRoadmap } from '@/context/RoadmapContext';
 import { RoadmapTaskCard } from '@/components/roadmap/RoadmapTaskCard';
 import { RoadmapTaskModal } from '@/components/roadmap/RoadmapTaskModal';
 import { TaskReopenModal } from '@/components/roadmap/TaskReopenModal';
+import { StageProgressList } from '@/components/dashboard/StageProgressList';
+import { MilestoneTimeline } from '@/components/dashboard/MilestoneTimeline';
+import { calculateMilestones } from '@/lib/milestones/engine';
 import { RoadmapTask } from '@/lib/roadmap/types';
 import {
   Compass,
@@ -97,6 +100,11 @@ function CreditRoadmapContent() {
       : activeStageFilter === 'completed'
       ? roadmap.allTasks.filter((t) => t.status === 'completed')
       : roadmap.allTasks.filter((t) => t.stage === activeStageFilter);
+
+  // Compute deterministic milestones from real data
+  const milestones = useMemo(() => {
+    return calculateMilestones(business, roadmap);
+  }, [business, roadmap]);
 
   const nextBest = roadmap.nextBestAction;
 
@@ -444,6 +452,22 @@ function CreditRoadmapContent() {
                 />
               ))
             )}
+          </div>
+        </div>
+
+        {/* Detailed Stage Progress & Milestone Breakdown */}
+        <div className="space-y-4 pt-2">
+          <div className="border-b border-slate-200/80 pb-2.5">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+              Stage Progress &amp; Milestone Timeline
+            </h2>
+            <p className="text-xs text-slate-500">
+              Detailed tracking across all active credit-building stages and milestone benchmarks.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StageProgressList stages={roadmap.stages} />
+            <MilestoneTimeline milestones={milestones} />
           </div>
         </div>
 

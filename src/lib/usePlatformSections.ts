@@ -96,6 +96,8 @@ export function usePlatformSections() {
       funding: enabled,
       funding_tracker: enabled,
       consultation: enabled,
+      ai_mentor: enabled,
+      funding_forecast: enabled,
     };
     setSections(next);
     try {

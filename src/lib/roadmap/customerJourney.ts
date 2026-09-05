@@ -5,39 +5,36 @@ import { calculateProfileCompletion } from '@/lib/scoring/engine';
 export type JourneyStageStatus = 'completed' | 'in_progress' | 'upcoming';
 
 export interface JourneyStage {
-  id: number;
-  title: string;
-  shortTitle: string;
-  description: string;
+  id: number; // 1 to 5
+  numberPrefix: string; // '01', '02', '03', '04', '05'
+  title: string; // 'Establish', 'Build', 'Strengthen', 'Funding Ready', 'Scale'
+  fullTitle: string; // '01 — ESTABLISH', etc.
+  shortExplanation: string;
   status: JourneyStageStatus;
-  progress: number; // 0 to 100
-  detail: string;
+  progress: number; // 0 to 100%
+  recommendedAction: string;
   actionLabel: string;
   actionHref: string;
   whyItMatters: string;
-  iconName: 'profile' | 'foundation' | 'credit' | 'readiness' | 'funding_readiness' | 'funding_options';
+  iconName: 'establish' | 'build' | 'strengthen' | 'funding_ready' | 'scale';
 }
 
 export interface CustomerJourneyResult {
   stages: JourneyStage[];
   activeStep: JourneyStage;
-  activeStepNumber: number; // 1 to 6
-  totalSteps: number; // 6
+  activeStepNumber: number; // 1 to 5
+  totalSteps: number; // 5
   completedStepsCount: number;
   overallProgress: number; // 0 to 100%
   profileCompletionPercentage: number;
+  currentStageLabel: string; // e.g. "03 — STRENGTHEN"
 }
 
 /**
- * Calculates deterministic 6-stage Customer Journey progression.
- * Provides clear guidance on:
- * 1. Current step
- * 2. Accomplished milestones
- * 3. Next action
- * 4. Why it matters
- * 5. Direct 1-click CTA
+ * Calculates deterministic 5-stage Business Credit Journey progression:
+ * 01 ESTABLISH → 02 BUILD → 03 STRENGTHEN → 04 FUNDING READY → 05 SCALE
  *
- * NOTE: Features are NEVER locked out based on this journey.
+ * NOTE: Features are NEVER locked out based on this journey. It is guidance only.
  */
 export function calculateCustomerJourney(
   business: Partial<BusinessProfile> | null,
@@ -49,52 +46,70 @@ export function calculateCustomerJourney(
   const profileCompletion = calculateProfileCompletion(business);
   const isProfileComplete = Boolean(business?.profileCompleted || profileCompletion >= 100);
 
-  // 1. Stage 1: Build Your Business Profile
-  const stage1Complete = isProfileComplete;
-  const stage1Progress = profileCompletion;
-
-  // 2. Stage 2: Business Credit Foundation
+  // --------------------------------------------------------------------------
+  // STAGE 1: 01 ESTABLISH
+  // --------------------------------------------------------------------------
+  const hasEntity = Boolean(business?.entityType && business.entityType.trim() !== '' && business.entityType !== 'Not sure');
+  const hasEIN = business?.hasEIN === 'yes';
+  const hasBank = business?.hasBusinessBankAccount === 'yes';
   const foundationChecks = [
-    business?.hasEIN === 'yes',
-    business?.hasBusinessBankAccount === 'yes',
+    hasEntity,
+    hasEIN,
+    hasBank,
     business?.hasWebsite === 'yes',
     business?.hasBusinessPhone === 'yes',
-    business?.hasBusinessEmail === 'yes',
     business?.hasBusinessAddress === 'yes',
-    business?.hasBusinessLicense === 'yes' || business?.hasBusinessLicense === 'not_applicable',
-    business?.hasDuns === 'yes',
   ];
-  const foundationMetCount = foundationChecks.filter(Boolean).length;
-  // Completed if at least 6 core foundation markers are in place and profile is complete
-  const stage2Complete = stage1Complete && (foundationMetCount >= 6 || businessReadiness.score >= 80);
-  const stage2Progress = Math.round((foundationMetCount / 8) * 100);
+  const foundationCount = foundationChecks.filter(Boolean).length;
+  const stage1Complete = isProfileComplete && hasEntity && hasEIN && hasBank;
+  const stage1Progress = Math.min(100, Math.round(((profileCompletion * 0.4) + ((foundationCount / 6) * 60))));
 
-  // 3. Stage 3: Build Business Credit
-  const hasAccounts = Boolean(
-    business?.hasReportingAccounts === 'yes' ||
-    (business?.businessCreditAccountCount && ['3-5', '6-10', '10+'].includes(business.businessCreditAccountCount)) ||
-    business?.hasBusinessCreditCard === 'yes' ||
-    creditReadiness.score >= 50
-  );
-  const stage3Complete = stage2Complete && hasAccounts;
-  const stage3Progress = stage3Complete ? 100 : hasAccounts ? 60 : (business?.hasBusinessCreditProfile === 'yes' ? 35 : 15);
+  // --------------------------------------------------------------------------
+  // STAGE 2: 02 BUILD
+  // --------------------------------------------------------------------------
+  const hasCreditProfile = business?.hasBusinessCreditProfile === 'yes';
+  const hasReporting = business?.hasReportingAccounts === 'yes';
+  const hasDuns = business?.hasDuns === 'yes';
+  const stage2Complete = stage1Complete && (hasCreditProfile || hasReporting || creditReadiness.score >= 40);
+  const stage2Progress = stage2Complete
+    ? 100
+    : stage1Complete
+    ? Math.min(90, Math.max(25, Math.round(((hasCreditProfile ? 40 : 10) + (hasReporting ? 40 : 10) + (hasDuns ? 10 : 0)))))
+    : 15;
 
-  // 4. Stage 4: Improve Business Readiness
-  const readinessPassed = businessReadiness.score >= 65 && creditReadiness.score >= 40;
-  const stage4Complete = stage3Complete && readinessPassed;
-  const stage4Progress = Math.min(100, Math.round((businessReadiness.score + creditReadiness.score) / 2));
+  // --------------------------------------------------------------------------
+  // STAGE 3: 03 STRENGTHEN
+  // --------------------------------------------------------------------------
+  const hasCard = business?.hasBusinessCreditCard === 'yes';
+  const highAccountCount = business?.businessCreditAccountCount === '4-5' || business?.businessCreditAccountCount === '6-10' || business?.businessCreditAccountCount === '10+';
+  const stage3Complete = stage2Complete && hasReporting && (hasCard || highAccountCount || creditReadiness.score >= 60);
+  const stage3Progress = stage3Complete
+    ? 100
+    : stage2Complete
+    ? Math.min(90, Math.max(30, Math.round(creditReadiness.score * 0.9 + (hasCard ? 15 : 0))))
+    : 10;
 
-  // 5. Stage 5: Funding Readiness
-  const fundingReady = fundingReadiness.score >= 65 || ['Strong Readiness', 'Funding Ready'].includes(fundingReadiness.level);
-  const stage5Complete = stage4Complete && fundingReady;
-  const stage5Progress = fundingReadiness.score;
+  // --------------------------------------------------------------------------
+  // STAGE 4: 04 FUNDING READY
+  // --------------------------------------------------------------------------
+  const isFundingScoreReady = fundingReadiness.score >= 70 || ['Strong Readiness', 'Funding Ready'].includes(fundingReadiness.level);
+  const stage4Complete = stage3Complete && isFundingScoreReady;
+  const stage4Progress = stage4Complete
+    ? 100
+    : stage3Complete
+    ? Math.min(95, Math.max(20, fundingReadiness.score))
+    : 10;
 
-  // 6. Stage 6: Explore Funding Options
-  const hasApplications = trackedAppsCount > 0;
-  const stage6Complete = stage5Complete && hasApplications;
-  const stage6Progress = hasApplications ? 100 : (stage5Complete ? 50 : 20);
+  // --------------------------------------------------------------------------
+  // STAGE 5: 05 SCALE
+  // --------------------------------------------------------------------------
+  const hasFinancingOrApps = trackedAppsCount > 0 || business?.hasFundingHistory === 'yes';
+  const stage5Complete = stage4Complete && hasFinancingOrApps;
+  const stage5Progress = stage5Complete ? 100 : stage4Complete ? 50 : 10;
 
-  // Determine stage statuses sequentially
+  // --------------------------------------------------------------------------
+  // SEQUENTIAL STATUS ASSIGNMENT
+  // --------------------------------------------------------------------------
   const stage1Status: JourneyStageStatus = stage1Complete ? 'completed' : 'in_progress';
   const stage2Status: JourneyStageStatus = stage2Complete
     ? 'completed'
@@ -116,111 +131,113 @@ export function calculateCustomerJourney(
     : stage4Complete
     ? 'in_progress'
     : 'upcoming';
-  const stage6Status: JourneyStageStatus = stage6Complete
-    ? 'completed'
-    : stage5Complete
-    ? 'in_progress'
-    : 'upcoming';
 
   const stages: JourneyStage[] = [
     {
       id: 1,
-      title: 'Build Your Business Profile',
-      shortTitle: 'Business Profile',
-      description: 'Complete basic entity details, industry classification, and contact information.',
+      numberPrefix: '01',
+      title: 'Establish',
+      fullTitle: '01 — ESTABLISH',
+      shortExplanation: 'Establish your formal business entity, federal EIN, and dedicated commercial bank account.',
       status: stage1Status,
       progress: stage1Progress,
-      detail: `${stage1Progress}% completed`,
-      actionLabel: stage1Complete ? 'View Profile' : 'Continue Setup',
+      recommendedAction: stage1Complete
+        ? 'Business foundation and commercial banking verified.'
+        : !isProfileComplete
+        ? 'Complete your profile questionnaire.'
+        : 'Open a dedicated commercial checking account.',
+      actionLabel: stage1Complete ? 'View Profile' : 'Complete Setup',
       actionHref: stage1Complete ? '/business' : '/onboarding',
-      whyItMatters: 'A completed profile generates your personalized credit roadmap and activates accurate readiness scoring.',
-      iconName: 'profile',
+      whyItMatters: 'A formal legal entity and commercial bank account protect personal assets and form your credit foundation.',
+      iconName: 'establish',
     },
     {
       id: 2,
-      title: 'Business Credit Foundation',
-      shortTitle: 'Foundation',
-      description: 'Establish commercial checking, federal EIN, official commercial address, phone, and D-U-N-S.',
+      numberPrefix: '02',
+      title: 'Build',
+      fullTitle: '02 — BUILD',
+      shortExplanation: 'Register with major business credit bureaus and open initial Tier-1 Net-30 vendor tradelines.',
       status: stage2Status,
       progress: stage2Progress,
-      detail: `${foundationMetCount} of 8 core foundation items in place`,
-      actionLabel: stage2Complete ? 'View Foundation' : 'Complete Foundation',
-      actionHref: '/business',
-      whyItMatters: 'Commercial lenders and credit bureaus verify commercial legitimacy before granting business credit.',
-      iconName: 'foundation',
+      recommendedAction: hasReporting
+        ? 'Vendor tradelines reporting to commercial bureaus.'
+        : 'Open 2–3 Tier-1 Net-30 vendor accounts that report monthly.',
+      actionLabel: 'Browse Net-30 Vendors',
+      actionHref: '/products?category=net_30',
+      whyItMatters: 'Vendor tradelines report monthly payment experiences to D&B and Experian Business, generating your first commercial score.',
+      iconName: 'build',
     },
     {
       id: 3,
-      title: 'Build Business Credit',
-      shortTitle: 'Build Credit',
-      description: 'Open Tier 1 vendor tradelines, net-30 accounts, and commercial credit lines that report.',
+      numberPrefix: '03',
+      title: 'Strengthen',
+      fullTitle: '03 — STRENGTHEN',
+      shortExplanation: 'Continue building a stronger business-credit profile and improve your funding readiness.',
       status: stage3Status,
       progress: stage3Progress,
-      detail: hasAccounts ? 'Reporting tradelines active' : 'Add 3+ reporting Net-30 vendor accounts',
-      actionLabel: 'Browse Net-30 Vendors',
-      actionHref: '/products',
-      whyItMatters: 'Vendor tradelines report on-time payments to D&B and Experian Business, establishing your bureau scores.',
-      iconName: 'credit',
+      recommendedAction: hasCard
+        ? 'Revolving credit active. Maintain on-time payment history.'
+        : 'Establish revolving commercial credit cards and expand reporting accounts.',
+      actionLabel: 'View Next Steps',
+      actionHref: '/products?category=business_credit_cards',
+      whyItMatters: 'Multiple trade accounts and revolving commercial credit lines deepen your file for higher borrowing limits.',
+      iconName: 'strengthen',
     },
     {
       id: 4,
-      title: 'Improve Business Readiness',
-      shortTitle: 'Business Readiness',
-      description: 'Strengthen operational compliance, licenses, credibility markers, and financial health.',
+      numberPrefix: '04',
+      title: 'Funding Ready',
+      fullTitle: '04 — FUNDING READY',
+      shortExplanation: 'Satisfy automated lender underwriting thresholds across cash flow, longevity, and credit depth.',
       status: stage4Status,
       progress: stage4Progress,
-      detail: `Readiness Score: ${businessReadiness.score}/100 (${businessReadiness.level})`,
-      actionLabel: 'View Readiness Report',
+      recommendedAction: isFundingScoreReady
+        ? 'Funding readiness threshold reached. Compare loan criteria.'
+        : 'Review lender readiness factors and debt-service requirements.',
+      actionLabel: 'Check Funding Criteria',
       actionHref: '/readiness',
-      whyItMatters: 'Higher readiness scores reduce automated lender declinations and qualify you for prime borrowing rates.',
-      iconName: 'readiness',
+      whyItMatters: 'Verifying underwriting requirements beforehand ensures you apply only to loan programs you meet the criteria for.',
+      iconName: 'funding_ready',
     },
     {
       id: 5,
-      title: 'Funding Readiness',
-      shortTitle: 'Funding Readiness',
-      description: 'Evaluate time-in-business, annual revenue, and commercial criteria against lender benchmarks.',
+      numberPrefix: '05',
+      title: 'Scale',
+      fullTitle: '05 — SCALE',
+      shortExplanation: 'Leverage established commercial credit to secure institutional capital and expand operations.',
       status: stage5Status,
       progress: stage5Progress,
-      detail: `Funding Readiness: ${fundingReadiness.score}/100 (${fundingReadiness.level})`,
-      actionLabel: 'Check Funding Criteria',
-      actionHref: '/funding',
-      whyItMatters: 'Understanding strict lender criteria beforehand ensures you apply only to financing programs you qualify for.',
-      iconName: 'funding_readiness',
-    },
-    {
-      id: 6,
-      title: 'Explore Funding Options',
-      shortTitle: 'Funding Options',
-      description: 'Compare matched commercial lines of credit, term loans, SBA funding, and credit cards.',
-      status: stage6Status,
-      progress: stage6Progress,
-      detail: hasApplications ? `${trackedAppsCount} funding application(s) tracked` : 'Explore pre-matched lenders',
+      recommendedAction: hasFinancingOrApps
+        ? `${trackedAppsCount} funding application(s) tracked.`
+        : 'Explore institutional term loans, lines of credit, and SBA capital.',
       actionLabel: 'Explore Funding Options',
       actionHref: '/funding',
-      whyItMatters: 'Access non-dilutive commercial capital to scale operations, purchase inventory, and maintain cash flow.',
-      iconName: 'funding_options',
+      whyItMatters: 'Access non-dilutive low-interest capital to finance inventory, hire staff, and expand market operations.',
+      iconName: 'scale',
     },
   ];
 
-  // Active step is the first in_progress stage, or stage 1 if none, or stage 6 if all complete
-  const activeStep = stages.find((s) => s.status === 'in_progress') || (stage6Complete ? stages[5] : stages[0]);
+  // Active step is the first in_progress stage, or stage 1, or stage 5 if all complete
+  const activeStep = stages.find((s) => s.status === 'in_progress') || (stage5Complete ? stages[4] : stages[0]);
   const activeStepNumber = activeStep.id;
 
   const completedStepsCount = stages.filter((s) => s.status === 'completed').length;
-  // Weighted overall progress: completed stages contribute 100/6 each, active stage contributes partially
+  // Weighted overall progress
   const overallProgress = Math.min(
     100,
-    Math.round((completedStepsCount / 6) * 100 + (activeStep.status === 'in_progress' ? (activeStep.progress / 6) : 0))
+    Math.round((completedStepsCount / 5) * 100 + (activeStep.status === 'in_progress' ? activeStep.progress / 5 : 0))
   );
+
+  const currentStageLabel = `${activeStep.numberPrefix} — ${activeStep.title.toUpperCase()}`;
 
   return {
     stages,
     activeStep,
     activeStepNumber,
-    totalSteps: 6,
+    totalSteps: 5,
     completedStepsCount,
     overallProgress,
     profileCompletionPercentage: profileCompletion,
+    currentStageLabel,
   };
 }

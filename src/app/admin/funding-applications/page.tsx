@@ -13,12 +13,19 @@ import {
   Building2,
   Calendar,
   Layers,
+  Edit2,
+  X,
+  Sparkles,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { getAllFundingApplicationsAdmin } from '@/lib/supabase/fundingApplicationService';
+import {
+  getAllFundingApplicationsAdmin,
+  updateFundingApplication,
+} from '@/lib/supabase/fundingApplicationService';
+import { logAdminAction } from '@/lib/supabase/adminAuditService';
 import { FundingApplication, FundingApplicationStatus } from '@/types/fundingApplication';
 
 const ALL_STATUSES: FundingApplicationStatus[] = [
@@ -59,6 +66,18 @@ export default function AdminFundingApplicationsPage() {
   const [applications, setApplications] = useState<(FundingApplication & { userEmail?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Review Modal State
+  const [selectedApp, setSelectedApp] = useState<(FundingApplication & { userEmail?: string }) | null>(null);
+  const [editStatus, setEditStatus] = useState<FundingApplicationStatus>('Applied');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [savingApp, setSavingApp] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Filters
   const [search, setSearch] = useState('');
@@ -124,6 +143,50 @@ export default function AdminFundingApplicationsPage() {
     const totalCapital = applications.reduce((sum, a) => sum + (a.requestedAmount || 0), 0);
     return { total, inProgress, successful, totalCapital };
   }, [applications]);
+
+  const handleOpenReview = (app: FundingApplication & { userEmail?: string }) => {
+    setSelectedApp(app);
+    setEditStatus(app.status);
+    setAdminNotes(app.notes || '');
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedApp) return;
+    setSavingApp(true);
+    try {
+      await updateFundingApplication(selectedApp.id, {
+        status: editStatus,
+        notes: adminNotes,
+      });
+
+      await logAdminAction({
+        adminEmail: 'crediqly@gmail.com',
+        action: 'UPDATE_APPLICATION_STATUS',
+        entityType: 'funding_application',
+        entityId: selectedApp.id,
+        entityName: `${selectedApp.userEmail || selectedApp.userId} — ${selectedApp.productName}`,
+        description: `Updated application status to "${editStatus}" (notes: ${adminNotes || 'none'})`,
+        previousValue: { status: selectedApp.status, notes: selectedApp.notes },
+        newValue: { status: editStatus, notes: adminNotes },
+      });
+
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === selectedApp.id
+            ? { ...a, status: editStatus, notes: adminNotes, updatedAt: new Date().toISOString() }
+            : a
+        )
+      );
+
+      showToast(`Updated status to "${editStatus}" for ${selectedApp.productName}`);
+      setSelectedApp(null);
+    } catch (err) {
+      console.error('Failed to update application:', err);
+      showToast('Error updating application. Please try again.');
+    } finally {
+      setSavingApp(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -331,12 +394,13 @@ export default function AdminFundingApplicationsPage() {
                 <th className="py-3 px-4">Application Date</th>
                 <th className="py-3 px-4">Created Date</th>
                 <th className="py-3 px-4">Last Updated</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredApps.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <FileCheck className="w-8 h-8 text-slate-600" />
                       <p className="text-sm font-medium text-slate-300">No applications found</p>
@@ -395,6 +459,18 @@ export default function AdminFundingApplicationsPage() {
                     <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
                       {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : '—'}
                     </td>
+
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenReview(app)}
+                        className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs py-1 px-2.5 h-auto inline-flex items-center gap-1"
+                      >
+                        <Edit2 className="w-3 h-3 text-brand-400" />
+                        <span>Review</span>
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -402,6 +478,115 @@ export default function AdminFundingApplicationsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Review / Status Management Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/60">
+              <div className="flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-brand-400" />
+                <h3 className="text-base font-bold text-white">Review Funding Application</h3>
+              </div>
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              {/* Application Details Summary */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Customer</span>
+                  <span className="font-semibold text-white font-mono">{selectedApp.userEmail || selectedApp.userId}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Provider & Product</span>
+                  <span className="font-semibold text-white">{selectedApp.providerName} &bull; {selectedApp.productName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Requested Amount</span>
+                  <span className="font-semibold text-brand-400 font-mono">
+                    {selectedApp.requestedAmount ? `$${selectedApp.requestedAmount.toLocaleString()}` : 'Unspecified'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Current Status</span>
+                  <span>{getStatusBadge(selectedApp.status)}</span>
+                </div>
+              </div>
+
+              {/* Status Select */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">
+                  Update Lifecycle Status
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as FundingApplicationStatus)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+                >
+                  {ALL_STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-500">
+                  Changing status updates the customer&apos;s personal funding tracker and records an admin audit entry.
+                </p>
+              </div>
+
+              {/* Admin / Team Notes */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">
+                  Internal / Tracking Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="e.g. Underwriter requested 3 months bank statements; customer notified on 09/06..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedApp(null)}
+                  disabled={savingApp}
+                  className="border-slate-800 text-slate-300 hover:bg-slate-800 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSaveReview}
+                  disabled={savingApp}
+                  className="bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs"
+                >
+                  {savingApp ? 'Saving Updates...' : 'Save & Log Action'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-brand-500/40 text-brand-300 text-xs font-medium px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle2 className="w-4 h-4 text-brand-400 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

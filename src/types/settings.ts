@@ -7,7 +7,9 @@ export type DashboardSectionKey =
   | 'products'
   | 'funding'
   | 'funding_tracker'
-  | 'consultation';
+  | 'consultation'
+  | 'ai_mentor'
+  | 'funding_forecast';
 
 export interface DashboardSectionConfig {
   key: DashboardSectionKey;
@@ -81,6 +83,20 @@ export const PREDEFINED_DASHBOARD_SECTIONS: DashboardSectionConfig[] = [
     category: 'services',
     path: '/consultation',
   },
+  {
+    key: 'ai_mentor',
+    name: 'Crediqly AI Mentor',
+    description: 'Data-aware AI guidance personalized to customer profile, scores, and active roadmap.',
+    category: 'tools',
+    path: '/dashboard#ai-mentor',
+  },
+  {
+    key: 'funding_forecast',
+    name: 'Funding Forecast & Cash Flow',
+    description: 'Educational 90-day cash-flow profile and working-capital planning estimates.',
+    category: 'tools',
+    path: '/dashboard#funding-forecast',
+  },
 ];
 
 export const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = {
@@ -93,6 +109,8 @@ export const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = 
   funding: true,
   funding_tracker: true,
   consultation: true,
+  ai_mentor: true,
+  funding_forecast: true,
 };
 
 export interface PlatformMessaging {
@@ -105,7 +123,13 @@ export interface PlatformMessaging {
 
 export interface RoadmapTaskOverride {
   title?: string;
+  customTitle?: string;
+  priority?: any;
   whyItMatters?: string;
+  whatToDo?: string[];
+  thingsToConsider?: string[];
+  actionLabel?: string;
+  actionHref?: string;
   enabled?: boolean;
 }
 

@@ -38,6 +38,8 @@ const ICON_MAP: Record<DashboardSectionKey, React.ComponentType<{ className?: st
   funding: TrendingUp,
   funding_tracker: FileCheck,
   consultation: Calendar,
+  ai_mentor: Sparkles,
+  funding_forecast: TrendingUp,
 };
 
 export const DashboardSectionControls: React.FC = () => {

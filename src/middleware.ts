@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifyAdminRequest } from '@/lib/auth/adminAuth';
 
 /**
  * Next.js Edge Middleware
  * 
- * Explicitly allows Stripe Webhook requests to pass through without any
- * session, authentication, or redirection interference.
+ * 1. Explicitly allows Stripe Webhook requests to pass through without interference.
+ * 2. Protects Admin API endpoints and administrative boundaries server-side.
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -15,7 +16,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Continue with normal request processing for other routes
+  // 2. Server-side Protection for Admin API Endpoints
+  if (pathname.startsWith('/api/admin')) {
+    const verification = verifyAdminRequest(request);
+    if (!verification.authorized) {
+      return NextResponse.json(
+        { error: 'Forbidden: Administrator credentials required.', code: 'ADMIN_UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
+  }
+
+  // 3. Continue with normal request processing for other routes
   return NextResponse.next();
 }
 

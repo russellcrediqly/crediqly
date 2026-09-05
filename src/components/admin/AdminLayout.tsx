@@ -27,6 +27,8 @@ import {
   FileCheck,
   Calendar,
   CreditCard,
+  Target,
+  Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 
@@ -37,16 +39,18 @@ export interface AdminLayoutProps {
 const ADMIN_NAV = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/customers', label: 'Customers', icon: Users },
-  { href: '/admin/billing', label: 'Billing & Plans', icon: CreditCard },
-  { href: '/admin/payments', label: 'Payments Ledger', icon: DollarSign },
-  { href: '/admin/consultations', label: 'Advisory Meetings', icon: Calendar },
+  { href: '/admin/affiliates', label: 'Affiliates', icon: Link2 },
+  { href: '/admin/roadmap', label: 'Roadmap', icon: Target },
+  { href: '/admin/recommendations', label: 'Action Guidance', icon: Sparkles },
+  { href: '/admin/funding-applications', label: 'Applications', icon: FileCheck },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/banks', label: 'Banks', icon: Landmark },
   { href: '/admin/funding', label: 'Funding', icon: DollarSign },
-  { href: '/admin/funding-applications', label: 'Applications', icon: FileCheck },
-  { href: '/admin/recommendations', label: 'Recommendations', icon: Sparkles },
+  { href: '/admin/consultations', label: 'Advisory Meetings', icon: Calendar },
+  { href: '/admin/billing', label: 'Billing & Plans', icon: CreditCard },
+  { href: '/admin/payments', label: 'Payments Ledger', icon: DollarSign },
   { href: '/admin/content', label: 'Content', icon: FileText },
-  { href: '/admin/activity', label: 'Activity', icon: Activity },
+  { href: '/admin/activity', label: 'Activity & Audit', icon: Activity },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/settings/stripe', label: 'Stripe Setup', icon: ShieldCheck },
 ];

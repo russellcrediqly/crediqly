@@ -14,19 +14,26 @@ import {
   Info,
   CreditCard,
   Building2,
+  Lock,
 } from 'lucide-react';
+import { useSubscription } from '@/context/SubscriptionContext';
 
 interface ProductCardProps {
   product: Product | RecommendedProduct;
   onOpenDetail: (product: Product | RecommendedProduct) => void;
   onVisitProvider?: (product: Product | RecommendedProduct) => void;
+  isPro?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenDetail,
   onVisitProvider,
+  isPro: propIsPro,
 }) => {
+  const { isPro: contextIsPro, upgradeToPro } = useSubscription();
+  const isPro = propIsPro !== undefined ? propIsPro : contextIsPro;
+  const isProLocked = !isPro && (product.category === 'net_60' || product.category === 'business_credit_cards');
   const isRecommended = 'matchLabel' in product;
   const matchLabel = isRecommended ? (product as RecommendedProduct).matchLabel : null;
   const recommendationReason = isRecommended
@@ -66,7 +73,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {CATEGORY_LABELS[product.category] || product.category}
             </span>
 
-            {matchLabel && (
+            {isProLocked ? (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-800 inline-flex items-center gap-1">
+                <Lock className="w-3 h-3 text-indigo-600" />
+                <span>Pro Locked</span>
+              </span>
+            ) : matchLabel ? (
               <span
                 className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 ${getMatchBadge(
                   matchLabel
@@ -77,7 +89,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
                 {matchLabel}
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* Provider Identity */}
@@ -166,22 +178,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
 
-          <a
-            href={targetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleVisit}
-            className="inline-block"
-          >
+          {isProLocked ? (
             <Button
               variant="outline"
               size="sm"
-              className="text-xs border-brand-200 text-brand-700 hover:bg-brand-50 gap-1 h-8 px-3 font-semibold"
+              onClick={() => upgradeToPro()}
+              className="text-xs border-indigo-300 bg-indigo-50/80 text-indigo-900 hover:bg-indigo-100 gap-1.5 h-8 px-3 font-bold shadow-2xs"
             >
-              <span>Visit Provider</span>
-              <ExternalLink className="w-3 h-3 text-brand-600" />
+              <Lock className="w-3 h-3 text-indigo-700" />
+              <span>Unlock with Pro</span>
             </Button>
-          </a>
+          ) : (
+            <a
+              href={targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleVisit}
+              className="inline-block"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs border-brand-200 text-brand-700 hover:bg-brand-50 gap-1 h-8 px-3 font-semibold"
+              >
+                <span>Visit Provider</span>
+                <ExternalLink className="w-3 h-3 text-brand-600" />
+              </Button>
+            </a>
+          )}
         </div>
       </CardContent>
     </Card>

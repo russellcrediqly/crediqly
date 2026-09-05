@@ -54,6 +54,8 @@ import {
 import { FundingApplication } from '@/types/fundingApplication';
 import { FundingReadinessResult } from '@/types/funding';
 import { FundingGapAnalysis } from '@/components/readiness/FundingGapAnalysis';
+import { getPersonalizedFundingMatches } from '@/lib/funding/personalizedMatchesEngine';
+import { FundingMatchesForYouCard } from '@/components/funding/FundingMatchesForYouCard';
 
 export default function FundingPage() {
   const { user } = useAuth();
@@ -145,6 +147,11 @@ export default function FundingPage() {
   const topRecommendations = useMemo(() => {
     return matchedResults.slice(0, 3);
   }, [matchedResults]);
+
+  // Phase D: Compute 3-tier personalized funding matches
+  const personalizedMatches = useMemo(() => {
+    return getPersonalizedFundingMatches(business, readiness?.score ?? 0, products);
+  }, [business, readiness?.score, products]);
 
   // Filtered list for "Explore All Funding Options"
   const filteredAllProducts = useMemo(() => {
@@ -368,6 +375,9 @@ export default function FundingPage() {
 
           {/* GAP ANALYSIS: WHAT IS HOLDING ME BACK */}
           <FundingGapAnalysis fundingResult={readiness} isProfileComplete={Boolean(business?.profileCompleted)} />
+
+          {/* PERSONALIZED FUNDING MATCHES SECTION (Phase D) */}
+          <FundingMatchesForYouCard matches={personalizedMatches} />
 
           {/* SECTION 1: RECOMMENDED FOR YOU (Top Strongest Matches) */}
           <div className="space-y-4">
