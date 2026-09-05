@@ -34,8 +34,8 @@ export interface DashboardLayoutProps {
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/business', label: 'My Business', icon: Building2 },
+  { href: '/readiness', label: 'Readiness Audit', icon: ShieldCheck },
   { href: '/roadmap', label: 'Credit Roadmap', icon: GitFork },
-  { href: '/funding-readiness', label: 'Funding Readiness', icon: ShieldCheck },
   { href: '/funding', label: 'Funding', icon: DollarSign },
   { href: '/products', label: 'Credit Products', icon: CreditCard },
   { href: '/learn', label: 'Learn', icon: BookOpen },
@@ -47,8 +47,8 @@ const NAV_ITEMS = [
 
 const ROUTE_SECTION_MAP: Partial<Record<string, DashboardSectionKey>> = {
   '/business': 'business_profile',
+  '/readiness': 'funding_readiness',
   '/roadmap': 'roadmap',
-  '/funding-readiness': 'funding_readiness',
   '/funding': 'funding',
   '/products': 'products',
   '/funding-tracker': 'funding_tracker',

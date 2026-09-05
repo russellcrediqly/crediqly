@@ -16,6 +16,8 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { RoadmapTask } from '@/lib/roadmap/types';
 import { STAGE_DEFINITIONS } from '@/lib/roadmap/definitions';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { Lock } from 'lucide-react';
 
 interface RoadmapTaskCardProps {
   task: RoadmapTask;
@@ -32,7 +34,9 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
   onRequestReopen,
   isNextBest = false,
 }) => {
+  const { isPro } = useSubscription();
   const isCompleted = task.status === 'completed';
+  const isLocked = !isPro && task.stage !== 'foundation';
   const stageMeta = STAGE_DEFINITIONS[task.stage];
 
   const priorityColor =
@@ -43,6 +47,10 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
       : 'bg-slate-100 text-slate-600 border-slate-200';
 
   const handleToggleClick = () => {
+    if (isLocked && !isCompleted) {
+      onOpenDetail(task);
+      return;
+    }
     if (isCompleted && onRequestReopen) {
       onRequestReopen(task);
     } else {
@@ -110,6 +118,13 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
                     Recommended Next
                   </span>
                 )}
+
+                {isLocked && !isCompleted && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    <Lock className="w-2.5 h-2.5 text-amber-600" />
+                    <span>Pro Milestone</span>
+                  </span>
+                )}
               </div>
 
               <h4
@@ -167,18 +182,30 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
               <ChevronRight className="w-3.5 h-3.5" />
             </Button>
 
-            <Button
-              variant={isCompleted ? 'outline' : 'primary'}
-              size="sm"
-              onClick={handleToggleClick}
-              className={`text-xs px-3 py-1.5 h-auto ${
-                isCompleted
-                  ? 'border-slate-200 text-slate-600 hover:bg-slate-100'
-                  : 'bg-brand-600 hover:bg-brand-500 text-white'
-              }`}
-            >
-              {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
-            </Button>
+            {isLocked && !isCompleted ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onOpenDetail(task)}
+                className="text-xs px-3 py-1.5 h-auto bg-brand-600 hover:bg-brand-500 text-white gap-1 shadow-2xs"
+              >
+                <Lock className="w-3 h-3" />
+                <span>Unlock Step</span>
+              </Button>
+            ) : (
+              <Button
+                variant={isCompleted ? 'outline' : 'primary'}
+                size="sm"
+                onClick={handleToggleClick}
+                className={`text-xs px-3 py-1.5 h-auto ${
+                  isCompleted
+                    ? 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                    : 'bg-brand-600 hover:bg-brand-500 text-white'
+                }`}
+              >
+                {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

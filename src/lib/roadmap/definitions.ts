@@ -656,7 +656,7 @@ export const TASK_DEFINITIONS: BaseTaskDefinition[] = [
       'Funding Readiness is an internal evaluation designed to guide your preparation.',
       'Recalculates dynamically as you complete profile milestones.',
     ],
-    actionHref: '/funding-readiness',
+    actionHref: '/readiness',
     actionLabel: 'Check Funding Readiness',
   },
   {
@@ -675,7 +675,7 @@ export const TASK_DEFINITIONS: BaseTaskDefinition[] = [
       'Avoid non-sufficient fund (NSF) marks or excessive overdrafts.',
       'Consistent month-over-month revenue demonstrates repayment capacity.',
     ],
-    actionHref: '/funding-readiness',
+    actionHref: '/readiness',
     actionLabel: 'View Funding Criteria',
   },
   {
@@ -728,7 +728,7 @@ export const TASK_DEFINITIONS: BaseTaskDefinition[] = [
       'Submitting multiple unvetted applications in a short window triggers automated risk algorithms.',
       'A methodical, prepared approach yields the highest approval rates.',
     ],
-    actionHref: '/funding-readiness',
+    actionHref: '/readiness',
     actionLabel: 'Review Readiness Factors',
   },
 ];

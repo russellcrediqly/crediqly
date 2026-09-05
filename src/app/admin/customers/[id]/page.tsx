@@ -54,6 +54,8 @@ import { calculateReadiness, getNextBestAction } from '@/lib/scoring';
 import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
 import { generateRoadmap } from '@/lib/roadmap';
 import { getRecommendedProducts } from '@/lib/products/recommendationEngine';
+import { getMonthlyCheckIns } from '@/lib/supabase/checkInService';
+import { MonthlyCheckInRecord } from '@/types/checkIn';
 
 type ActiveTab =
   | 'business'
@@ -86,6 +88,7 @@ export default function AdminCustomerDetailPage() {
 
   // Products catalog for recommendations
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [customerCheckIns, setCustomerCheckIns] = useState<MonthlyCheckInRecord[]>([]);
 
   // Action status states
   const [saving, setSaving] = useState(false);
@@ -95,9 +98,10 @@ export default function AdminCustomerDetailPage() {
   const fetchDetail = useCallback(async () => {
     if (!userId) return;
     try {
-      const [data, products] = await Promise.all([
+      const [data, products, checkIns] = await Promise.all([
         getAdminUserDetail(userId),
         getAllProductsAdmin().catch(() => []),
+        getMonthlyCheckIns(userId).catch(() => []),
       ]);
       if (data) {
         setUserDetail(data);
@@ -110,6 +114,7 @@ export default function AdminCustomerDetailPage() {
         }
       }
       setAllProducts(products || []);
+      setCustomerCheckIns(checkIns || []);
     } catch (e) {
       console.error('Error fetching admin customer detail:', e);
     } finally {
@@ -715,6 +720,86 @@ export default function AdminCustomerDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Monthly Credit Check-In Records */}
+          <Card className="bg-slate-950 border-slate-800 text-white">
+            <CardHeader className="pb-3 border-b border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-brand-400" />
+                  <span>Monthly Business Credit Check-In History</span>
+                </CardTitle>
+                <Badge variant={customerCheckIns.length > 0 ? 'success' : 'neutral'} className="text-xs">
+                  {customerCheckIns.length} Logged
+                </Badge>
+              </div>
+              <CardDescription className="text-xs text-slate-400">
+                Self-reported monthly recurring audit responses from this business owner.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              {customerCheckIns.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs">
+                  No monthly check-ins submitted by this customer yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customerCheckIns.map((ci) => (
+                    <div key={ci.id} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">{ci.monthYear}</span>
+                          <span className="text-slate-600">•</span>
+                          <span className="text-[11px] text-slate-400">
+                            Submitted {new Date(ci.submittedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {ci.newScore !== undefined && (
+                          <span className="text-xs font-bold text-brand-400">
+                            Recorded Score: {ci.newScore}%
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px]">
+                        <div className="p-2 rounded bg-slate-950/60 border border-slate-850">
+                          <span className="text-slate-500 block">New Accounts</span>
+                          <span className={`font-semibold ${ci.responses?.openedNewCreditAccounts === 'yes' ? 'text-emerald-400' : 'text-slate-300'}`}>
+                            {ci.responses?.openedNewCreditAccounts === 'yes' ? 'Yes' : 'None'}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-950/60 border border-slate-850">
+                          <span className="text-slate-500 block">Reporting Tradelines</span>
+                          <span className={`font-semibold ${ci.responses?.vendorAccountsReporting === 'yes' ? 'text-emerald-400' : 'text-slate-300'}`}>
+                            {ci.responses?.vendorAccountsReporting === 'yes' ? 'Yes, Confirmed' : ci.responses?.vendorAccountsReporting === 'unsure' ? 'Unsure' : 'Not Yet'}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-950/60 border border-slate-850">
+                          <span className="text-slate-500 block">Revenue Trend</span>
+                          <span className="text-slate-300 font-semibold capitalize">
+                            {ci.responses?.revenueChange || 'Steady'}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-950/60 border border-slate-850">
+                          <span className="text-slate-500 block">Prior Milestone</span>
+                          <span className={`font-semibold ${ci.responses?.completedPreviousAction === 'yes' ? 'text-emerald-400' : 'text-slate-300'}`}>
+                            {ci.responses?.completedPreviousAction === 'yes' ? 'Completed' : ci.responses?.completedPreviousAction === 'partially' ? 'Partially' : 'Not Yet'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {ci.responses?.notes && (
+                        <div className="p-2.5 rounded bg-slate-950/40 border border-slate-850 text-xs text-slate-300">
+                          <span className="text-slate-500 font-semibold block text-[10px] uppercase">Notes:</span>
+                          {ci.responses.notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

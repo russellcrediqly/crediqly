@@ -68,13 +68,13 @@ export default function PricingPage() {
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-            <span>Transparent, Practical Pricing</span>
+            <span>Simple, Transparent Pricing</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Build Business Credit with Confidence
+            Choose the level of support your business needs.
           </h1>
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Start for free to know where you stand, upgrade to Pro to build your plan and take action, or choose Premium Advisory for personalized 1-on-1 guidance and ongoing support.
+            Start free, build your business-credit foundation, and upgrade when you&apos;re ready for deeper guidance and support.
           </p>
         </div>
 
@@ -87,12 +87,15 @@ export default function PricingPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-extrabold text-slate-900">Free</h3>
-                    <Badge variant="neutral" className="text-[10px] uppercase font-bold">
-                      Foundation
+                    <Badge variant="neutral" className="text-xs uppercase font-bold">
+                      Starter
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    Understand where you are and discover what to work on next.
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-semibold">
+                    Build your foundation
+                  </p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Understand where you stand and discover what to work on next.
                   </p>
                 </div>
 
@@ -101,30 +104,30 @@ export default function PricingPage() {
                   <span className="text-xs font-bold text-slate-400">/ month</span>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
-                  <div className="flex items-start gap-2">
+                <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-600">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Complete 21-point Business Profile</span>
+                    <span>Complete 21-point Business Profile compliance audit</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Basic Business & Credit Readiness scores</span>
+                    <span>Basic Business & Credit Readiness scorecards</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Foundational credit roadmap</span>
+                    <span>Tier 1 foundational credit roadmap milestones</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Progress tracking & snapshot history</span>
+                    <span>Funding application tracker (track progress)</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Commercial Funding Application Tracker</span>
+                    <span>Basic educational guides & starter vendor recommendations</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>Basic vendor recommendations</span>
+                    <span>Zero credit card required to get started</span>
                   </div>
                 </div>
               </div>
@@ -155,7 +158,7 @@ export default function PricingPage() {
 
           {/* 2. PRO PLAN ($39/mo) */}
           <Card className="border-2 border-brand-500 bg-white shadow-lg rounded-3xl relative flex flex-col justify-between overflow-hidden">
-            <div className="bg-brand-600 text-white text-center py-1.5 text-[11px] font-extrabold uppercase tracking-widest">
+            <div className="bg-brand-600 text-white text-center py-1.5 text-xs font-extrabold uppercase tracking-widest">
               Most Popular
             </div>
             <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
@@ -163,12 +166,15 @@ export default function PricingPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-extrabold text-slate-900">Crediqly Pro</h3>
-                    <Badge variant="info" className="text-[10px] uppercase font-bold">
-                      Monthly
+                    <Badge variant="info" className="text-xs uppercase font-bold">
+                      DIY Roadmap
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    Build your business credit and funding readiness with a clear plan.
+                  <p className="text-xs sm:text-sm text-brand-700 leading-relaxed font-semibold">
+                    Build smarter with the complete DIY roadmap
+                  </p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Stop guessing what to do next. Unlock your complete roadmap and track your progress as you build.
                   </p>
                 </div>
 
@@ -177,30 +183,30 @@ export default function PricingPage() {
                   <span className="text-xs font-bold text-slate-400">/ month</span>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
-                  <div className="flex items-start gap-2">
+                <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-600">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
                     <span><strong>Everything in Free</strong>, plus:</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Full 5-Stage Personalized Roadmap</strong> with all milestone tasks</span>
+                    <span><strong>Complete 4-Tier Interactive Roadmap</strong> with all milestone tasks</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Full Credit Product Directory</strong>: Tier 1, 2, 3 net-30 vendor accounts & cards</span>
+                    <span><strong>Full Credit Product Directory</strong>: Tier 1, 2, 3 Net-30 vendor tradelines & cards</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Advanced Funding Readiness Analysis</strong> & underwriting insights</span>
+                    <span><strong>Deeper Funding-Readiness Guidance</strong> & underwriting gap analysis</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Commercial Banks Directory</strong> with fee comparisons & partner links</span>
+                    <span><strong>See the steps that matter most</strong> for your specific business stage</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Next Best Action engine</strong> prioritized for your profile</span>
+                    <span><strong>Commercial Banks Directory</strong> with criteria & fee comparisons</span>
                   </div>
                 </div>
               </div>
@@ -242,7 +248,7 @@ export default function PricingPage() {
                     </Button>
                   </Link>
                 )}
-                <span className="text-[10px] text-slate-400 text-center block">
+                <span className="text-xs text-slate-400 text-center block">
                   Billed monthly. Cancel anytime in customer portal.
                 </span>
               </div>
@@ -251,21 +257,24 @@ export default function PricingPage() {
 
           {/* 3. PREMIUM ADVISORY ($499 Setup + $149/mo) */}
           <Card className="border-2 border-indigo-600 bg-slate-900 text-white shadow-xl rounded-3xl relative flex flex-col justify-between overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-center py-1.5 text-[11px] font-extrabold uppercase tracking-widest flex items-center justify-center gap-1.5">
-              <Headphones className="w-3 h-3" />
-              <span>Personalized Advisory</span>
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-center py-1.5 text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-1.5">
+              <Headphones className="w-3.5 h-3.5" />
+              <span>Premium Support</span>
             </div>
             <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-extrabold text-white">Premium Advisory</h3>
-                    <Badge variant="neutral" className="bg-indigo-950/80 text-indigo-300 border-indigo-700/60 text-[10px] uppercase font-bold">
-                      Retainer
+                    <Badge variant="neutral" className="bg-indigo-950/80 text-indigo-300 border-indigo-700/60 text-xs uppercase font-bold">
+                      Done-With-You
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                    Get personalized guidance from a Crediqly advisor. Don&apos;t figure it out alone.
+                  <p className="text-xs sm:text-sm text-indigo-300 leading-relaxed font-semibold">
+                    Get hands-on guidance while you build
+                  </p>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Prefer expert guidance instead of doing everything alone? Work with a dedicated specialist.
                   </p>
                 </div>
 
@@ -275,38 +284,34 @@ export default function PricingPage() {
                     <span className="text-xs font-bold text-slate-400">/ month</span>
                   </div>
                   <div className="text-xs font-semibold text-indigo-300">
-                    + $499 one-time initial advisory engagement
+                    + $499 one-time setup & onboarding
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800 space-y-2.5 text-xs text-slate-300">
-                  <div className="flex items-start gap-2">
+                <div className="pt-4 border-t border-slate-800 space-y-3 text-xs text-slate-300">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>1 Included 1-on-1 Advisory Meeting</strong> each month ($0 fee)</span>
+                    <span><strong>Complete Crediqly platform & Pro access included</strong></span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Complete Business Profile Review</strong> & entity structure audit</span>
+                    <span><strong>Personalized 1-on-1 advisory meetings</strong> with credit specialist</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Personalized Credit & Capital Strategy</strong> tailored to your goals</span>
+                    <span><strong>Done-for-you profile review</strong> & entity compliance audit</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Personalized Roadmap Review</strong> & priority action milestones</span>
+                    <span><strong>Personalized funding-readiness guidance</strong> & preparation strategy</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Full Crediqly Pro Access Included</strong> ($39/mo value at $0 extra)</span>
+                    <span><strong>Ongoing milestone progress reviews</strong> & next-step identification</span>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Ongoing Guidance & Priority Support</strong> as your business grows</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span>Automatic Pro supersedence (zero double billing)</span>
+                    <span>Responsible support: realistic preparation with zero false approval promises</span>
                   </div>
                 </div>
               </div>
@@ -326,7 +331,7 @@ export default function PricingPage() {
                     onClick={upgradeToAdvisory}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md gap-1.5"
                   >
-                    <span>Get Advisory — $499 + $149/mo</span>
+                    <span>Join Premium Advisory — $499 + $149/mo</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 ) : (
@@ -335,13 +340,13 @@ export default function PricingPage() {
                       variant="primary"
                       className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md gap-1.5"
                     >
-                      <span>Get Advisory — $499 + $149/mo</span>
+                      <span>Join Premium Advisory — $499 + $149/mo</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 )}
-                <span className="text-[10px] text-slate-500 text-center block">
-                  Billed monthly + one-time setup. Cancel anytime.
+                <span className="text-xs text-slate-500 text-center block">
+                  Billed monthly + setup fee. Cancel anytime in customer portal.
                 </span>
               </div>
             </CardContent>

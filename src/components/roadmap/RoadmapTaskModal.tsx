@@ -16,6 +16,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { RoadmapTask } from '@/lib/roadmap/types';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { Lock } from 'lucide-react';
 
 interface RoadmapTaskModalProps {
   task: RoadmapTask | null;
@@ -32,9 +34,12 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
   onToggleComplete,
   onRequestReopen,
 }) => {
+  const { isPro, upgradeToPro } = useSubscription();
+
   if (!isOpen || !task) return null;
 
   const isCompleted = task.status === 'completed';
+  const isLocked = !isPro && task.stage !== 'foundation';
 
   const priorityColor =
     task.priority === 'high'
@@ -104,7 +109,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
               <span>Recommended Action Steps</span>
             </h4>
             <div className="space-y-2">
-              {task.whatToDo.map((step, idx) => (
+              {(isLocked ? task.whatToDo.slice(0, 1) : task.whatToDo).map((step, idx) => (
                 <div
                   key={idx}
                   className="flex items-start gap-3 text-xs text-slate-700 leading-relaxed"
@@ -115,6 +120,34 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                   <span>{step}</span>
                 </div>
               ))}
+
+              {isLocked && task.whatToDo.length > 1 && (
+                <div className="p-4 rounded-xl border border-brand-200 bg-brand-50/70 space-y-2.5 mt-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-brand-700" />
+                    <span className="text-xs font-bold text-slate-900">
+                      Your next recommended action steps are available in Pro
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Unlock full action guides, bureau reporting criteria, and direct application steps.
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        onClose();
+                        upgradeToPro();
+                      }}
+                      className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs w-full sm:w-auto"
+                    >
+                      <span>Upgrade to Pro — $39/mo</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                    <span className="text-[11px] text-slate-500">Cancel anytime • Instant access</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -188,27 +221,42 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
             Close
           </Button>
 
-          <Button
-            variant={isCompleted ? 'outline' : 'primary'}
-            size="sm"
-            onClick={() => {
-              if (isCompleted && onRequestReopen) {
+          {isLocked && !isCompleted ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
                 onClose();
-                onRequestReopen(task);
-              } else {
-                onToggleComplete(task.key);
-                onClose();
-              }
-            }}
-            className={`text-xs gap-1.5 ${
-              isCompleted
-                ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
-                : 'bg-brand-600 hover:bg-brand-500 text-white'
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{isCompleted ? 'Mark Incomplete' : 'Mark as Complete'}</span>
-          </Button>
+                upgradeToPro();
+              }}
+              className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Unlock with Pro</span>
+            </Button>
+          ) : (
+            <Button
+              variant={isCompleted ? 'outline' : 'primary'}
+              size="sm"
+              onClick={() => {
+                if (isCompleted && onRequestReopen) {
+                  onClose();
+                  onRequestReopen(task);
+                } else {
+                  onToggleComplete(task.key);
+                  onClose();
+                }
+              }}
+              className={`text-xs gap-1.5 ${
+                isCompleted
+                  ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                  : 'bg-brand-600 hover:bg-brand-500 text-white'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isCompleted ? 'Mark Incomplete' : 'Mark as Complete'}</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

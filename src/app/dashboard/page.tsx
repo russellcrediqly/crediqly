@@ -38,12 +38,16 @@ import { getUserFundingApplications } from '@/lib/supabase/fundingApplicationSer
 import { FundingApplication } from '@/types/fundingApplication';
 import { getUserConsultations } from '@/lib/supabase/consultationService';
 import { Consultation } from '@/types/consultation';
+import { isCheckInDue, getLatestCheckIn } from '@/lib/supabase/checkInService';
+import { MonthlyCheckInRecord } from '@/types/checkIn';
 import {
   CheckCircle2,
   AlertCircle,
   ArrowRight,
   CalendarCheck,
+  Calendar,
   Building,
+  Building2,
   CreditCard,
   DollarSign,
   ShieldCheck,
@@ -60,7 +64,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { business, loading: businessLoading } = useBusiness();
-  const { roadmap } = useRoadmap();
+  const { roadmap, toggleTaskCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
   const { isPro, isAdvisory, upgradeToPro, upgradeToAdvisory, openCustomerPortal } = useSubscription();
   const [consultationOpen, setConsultationOpen] = useState(false);
@@ -93,6 +97,10 @@ export default function DashboardPage() {
 
   // Step 12: Consultation State
   const [latestConsultation, setLatestConsultation] = useState<Consultation | null>(null);
+
+  // Monthly Check-In State
+  const [checkInDue, setCheckInDue] = useState(false);
+  const [latestCheckIn, setLatestCheckIn] = useState<MonthlyCheckInRecord | null>(null);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Business Owner';
   const isProfileComplete = Boolean(business && business.profileCompleted);
@@ -188,11 +196,13 @@ export default function DashboardPage() {
           });
         }
 
-        // 5. Load Credit Products, Tracked Applications & Consultations
-        const [prods, apps, consults] = await Promise.all([
+        // 5. Load Credit Products, Tracked Applications, Consultations & Monthly Check-In
+        const [prods, apps, consults, isDue, latestCheck] = await Promise.all([
           getProducts(),
           getUserFundingApplications(user!.id),
           getUserConsultations(user!.id),
+          isCheckInDue(user!.id),
+          getLatestCheckIn(user!.id),
         ]);
         if (isMounted) {
           setDashboardProducts(prods);
@@ -201,6 +211,8 @@ export default function DashboardPage() {
             ['Requested', 'Confirmed', 'Rescheduled'].includes(c.status)
           ) || consults[0] || null;
           setLatestConsultation(active);
+          setCheckInDue(isDue);
+          setLatestCheckIn(latestCheck);
         }
       } catch (err: any) {
         console.warn('Dashboard data loading exception:', err);
@@ -398,43 +410,211 @@ export default function DashboardPage() {
           {/* SINCE YOUR LAST VISIT (Section 12) */}
           <SinceLastVisitCard summary={sinceLastVisit} loading={sinceLastVisitLoading} />
 
-          {/* YOUR NEXT BEST ACTION CARD (Section 14) */}
-          <Card className="border-brand-200 bg-gradient-to-r from-brand-50/60 via-white to-teal-50/40 shadow-xs">
-            <CardContent className="p-6 sm:p-7">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-brand-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <Compass className="w-6 h-6" />
+          {/* ELEVATED: YOUR NEXT BEST ACTION (Phase 2) */}
+          <Card className="border-brand-300 bg-gradient-to-r from-brand-50/80 via-white to-teal-50/50 shadow-sm overflow-hidden">
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              {/* Header Badge & Stage Info */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100/80 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Compass className="w-5 h-5" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-800 bg-brand-100/70 px-2.5 py-0.5 rounded-full">
-                        Your Next Best Action
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider text-brand-900 bg-brand-100/80 px-2.5 py-0.5 rounded-full border border-brand-200">
+                      Your Next Best Action
+                    </span>
+                    <span className="text-xs text-slate-500 block mt-0.5 font-medium">
+                      What should I do next?
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {nextBestStageMeta && (
+                    <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                      {nextBestStageMeta.title}
+                    </span>
+                  )}
+                  {nextBestTask?.priority && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-rose-50 text-rose-700 border-rose-200">
+                      {nextBestTask.priority} Priority
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Headline */}
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {isProfileComplete
+                    ? nextBestTask?.title || 'Your business credit foundation is in great shape.'
+                    : 'Complete your business profile to personalize your roadmap.'}
+                </h3>
+              </div>
+
+              {/* 2-Column Details: Why This Matters & What To Do */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* WHY THIS MATTERS */}
+                <div className="p-4 rounded-xl bg-white border border-brand-100 shadow-2xs space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-brand-800 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
+                    <span>Why This Matters</span>
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {isProfileComplete
+                      ? nextBestTask?.whyItMatters || 'You have satisfied all foundational and credit building milestone tasks. Continue maintaining clean on-time payment history.'
+                      : 'Answer our quick foundational questionnaire so Crediqly can assess your compliance status and identify your highest-leverage credit building step.'}
+                  </p>
+                </div>
+
+                {/* WHAT TO DO */}
+                <div className="p-4 rounded-xl bg-white border border-brand-100 shadow-2xs space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-teal-800 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
+                    <span>What To Do</span>
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {isProfileComplete
+                      ? nextBestTask?.whatToDo?.[0] || 'Review available business-credit products that report directly to commercial bureaus.'
+                      : 'Complete your 21-point legal entity and commercial profile to activate your live credit score.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions & Progress Footer */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-brand-100/60">
+                {/* Progress counter */}
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-slate-600 font-semibold">
+                    <span>Progress: </span>
+                    <strong className="text-slate-900 font-bold">
+                      {roadmap.completedCount} of {roadmap.applicableTotalCount} major milestones completed
+                    </strong>
+                  </div>
+                  <Link
+                    href="/roadmap"
+                    className="text-xs font-bold text-brand-700 hover:text-brand-800 hover:underline flex items-center gap-1"
+                  >
+                    <span>Continue Roadmap</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex items-center gap-2.5">
+                  {isProfileComplete && nextBestTask && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleTaskCompletion(nextBestTask.key)}
+                      className="text-xs border-brand-200 text-brand-800 hover:bg-brand-50"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-brand-600" />
+                      <span>Mark Complete</span>
+                    </Button>
+                  )}
+
+                  <Link
+                    href={
+                      isProfileComplete
+                        ? nextBestTask?.actionHref || '/roadmap'
+                        : '/onboarding'
+                    }
+                  >
+                    <Button variant="primary" size="sm" className="gap-1.5 whitespace-nowrap shadow-xs bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs">
+                      <span>
+                        {isProfileComplete
+                          ? nextBestTask?.actionLabel || 'View Recommended Options'
+                          : 'Complete Business Profile'}
                       </span>
-                      {nextBestStageMeta && (
-                        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                          Progress: {nextBestStageMeta.title}
-                        </span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Contextual Free vs Pro Notice (Phase 7 & 8) */}
+              {!isPro && (
+                <div className="px-4 py-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-amber-900">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>
+                      <strong>Pro Insight: </strong>
+                      Pro unlocks full step-by-step action guides, direct vendor applications, and Tier 2/3 tradelines.
+                    </span>
+                  </div>
+                  <Link href="/pricing" className="shrink-0 font-bold text-brand-700 hover:underline whitespace-nowrap">
+                    Explore Pro ($39/mo) →
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* CUSTOMER MOTIVATION ENCOURAGEMENT (Phase 10) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-50/80 via-white to-teal-50/50 border border-brand-200/80 flex items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="text-xs text-slate-700 leading-relaxed">
+                <strong className="text-slate-900 font-bold">Building Momentum: </strong>
+                Building business credit takes consistency. Every completed compliance step and reporting tradeline strengthens your commercial standing.
+              </div>
+            </div>
+            {!isPro && (
+              <Link href="/pricing" className="shrink-0 hidden sm:block">
+                <Button size="sm" variant="outline" className="text-xs font-bold text-brand-700 border-brand-200 hover:bg-brand-50">
+                  <span>Explore Pro Roadmap</span>
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          {/* MONTHLY BUSINESS CREDIT CHECK-IN */}
+          <Card className="border-slate-200/90 bg-white shadow-xs overflow-hidden">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                    checkInDue ? 'bg-amber-50 text-amber-600 border border-amber-200/60' : 'bg-emerald-50 text-emerald-600 border border-emerald-200/60'
+                  }`}>
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Monthly Routine
+                      </span>
+                      {checkInDue ? (
+                        <Badge variant="warning" className="text-[10px]">Due for {new Date().toLocaleString('default', { month: 'short' })}</Badge>
+                      ) : (
+                        <Badge variant="success" className="text-[10px]">Logged for {latestCheckIn?.monthYear || new Date().toLocaleString('default', { month: 'short' })}</Badge>
                       )}
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                      {isProfileComplete
-                        ? nextBestTask?.title || 'Your business credit foundation is in good shape.'
-                        : 'Complete your business profile to begin.'}
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      {checkInDue ? 'Monthly Business Credit Check-In' : 'Standing Up to Date'}
                     </h3>
-                    <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
-                      {isProfileComplete
-                        ? nextBestTask?.whyItMatters || 'You have satisfied all foundational and credit building milestone tasks. Continue maintaining clean on-time payment history.'
-                        : 'Answer our quick 5-minute foundational questionnaire so Crediqly can identify your highest-leverage credit building step.'}
+                    <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
+                      {checkInDue
+                        ? 'Take 60 seconds to log any new credit accounts, tradelines, or financing inquiries. We will recalibrate your Next Best Action.'
+                        : `Your ${latestCheckIn?.monthYear || 'monthly'} check-in is complete. Update anytime if new vendor tradelines or credit cards report.`}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex-shrink-0">
-                  <Link href={isProfileComplete ? '/roadmap' : '/onboarding'}>
-                    <Button variant="primary" size="md" className="gap-2 whitespace-nowrap shadow-sm">
-                      <span>{isProfileComplete ? 'Continue' : 'Complete Profile'}</span>
-                      <ArrowRight className="w-4 h-4" />
+                <div className="shrink-0 flex items-center gap-2">
+                  <Link href="/check-in">
+                    <Button
+                      size="sm"
+                      className={`text-xs font-bold gap-1.5 shadow-xs whitespace-nowrap ${
+                        checkInDue
+                          ? 'bg-brand-600 hover:bg-brand-500 text-white'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span>{checkInDue ? 'Start Monthly Check-In' : 'Update Check-In'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 </div>
@@ -473,10 +653,10 @@ export default function DashboardPage() {
                         {/* 1. CURRENT STATUS */}
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Current Status
                             </span>
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                               Business Readiness
                             </h3>
                             <div className="flex items-baseline gap-2 pt-0.5">
@@ -491,7 +671,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
                           <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
-                            <Building className="w-5 h-5" />
+                            <Building2 className="w-5 h-5" />
                           </div>
                         </div>
 
@@ -503,7 +683,7 @@ export default function DashboardPage() {
 
                         {/* 2. WHAT'S GOING WELL */}
                         <div className="space-y-1 text-xs border-t border-slate-100 pt-3">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">
                             What&apos;s Going Well
                           </span>
                           <p className="text-slate-600 leading-relaxed text-xs">
@@ -516,7 +696,7 @@ export default function DashboardPage() {
 
                       {/* 3. NEXT BEST ACTION */}
                       <div className="space-y-1 text-xs border-t border-slate-100 pt-3 mt-auto">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 block">
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-700 block">
                           Next Best Action
                         </span>
                         <Link
@@ -529,7 +709,7 @@ export default function DashboardPage() {
                                   ? 'Add business phone & 411 registry'
                                   : business?.hasDuns !== 'yes'
                                   ? 'Obtain free D-U-N-S number'
-                                  : 'Review foundation breakdown')
+                                  : 'Review readiness audit')
                               : 'Complete business profile'}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 shrink-0" />
@@ -547,10 +727,10 @@ export default function DashboardPage() {
                         {/* 1. CURRENT STATUS */}
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Current Status
                             </span>
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                               Credit Readiness
                             </h3>
                             <div className="flex items-baseline gap-2 pt-0.5">
@@ -577,7 +757,7 @@ export default function DashboardPage() {
 
                         {/* 2. WHAT'S GOING WELL */}
                         <div className="space-y-1 text-xs border-t border-slate-100 pt-3">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">
                             What&apos;s Going Well
                           </span>
                           <p className="text-slate-600 leading-relaxed text-xs">
@@ -590,7 +770,7 @@ export default function DashboardPage() {
 
                       {/* 3. NEXT BEST ACTION */}
                       <div className="space-y-1 text-xs border-t border-slate-100 pt-3 mt-auto">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 block">
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-700 block">
                           Next Best Action
                         </span>
                         <Link
@@ -599,8 +779,10 @@ export default function DashboardPage() {
                         >
                           <span className="line-clamp-1">
                             {isProfileComplete
-                              ? 'Build Tier 1 reporting tradelines'
-                              : 'Add credit details in profile'}
+                              ? (business?.hasReportingAccounts !== 'yes'
+                                  ? 'Establish first 3 Tier-1 tradelines'
+                                  : 'Review trade line catalog')
+                              : 'Complete profile for credit score'}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 shrink-0" />
                         </Link>
@@ -617,10 +799,10 @@ export default function DashboardPage() {
                         {/* 1. CURRENT STATUS */}
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Current Status
                             </span>
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                               Funding Readiness
                             </h3>
                             <div className="flex items-baseline gap-2 pt-0.5">
@@ -647,7 +829,7 @@ export default function DashboardPage() {
 
                         {/* 2. WHAT'S GOING WELL */}
                         <div className="space-y-1 text-xs border-t border-slate-100 pt-3">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">
                             What&apos;s Going Well
                           </span>
                           <p className="text-slate-600 leading-relaxed text-xs">
@@ -662,16 +844,16 @@ export default function DashboardPage() {
 
                       {/* 3. NEXT BEST ACTION */}
                       <div className="space-y-1 text-xs border-t border-slate-100 pt-3 mt-auto">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 block">
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-700 block">
                           Next Best Action
                         </span>
                         <Link
-                          href={isProfileComplete ? '/funding-readiness' : '/onboarding'}
+                          href={isProfileComplete ? '/readiness?tab=funding' : '/onboarding'}
                           className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"
                         >
                           <span className="line-clamp-1">
                             {isProfileComplete
-                              ? 'Explore matching capital options'
+                              ? 'Review capital readiness index'
                               : 'Complete profile for matches'}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 shrink-0" />
@@ -689,10 +871,10 @@ export default function DashboardPage() {
                         {/* 1. CURRENT STATUS */}
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                               Current Status
                             </span>
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                               Roadmap Progress
                             </h3>
                             <div className="flex items-baseline gap-2 pt-0.5">
@@ -700,8 +882,8 @@ export default function DashboardPage() {
                                 {isProfileComplete ? `${roadmap.percentage}%` : '--%'}
                               </span>
                               {isProfileComplete && (
-                                <Badge variant="info">
-                                  {roadmap.completedCount}/{roadmap.applicableTotalCount} Steps
+                                <Badge variant="info" className="text-xs font-bold">
+                                  {roadmap.completedCount} of {roadmap.applicableTotalCount} Milestones
                                 </Badge>
                               )}
                             </div>
@@ -719,12 +901,12 @@ export default function DashboardPage() {
 
                         {/* 2. WHAT'S GOING WELL */}
                         <div className="space-y-1 text-xs border-t border-slate-100 pt-3">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">
                             What&apos;s Going Well
                           </span>
                           <p className="text-slate-600 leading-relaxed text-xs">
                             {isProfileComplete
-                              ? `${roadmap.completedCount} milestone${roadmap.completedCount === 1 ? '' : 's'} completed across active readiness stages.`
+                              ? `${roadmap.completedCount} of ${roadmap.applicableTotalCount} milestones completed across active readiness stages.`
                               : 'Personalized sequence ready to generate from your business profile.'}
                           </p>
                         </div>
@@ -732,7 +914,7 @@ export default function DashboardPage() {
 
                       {/* 3. NEXT BEST ACTION */}
                       <div className="space-y-1 text-xs border-t border-slate-100 pt-3 mt-auto">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 block">
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-700 block">
                           Next Best Action
                         </span>
                         <Link
@@ -741,8 +923,8 @@ export default function DashboardPage() {
                         >
                           <span className="line-clamp-1">
                             {isProfileComplete
-                              ? (nextBestTask?.title || 'Review active roadmap steps')
-                              : 'Generate custom roadmap'}
+                              ? `Next milestone: ${nextBestTask?.title || 'Continue active milestone'}`
+                              : 'Complete profile to begin'}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 shrink-0" />
                         </Link>

@@ -53,6 +53,7 @@ import {
 } from '@/types/fundingProduct';
 import { FundingApplication } from '@/types/fundingApplication';
 import { FundingReadinessResult } from '@/types/funding';
+import { FundingGapAnalysis } from '@/components/readiness/FundingGapAnalysis';
 
 export default function FundingPage() {
   const { user } = useAuth();
@@ -281,9 +282,9 @@ export default function FundingPage() {
                   <span>Funding Tracker ({trackedApps.length})</span>
                 </Button>
               </Link>
-              <Link href="/funding-readiness">
+              <Link href="/readiness">
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                  <span>Readiness Assessment</span>
+                  <span>Readiness Audit</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </Link>
@@ -330,9 +331,9 @@ export default function FundingPage() {
                     Options are matched against your profile parameters. Review
                     provider requirements before applying.
                   </p>
-                  <Link href="/funding-readiness" className="flex-shrink-0">
+                  <Link href="/readiness" className="flex-shrink-0">
                     <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                      <span>View Readiness</span>
+                      <span>View Readiness Audit</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
@@ -364,6 +365,9 @@ export default function FundingPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* GAP ANALYSIS: WHAT IS HOLDING ME BACK */}
+          <FundingGapAnalysis fundingResult={readiness} isProfileComplete={Boolean(business?.profileCompleted)} />
 
           {/* SECTION 1: RECOMMENDED FOR YOU (Top Strongest Matches) */}
           <div className="space-y-4">

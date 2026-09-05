@@ -199,6 +199,26 @@ function CreditRoadmapContent() {
               className="h-2.5"
             />
 
+            {/* Motivational Encouragement Banner (Phase 7 & 10) */}
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-brand-50/80 via-emerald-50/50 to-white border border-brand-100 flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-xs">
+                {roadmap.completedCount > 0 ? (
+                  <p className="text-slate-700">
+                    <strong className="text-emerald-800 font-bold">Great momentum!</strong>{' '}
+                    You have verified {roadmap.completedCount} of {roadmap.applicableTotalCount} milestones. Keep following the sequential tiers to establish maximum commercial credibility.
+                  </p>
+                ) : (
+                  <p className="text-slate-700">
+                    <strong className="text-brand-900 font-bold">Ready to build:</strong>{' '}
+                    Your personalized roadmap is queued up. Complete foundational tasks first to ensure smooth approval on later vendor tradelines.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Stage Pills */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 text-xs">
               {roadmap.stages.map((stage) => {
@@ -393,9 +413,9 @@ function CreditRoadmapContent() {
                       Prepare your commercial accounts, financial records, and operating profiles before applying for formal business financing. Check your live Funding Readiness score anytime.
                     </p>
                   </div>
-                  <Link href="/funding-readiness" className="flex-shrink-0">
+                  <Link href="/readiness" className="flex-shrink-0">
                     <Button variant="primary" size="sm" className="gap-1.5 shadow-sm whitespace-nowrap">
-                      <span>View Funding Readiness</span>
+                      <span>View Readiness Audit</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
@@ -427,28 +447,40 @@ function CreditRoadmapContent() {
           </div>
         </div>
 
-        {/* Step 12: Roadmap Consultation Assistance Banner */}
-        <Card className="border-brand-200 bg-brand-50/50">
-          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5" />
+        {/* Phase 15: Contextual Upgrade Path to Advisory */}
+        <Card className="border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-teal-50/50 shadow-xs">
+          <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Sparkles className="w-5 h-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">
-                  Need help with your roadmap?
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 bg-brand-100/70 px-2 py-0.5 rounded-full">
+                    Done-For-You Support
+                  </span>
+                </div>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                  Want our team to build this with you? Explore Premium Advisory.
                 </h4>
-                <p className="text-xs text-slate-600">
-                  Speak directly with an advisor to prioritize your next credit tiers and milestone execution.
+                <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
+                  Get dedicated 1-on-1 strategy, hands-on tradeline setup, and monthly advisor checkpoints while you build.
                 </p>
               </div>
             </div>
-            <Link href="/consultation" className="flex-shrink-0">
-              <Button size="sm" variant="primary" className="text-xs gap-1.5 whitespace-nowrap">
-                <span>Request a Consultation</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Link href="/advisory">
+                <Button size="sm" variant="primary" className="text-xs gap-1.5 whitespace-nowrap shadow-xs bg-brand-600 hover:bg-brand-500">
+                  <span>Explore Advisory</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+              <Link href="/consultation">
+                <Button size="sm" variant="outline" className="text-xs border-brand-200 text-brand-800 hover:bg-brand-50 whitespace-nowrap">
+                  <span>Strategy Call</span>
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
