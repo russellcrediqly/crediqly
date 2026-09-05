@@ -6,6 +6,15 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  return NextResponse.json({
+    status: 'active',
+    endpoint: '/api/stripe/webhook',
+    configured: Boolean(STRIPE_CONFIG.webhookSecret),
+    message: 'Stripe webhook receiver is listening for incoming POST requests.',
+  });
+}
+
 export async function POST(req: Request) {
   if (!stripe) {
     return NextResponse.json(

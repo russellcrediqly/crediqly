@@ -4,7 +4,7 @@ let cachedStripe: Stripe | null = null;
 let cachedKey = '';
 
 export function getStripeClient(): Stripe | null {
-  const secret = process.env.STRIPE_SECRET_KEY || '';
+  const secret = (process.env.STRIPE_SECRET_KEY || '').trim();
   if (!secret || !secret.startsWith('sk_')) {
     cachedStripe = null;
     cachedKey = '';
@@ -26,11 +26,11 @@ export function getStripeClient(): Stripe | null {
 }
 
 export let isStripeConfigured = Boolean(
-  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')
+  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.trim().startsWith('sk_')
 );
 
 export function refreshStripeConfig() {
-  const secret = process.env.STRIPE_SECRET_KEY || '';
+  const secret = (process.env.STRIPE_SECRET_KEY || '').trim();
   isStripeConfigured = Boolean(secret && secret.startsWith('sk_'));
   cachedStripe = null;
   cachedKey = '';
@@ -50,19 +50,19 @@ export const stripe = new Proxy({} as Stripe, {
 
 export const STRIPE_CONFIG = {
   get proPriceId() {
-    return process.env.STRIPE_PRO_PRICE_ID || '';
+    return (process.env.STRIPE_PRO_PRICE_ID || '').trim();
   },
   get consultationPriceId() {
-    return process.env.STRIPE_CONSULTATION_PRICE_ID || '';
+    return (process.env.STRIPE_CONSULTATION_PRICE_ID || '').trim();
   },
   get advisorySetupPriceId() {
-    return process.env.STRIPE_ADVISORY_SETUP_PRICE_ID || '';
+    return (process.env.STRIPE_ADVISORY_SETUP_PRICE_ID || '').trim();
   },
   get advisoryMonthlyPriceId() {
-    return process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID || '';
+    return (process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID || '').trim();
   },
   get webhookSecret() {
-    return process.env.STRIPE_WEBHOOK_SECRET || '';
+    return (process.env.STRIPE_WEBHOOK_SECRET || '').trim();
   },
   proPriceCents: 3900, // $39.00
   consultationPriceCents: 9900, // $99.00
