@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { CustomerJourneyResult } from '@/lib/roadmap/customerJourney';
 import type { RecommendedAction } from '@/lib/recommendations/nextActionsEngine';
@@ -9,7 +9,12 @@ import type { BusinessProfile } from '@/types/business';
 import type { ProgressHistoryItem } from '@/types/progress';
 import { extractScoreProgression } from '@/lib/supabase/progressService';
 import { estimateActionImpact } from '@/lib/readiness/potentialScoreEngine';
-import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
+import {
+  calculateMilestoneReadiness,
+  ReadinessMilestoneDefinition,
+  ReadinessMilestoneResult,
+} from '@/lib/readiness/readinessMilestoneEngine';
+import { MilestoneConfirmationModal } from '@/components/dashboard/MilestoneConfirmationModal';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -32,6 +37,11 @@ import {
   Minus,
   RotateCw,
   Undo2,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Check,
 } from 'lucide-react';
 
 interface GuidedJourneyCardProps {
@@ -40,6 +50,8 @@ interface GuidedJourneyCardProps {
   business?: Partial<BusinessProfile> | null;
   history?: ProgressHistoryItem[];
   actions: RecommendedAction[];
+  completedTasks?: string[];
+  milestoneOverrides?: Record<string, Partial<ReadinessMilestoneDefinition>>;
   onToggleComplete?: (taskKey: string) => Promise<void>;
   onMarkActionComplete?: (actionId: string, metadata?: Record<string, any>) => Promise<void>;
   onUndoActionComplete?: (actionId: string) => Promise<void>;
@@ -56,6 +68,8 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
   business,
   history = [],
   actions,
+  completedTasks = [],
+  milestoneOverrides,
   onToggleComplete,
   onMarkActionComplete,
   onUndoActionComplete,
@@ -67,10 +81,14 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
 }) => {
   const [completingKey, setCompletingKey] = useState<string | null>(null);
   const [isReassessing, setIsReassessing] = useState(false);
+  const [confirmingMilestone, setConfirmingMilestone] = useState<ReadinessMilestoneDefinition | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
   const [lastCompletedAction, setLastCompletedAction] = useState<{
     id: string;
     taskKey: string;
     title: string;
+    weight?: number;
   } | null>(null);
   const [completionNotice, setCompletionNotice] = useState<{
     type: 'improved' | 'reassessed';
@@ -80,20 +98,24 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
     taskTitle?: string;
   } | null>(null);
 
-  const {
-    stages,
-    activeStep,
-    activeStepNumber,
-    totalSteps,
-    completedStepsCount,
-    overallProgress,
-    currentStageLabel,
-    currentStageShortName,
-    completedMilestonesSummary,
-    currentFocus,
-    afterThis,
-    isFundingReady,
-  } = journey;
+  const [selectedStageFilter, setSelectedStageFilter] = useState<'all' | 'foundation' | 'bureau_tradelines' | 'revolving_seasoning' | 'funding_readiness'>('all');
+  const [showMilestonesList, setShowMilestonesList] = useState(true);
+
+  // Compute the authentic 0–100 Business Credit & Funding Readiness Milestone progress
+  const milestoneResult: ReadinessMilestoneResult = useMemo(() => {
+    const combinedCompleted = Array.from(
+      new Set([...(business?.completedDbTasks || []), ...(completedTasks || [])])
+    );
+    return calculateMilestoneReadiness(business || null, combinedCompleted, milestoneOverrides);
+  }, [business, completedTasks, milestoneOverrides]);
+
+  const activeMilestone = milestoneResult.nextMilestone;
+
+  // Filtered milestones based on stage selection
+  const filteredMilestones = useMemo(() => {
+    if (selectedStageFilter === 'all') return milestoneResult.items;
+    return milestoneResult.items.filter((item) => item.definition.category === selectedStageFilter);
+  }, [milestoneResult.items, selectedStageFilter]);
 
   // The primary exact next step from recommendation engine, or fallback to activeStep
   const primaryAction = actions.length > 0 ? actions[0] : null;
@@ -102,59 +124,96 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
   const impactEstimate = estimateActionImpact(business || null, primaryAction);
 
   // Compute lightweight score progression history
-  const progression = extractScoreProgression(history, fundingReadiness.score);
+  const progression = extractScoreProgression(history, milestoneResult.score);
 
-  const handleCompleteAction = async (action: RecommendedAction) => {
-    const keyToComplete = action.roadmapTaskKey || action.id;
+  // Handles confirmation modal submit for customer-verified milestones
+  const handleConfirmMilestone = async () => {
+    if (!confirmingMilestone) return;
+    const milestone = confirmingMilestone;
+    const keyToComplete = milestone.roadmapTaskKey || milestone.id;
+    setModalLoading(true);
     setCompletingKey(keyToComplete);
-    const scoreBefore = fundingReadiness.score;
+    const scoreBefore = milestoneResult.score;
 
     try {
       if (onMarkActionComplete) {
-        await onMarkActionComplete(keyToComplete, { title: action.title, category: action.category });
+        await onMarkActionComplete(keyToComplete, {
+          milestoneId: milestone.id,
+          title: milestone.title,
+          category: milestone.categoryLabel,
+          weight: milestone.weight,
+        });
       } else if (onToggleComplete) {
         await onToggleComplete(keyToComplete);
       }
 
+      const scoreAfter = Math.min(100, scoreBefore + milestone.weight);
+
       setLastCompletedAction({
-        id: action.id,
+        id: milestone.id,
         taskKey: keyToComplete,
-        title: action.title,
+        title: milestone.title,
+        weight: milestone.weight,
       });
 
-      // Compute authentic score after this database update
-      const updatedBusiness = { ...(business || {}) };
-      if (action.roadmapTaskKey === 'task_reporting_accounts' || action.id === 'rec_credit_depth') {
-        updatedBusiness.hasReportingAccounts = 'yes';
-        updatedBusiness.businessCreditAccountCount = '1-3';
-      } else if (action.roadmapTaskKey === 'task_build_business_card' || action.id === 'rec_credit_card') {
-        updatedBusiness.hasBusinessCreditCard = 'yes';
-      } else if (action.roadmapTaskKey === 'task_bank_account' || action.id === 'rec_bank_account') {
-        updatedBusiness.hasBusinessBankAccount = 'yes';
-      } else if (action.roadmapTaskKey === 'task_ein' || action.id === 'rec_ein') {
-        updatedBusiness.hasEIN = 'yes';
-      } else if (action.roadmapTaskKey === 'task_profile_bureau' || action.id === 'rec_credit_profile') {
-        updatedBusiness.hasBusinessCreditProfile = 'yes';
+      setCompletionNotice({
+        type: 'improved',
+        prevScore: scoreBefore,
+        newScore: scoreAfter,
+        delta: milestone.weight,
+        taskTitle: milestone.title,
+      });
+
+      setIsModalOpen(false);
+      setConfirmingMilestone(null);
+    } catch (err) {
+      console.warn('Failed to complete milestone:', err);
+    } finally {
+      setModalLoading(false);
+      setCompletingKey(null);
+    }
+  };
+
+  const handleCompleteAction = async (target: RecommendedAction | ReadinessMilestoneDefinition) => {
+    // If it is a milestone requiring customer confirmation, trigger modal
+    if ('completionType' in target && target.completionType === 'customer_confirmation') {
+      setConfirmingMilestone(target as ReadinessMilestoneDefinition);
+      setIsModalOpen(true);
+      return;
+    }
+
+    const keyToComplete = ('roadmapTaskKey' in target && target.roadmapTaskKey) ? target.roadmapTaskKey : target.id;
+    setCompletingKey(keyToComplete);
+    const scoreBefore = milestoneResult.score;
+    const weight = 'weight' in target && typeof target.weight === 'number' ? target.weight : 5;
+
+    try {
+      if (onMarkActionComplete) {
+        await onMarkActionComplete(keyToComplete, {
+          title: target.title,
+          category: 'categoryLabel' in target ? target.categoryLabel : (target as RecommendedAction).category,
+          weight,
+        });
+      } else if (onToggleComplete) {
+        await onToggleComplete(keyToComplete);
       }
 
-      const calcResult = calculateFundingReadiness(updatedBusiness);
-      const scoreAfter = Math.max(calcResult.score, fundingReadiness.score);
+      const scoreAfter = Math.min(100, scoreBefore + weight);
 
-      if (scoreAfter > scoreBefore) {
-        setCompletionNotice({
-          type: 'improved',
-          prevScore: scoreBefore,
-          newScore: scoreAfter,
-          delta: scoreAfter - scoreBefore,
-          taskTitle: action.title,
-        });
-      } else {
-        setCompletionNotice({
-          type: 'reassessed',
-          newScore: scoreAfter,
-          taskTitle: action.title,
-        });
-      }
+      setLastCompletedAction({
+        id: target.id,
+        taskKey: keyToComplete,
+        title: target.title,
+        weight,
+      });
+
+      setCompletionNotice({
+        type: 'improved',
+        prevScore: scoreBefore,
+        newScore: scoreAfter,
+        delta: weight,
+        taskTitle: target.title,
+      });
     } catch (err) {
       console.warn('Failed to complete action:', err);
     } finally {
@@ -186,6 +245,101 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
       setIsReassessing(false);
     }
   };
+
+  const categoriesConfig = useMemo(() => {
+    const cats: {
+      id: string;
+      title: string;
+      label: string;
+      maxWeight: number;
+      earnedWeight: number;
+      totalCount: number;
+      completedCount: number;
+      status: 'completed' | 'in_progress' | 'upcoming';
+      actionHref: string;
+      icon: any;
+    }[] = [
+      {
+        id: 'foundation',
+        title: 'Foundation & Entity',
+        label: 'Step 1',
+        maxWeight: 25,
+        earnedWeight: 0,
+        totalCount: 0,
+        completedCount: 0,
+        status: 'upcoming',
+        actionHref: '/business',
+        icon: Building,
+      },
+      {
+        id: 'bureau_tradelines',
+        title: 'Credit & Tradelines',
+        label: 'Step 2',
+        maxWeight: 25,
+        earnedWeight: 0,
+        totalCount: 0,
+        completedCount: 0,
+        status: 'upcoming',
+        actionHref: '/products?category=net_30',
+        icon: ShieldCheck,
+      },
+      {
+        id: 'revolving_seasoning',
+        title: 'Revolving & Seasoning',
+        label: 'Step 3',
+        maxWeight: 25,
+        earnedWeight: 0,
+        totalCount: 0,
+        completedCount: 0,
+        status: 'upcoming',
+        actionHref: '/products?category=business_credit_cards',
+        icon: CreditCard,
+      },
+      {
+        id: 'funding_readiness',
+        title: 'Funding Preparation',
+        label: 'Step 4',
+        maxWeight: 25,
+        earnedWeight: 0,
+        totalCount: 0,
+        completedCount: 0,
+        status: 'upcoming',
+        actionHref: '/funding',
+        icon: Target,
+      },
+    ];
+
+    milestoneResult.items.forEach((item) => {
+      const cat = cats.find((c) => c.id === item.definition.category);
+      if (cat) {
+        cat.totalCount += 1;
+        if (item.isCompleted) {
+          cat.completedCount += 1;
+          cat.earnedWeight += item.definition.weight;
+        }
+      }
+    });
+
+    cats.forEach((cat) => {
+      if (cat.earnedWeight >= cat.maxWeight) {
+        cat.status = 'completed';
+      } else if (cat.earnedWeight > 0 || (activeMilestone && activeMilestone.category === cat.id)) {
+        cat.status = 'in_progress';
+      } else {
+        cat.status = 'upcoming';
+      }
+    });
+
+    return cats;
+  }, [milestoneResult, activeMilestone]);
+
+  const subsequentMilestone = useMemo(() => {
+    if (!activeMilestone) return null;
+    const incompleteItems = milestoneResult.items.filter(
+      (i) => !i.isCompleted && i.definition.id !== activeMilestone.id
+    );
+    return incompleteItems.length > 0 ? incompleteItems[0].definition : null;
+  }, [milestoneResult.items, activeMilestone]);
 
   // Stage Icon resolver
   const getStageIcon = (iconName: string, iconClass: string) => {
@@ -222,18 +376,18 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-200 border border-brand-400/30 text-xs font-black uppercase tracking-wider">
                 <Compass className="w-3.5 h-3.5 text-brand-300" />
-                <span>YOUR CREDIQLY JOURNEY</span>
+                <span>{business?.businessName ? `${business.businessName.toUpperCase()}'S FUNDING JOURNEY` : 'YOUR CREDIQLY JOURNEY'}</span>
               </span>
               <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
-                Step {activeStepNumber} of {totalSteps}
+                Milestone {activeMilestone?.stepOrder || (milestoneResult.isJourneyComplete ? milestoneResult.totalMilestonesCount : 1)} of {milestoneResult.totalMilestonesCount}
               </span>
             </div>
 
             {/* High Funding Readiness Indicator */}
-            {isFundingReady ? (
+            {milestoneResult.isJourneyComplete ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-black tracking-wide">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>YOU&apos;RE MOVING TOWARD FUNDING READINESS</span>
+                <span>🎯 100/100 READINESS JOURNEY COMPLETE</span>
               </span>
             ) : progression.hasImproved ? (
               <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1 rounded-full">
@@ -249,22 +403,22 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
             <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex flex-col justify-between space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
-                  Funding Readiness
+                  Funding Readiness Score
                 </span>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/10">
-                  {fundingReadiness.level}
+                  {milestoneResult.currentStage}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-3xl font-black text-white font-mono">
-                    {fundingReadiness.score}
+                    {milestoneResult.score}
                   </span>
                   <span className="text-xs text-slate-300 font-bold">/ 100</span>
                 </div>
 
-                {/* Score Trail (e.g. 60 → 66) */}
+                {/* Score Trail (e.g. 0 → 10 → 35) */}
                 {progression.historyTrail.length > 1 && (
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-300 block">
@@ -279,58 +433,45 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
             </div>
 
             {/* 2. Current Stage */}
-            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between">
-              <div>
+            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between gap-3 min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
-                  Current Stage
+                  Current Program Stage
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5 block truncate">
-                  {currentStageShortName}
+                <span className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5 block truncate" title={milestoneResult.currentStage}>
+                  {milestoneResult.currentStage}
                 </span>
               </div>
-              <span className="text-xs font-bold text-teal-300 bg-teal-900/40 border border-teal-500/30 px-2.5 py-1 rounded-lg">
-                Step {activeStepNumber}
+              <span className="shrink-0 text-xs font-bold text-teal-300 bg-teal-900/40 border border-teal-500/30 px-2.5 py-1 rounded-lg whitespace-nowrap">
+                Stage {milestoneResult.currentStageNumber} of 4
               </span>
             </div>
 
             {/* 3. Milestones Completed */}
-            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between">
-              <div>
+            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between gap-3 min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
-                  Journey Progress
+                  Milestones Completed
                 </span>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-2xl sm:text-3xl font-black text-white font-mono">
-                    {completedStepsCount} of {totalSteps}
+                    {milestoneResult.completedMilestonesCount} of {milestoneResult.totalMilestonesCount}
                   </span>
                   <span className="text-xs text-slate-300 font-bold">milestones</span>
                 </div>
               </div>
-              <span className="text-xs font-black text-emerald-300 bg-emerald-900/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-mono">
-                {overallProgress}%
+              <span className="shrink-0 text-xs font-black text-emerald-300 bg-emerald-900/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-mono">
+                {milestoneResult.percentage}%
               </span>
             </div>
           </div>
 
-          {/* Completed Summary & Current Focus */}
-          <div className="pt-2 border-t border-white/15 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-white">You have completed:</span>
-              {completedMilestonesSummary.slice(0, 3).map((item, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 text-emerald-200 bg-emerald-900/30 border border-emerald-500/30 px-2.5 py-0.5 rounded-md font-medium"
-                >
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                  <span>{item}</span>
-                </span>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 text-brand-100">
-              <span className="font-bold text-teal-300">Current focus:</span>
-              <span className="font-medium text-white/95 line-clamp-1">{currentFocus}</span>
-            </div>
+          {/* Legal Transparency & Integrity Disclaimer */}
+          <div className="pt-2 border-t border-white/15 text-[11px] text-slate-300/90 leading-relaxed flex items-start gap-2">
+            <Info className="w-4 h-4 text-brand-300 shrink-0 mt-0.5" />
+            <span>
+              <strong>Crediqly Readiness Program:</strong> {milestoneResult.scoreExplanation} {milestoneResult.legalDisclaimer}
+            </span>
           </div>
         </div>
       </div>
@@ -376,8 +517,8 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   {completionNotice.type === 'improved'
-                    ? `Action completed. Your readiness has improved to ${completionNotice.newScore} / 100. Your next recommended step is active below.`
-                    : `Your action has been marked complete. Your readiness has been reassessed (${completionNotice.newScore} / 100). Complete the next recommended action to continue improving your score.`}
+                    ? `Milestone verified and completed. Your readiness score is mathematically updated to ${completionNotice.newScore} / 100. Next recommended milestone is active below.`
+                    : `Your action has been recorded. Your readiness has been reassessed (${completionNotice.newScore} / 100).`}
                 </p>
               </div>
             </div>
@@ -421,234 +562,277 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
         )}
 
         {/* =================================================================== */}
-        {/* SECTION 1: YOUR EXACT NEXT STEP (Featured Center-of-View Hero)     */}
+        {/* SECTION 1: YOUR EXACT NEXT STEP / 100 COMPLETION HERO               */}
         {/* =================================================================== */}
-        <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-brand-50/60 via-white to-slate-50/80 border-2 border-brand-300 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-200/70 pb-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full">
-                  YOUR NEXT STEP
-                </span>
-                <span className="text-xs font-bold text-slate-500">
-                  Prioritized guidance for {currentStageLabel}
-                </span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {primaryAction ? primaryAction.title : activeStep.recommendedAction}
+        {milestoneResult.isJourneyComplete ? (
+          <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 text-white border-2 border-emerald-500/80 shadow-lg text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-center mx-auto text-3xl">
+              🎯
+            </div>
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/40 inline-block">
+                MILESTONE PROGRAM COMPLETED
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                🎯 CREDIQLY READINESS JOURNEY COMPLETE
               </h3>
-            </div>
-
-            {/* Potential Score Estimate Callout */}
-            <div className="shrink-0 flex items-center gap-2">
-              {impactEstimate.isPredictable && impactEstimate.estimatedScore ? (
-                <div className="text-right">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    Estimated After Completion
-                  </span>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-3 py-1 rounded-full shadow-2xs font-mono">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{impactEstimate.estimatedScore} / 100 (+{impactEstimate.estimatedDelta} pts)</span>
-                  </div>
-                </div>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
-                  <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-                  <span>{primaryAction?.potentialImpact || `Potential Impact: ${impactEstimate.impactLevel}`}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Structured Guidance: What -> Why It Matters -> Potential Impact */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-            {/* Why This Step */}
-            <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
-                Why This Step
-              </span>
-              <p className="text-slate-700 leading-relaxed font-medium">
-                {primaryAction
-                  ? primaryAction.explanation
-                  : 'Based on your current profile, completing this milestone is one of the areas with the greatest opportunity to improve your funding readiness.'}
+              <p className="text-emerald-300 font-extrabold text-base sm:text-lg">
+                Readiness Score: 100 / 100 • Status: Fully Prepared for Business Funding
+              </p>
+              <p className="text-xs text-slate-300 max-w-xl mx-auto pt-1 leading-relaxed">
+                You have successfully completed all 14 business credit and funding readiness milestones. Your company profile demonstrates full institutional foundation, active bureau files, revolving credit capacity, and funding documentation readiness.
               </p>
             </div>
-
-            {/* Why This Matters */}
-            <div className="p-4 rounded-xl bg-white border border-brand-200/90 shadow-2xs space-y-1.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-800 block">
-                Why This Matters For Funding
-              </span>
-              <p className="text-slate-600 leading-relaxed">
-                {primaryAction ? primaryAction.whyItMatters : activeStep.whyItMatters}
-              </p>
-            </div>
-          </div>
-
-          {/* Potential Impact Explanation Line */}
-          <div className="text-xs text-slate-500 flex items-center gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60">
-            <span className="font-bold text-slate-700">Potential Impact:</span>
-            <span>{impactEstimate.message}</span>
-            <span className="text-slate-400 italic">({impactEstimate.disclaimer})</span>
-          </div>
-
-          {/* Hero Action Controls & CTA */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-brand-200/60">
-            <div className="text-xs text-slate-500 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Estimated time: 5–10 minutes to execute</span>
-            </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Mark as Completed Button (if actionable roadmap task or recommendation) */}
-              {(onMarkActionComplete || onToggleComplete) && primaryAction && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCompleteAction(primaryAction)}
-                  disabled={completingKey === (primaryAction.roadmapTaskKey || primaryAction.id)}
-                  className="text-xs font-bold text-slate-800 hover:text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
-                  <span>
-                    {completingKey === (primaryAction.roadmapTaskKey || primaryAction.id)
-                      ? 'Reassessing...'
-                      : 'Mark as Completed'}
-                  </span>
-                </Button>
-              )}
-
-              {/* Start This Step CTA */}
-              {isActionProLocked ? (
+            <div className="pt-2">
+              <Link href="/funding">
                 <Button
                   variant="primary"
-                  size="md"
-                  onClick={onUpgradeToPro}
-                  className="text-xs font-extrabold gap-2 shadow-xs bg-brand-600 hover:bg-brand-500 text-white"
+                  size="lg"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm px-8 py-3.5 gap-2 shadow-lg hover:shadow-emerald-500/25"
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>Unlock This Step with Pro</span>
+                  <span>Explore Funding Matches</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
-              ) : (
-                <Link href={primaryAction ? primaryAction.actionHref : activeStep.actionHref}>
+              </Link>
+            </div>
+          </div>
+        ) : activeMilestone ? (
+          <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-brand-50/60 via-white to-slate-50/80 border-2 border-brand-300 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-200/70 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full">
+                    YOUR NEXT STEP • MILESTONE #{activeMilestone.stepOrder}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500">
+                    {activeMilestone.categoryLabel}
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                    activeMilestone.completionType === 'customer_confirmation'
+                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                      : activeMilestone.completionType === 'admin_verified'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-teal-50 text-teal-700 border-teal-200'
+                  }`}>
+                    {activeMilestone.completionType === 'customer_confirmation'
+                      ? 'Customer Confirmation'
+                      : activeMilestone.completionType === 'admin_verified'
+                      ? 'Admin Verified'
+                      : 'System Verified'}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {activeMilestone.title}
+                </h3>
+              </div>
+
+              {/* Exact Weight Point Callout */}
+              <div className="shrink-0">
+                <div className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-3.5 py-1.5 rounded-full shadow-2xs font-mono">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>+{activeMilestone.weight} pts towards Readiness Score</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Structured Guidance: What -> Why It Matters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+              {/* Why This Step */}
+              <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                  Why This Step
+                </span>
+                <p className="text-slate-700 leading-relaxed font-medium">
+                  {activeMilestone.description}
+                </p>
+              </div>
+
+              {/* Why This Matters */}
+              <div className="p-4 rounded-xl bg-white border border-brand-200/90 shadow-2xs space-y-1.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-800 block">
+                  Why This Matters For Funding
+                </span>
+                <p className="text-slate-600 leading-relaxed">
+                  {activeMilestone.whyItMatters}
+                </p>
+              </div>
+            </div>
+
+            {/* Hero Action Controls & CTA */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-brand-200/60">
+              <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>
+                  {activeMilestone.completionType === 'customer_confirmation'
+                    ? 'Requires confirmation modal upon completion'
+                    : 'Auto-verified or updated directly in business profile'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Mark as Completed Button */}
+                {(onMarkActionComplete || onToggleComplete) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCompleteAction(activeMilestone)}
+                    disabled={completingKey === (activeMilestone.roadmapTaskKey || activeMilestone.id)}
+                    className="text-xs font-bold text-slate-800 hover:text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
+                    <span>
+                      {completingKey === (activeMilestone.roadmapTaskKey || activeMilestone.id)
+                        ? 'Updating...'
+                        : 'Mark as Complete'}
+                    </span>
+                  </Button>
+                )}
+
+                {/* Primary CTA button */}
+                <Link href={activeMilestone.actionHref}>
                   <Button
                     variant="primary"
                     size="md"
                     className="text-xs font-extrabold gap-2 shadow-xs bg-brand-600 hover:bg-brand-500 text-white whitespace-nowrap"
                   >
-                    <span>
-                      {primaryAction ? primaryAction.actionLabel : activeStep.actionLabel}
-                    </span>
+                    <span>{activeMilestone.actionLabel}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
-              )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         {/* =================================================================== */}
-        {/* SECTION 2: YOUR ROAD AHEAD (5-Stage Simple Progression)            */}
+        {/* SECTION 2: YOUR ROAD AHEAD (4 Core Readiness Milestone Categories) */}
         {/* =================================================================== */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
             <div>
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-brand-600" />
-                <span>YOUR ROAD AHEAD</span>
+                <span>YOUR ROAD AHEAD • 4 READINESS STAGES (14 MILESTONES)</span>
               </h4>
               <p className="text-xs text-slate-500 mt-0.5">
-                5 clear milestones guiding your business from profile completion to funding ready.
+                4 core categories totaling 100 points. Click any stage below to inspect its individual milestones.
               </p>
             </div>
-            <Link
-              href="/roadmap"
-              className="text-xs font-bold text-brand-700 hover:text-brand-800 hover:underline flex items-center gap-1 shrink-0"
-            >
-              <span>View Full Roadmap Tasks</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedStageFilter('all')}
+                className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-colors ${
+                  selectedStageFilter === 'all'
+                    ? 'bg-brand-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'
+                }`}
+              >
+                All 14 Milestones
+              </button>
+              <Link
+                href="/roadmap"
+                className="text-xs font-bold text-brand-700 hover:text-brand-800 hover:underline flex items-center gap-1 shrink-0"
+              >
+                <span>View Full Roadmap</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
-          {/* 5 Progression Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {stages.map((stg) => {
-              const isCompleted = stg.status === 'completed';
-              const isInProgress = stg.status === 'in_progress';
+          {/* 4 Progression Cards (Interactive Stage Selectors) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {categoriesConfig.map((cat, idx) => {
+              const isCompleted = cat.status === 'completed';
+              const isInProgress = cat.status === 'in_progress';
+              const isSelected = selectedStageFilter === cat.id;
+              const IconComp = cat.icon;
 
               return (
-                <Link
-                  key={stg.id}
-                  href={stg.actionHref}
-                  className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all duration-200 group ${
-                    isInProgress
-                      ? 'border-brand-500 bg-brand-50/50 shadow-xs ring-2 ring-brand-500/15'
+                <div
+                  key={cat.id}
+                  onClick={() => setSelectedStageFilter(selectedStageFilter === cat.id ? 'all' : (cat.id as any))}
+                  className={`p-4 rounded-xl border flex flex-col justify-between transition-all duration-200 cursor-pointer text-left select-none ${
+                    isSelected
+                      ? 'border-brand-600 bg-brand-50/70 shadow-sm ring-2 ring-brand-600/30'
+                      : isInProgress
+                      ? 'border-brand-300 bg-brand-50/30 hover:border-brand-400 hover:bg-brand-50/50'
                       : isCompleted
-                      ? 'border-emerald-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20'
+                      ? 'border-emerald-200 bg-emerald-50/20 hover:border-emerald-300 hover:bg-emerald-50/40'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
                   }`}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 min-w-0">
                     {/* Status & Icon */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div
-                          className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-xs ${
-                            isInProgress
-                              ? 'bg-brand-600 text-white'
-                              : isCompleted
+                          className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-xs shrink-0 ${
+                            isCompleted
                               ? 'bg-emerald-100 text-emerald-800'
+                              : isInProgress
+                              ? 'bg-brand-600 text-white'
                               : 'bg-slate-100 text-slate-600'
                           }`}
                         >
-                          {isCompleted ? '✓' : stg.id}
+                          {isCompleted ? '✓' : idx + 1}
                         </div>
                         <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 truncate">
-                          Step {stg.id}
+                          STAGE {idx + 1}
                         </span>
                       </div>
 
-                      {getStageIcon(
-                        stg.iconName,
-                        `w-3.5 h-3.5 ${
+                      <IconComp
+                        className={`w-4 h-4 shrink-0 ${
                           isInProgress
                             ? 'text-brand-600'
                             : isCompleted
                             ? 'text-emerald-600'
                             : 'text-slate-400'
-                        }`
-                      )}
+                        }`}
+                      />
                     </div>
 
-                    {/* Stage Title */}
-                    <div>
-                      <h5
-                        className={`text-xs font-bold truncate ${
-                          isInProgress ? 'text-brand-950 font-black' : isCompleted ? 'text-slate-900' : 'text-slate-600'
-                        }`}
-                      >
-                        {stg.title}
-                      </h5>
+                    {/* Stage Title & Points */}
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <h5
+                          className={`text-xs font-bold truncate min-w-0 flex-1 ${
+                            isSelected || isInProgress
+                              ? 'text-brand-950 font-black'
+                              : isCompleted
+                              ? 'text-slate-900'
+                              : 'text-slate-600'
+                          }`}
+                          title={cat.title}
+                        >
+                          {cat.title}
+                        </h5>
+                        <span className="text-[11px] font-bold font-mono text-brand-700 shrink-0">
+                          {cat.earnedWeight}/{cat.maxWeight} pts
+                        </span>
+                      </div>
+
                       <span
-                        className={`text-[10px] font-extrabold uppercase tracking-wider inline-block mt-0.5 ${
-                          isInProgress
-                            ? 'text-brand-700'
-                            : isCompleted
+                        className={`text-[10px] font-extrabold uppercase tracking-wider inline-block ${
+                          isCompleted
                             ? 'text-emerald-700'
+                            : isInProgress
+                            ? 'text-brand-700'
                             : 'text-slate-400'
                         }`}
                       >
                         {isCompleted
                           ? '✓ Completed'
                           : isInProgress
-                          ? '● YOU ARE HERE'
+                          ? '● In Progress'
                           : '○ Upcoming'}
                       </span>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
                           isCompleted
@@ -657,64 +841,308 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                             ? 'bg-brand-600'
                             : 'bg-slate-300'
                         }`}
-                        style={{ width: `${stg.progress}%` }}
+                        style={{
+                          width: `${Math.round((cat.earnedWeight / cat.maxWeight) * 100)}%`,
+                        }}
                       />
                     </div>
                   </div>
 
-                  <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500 group-hover:text-brand-700">
-                    <span className="truncate">{stg.actionLabel}</span>
-                    <ArrowRight className="w-3 h-3 shrink-0 ml-1" />
+                  <div className="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                    <span>
+                      {cat.completedCount} of {cat.totalCount} milestones
+                    </span>
+                    <span className="text-brand-600 font-bold flex items-center gap-0.5 text-[10px] uppercase">
+                      <span>{isSelected ? 'Viewing' : 'Inspect'}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform ${isSelected ? 'rotate-180' : ''}`} />
+                    </span>
                   </div>
-                </Link>
+                </div>
               );
             })}
+          </div>
+
+          {/* ================================================================= */}
+          {/* SECTION 2B: ALL 14 READINESS JOURNEY MILESTONES (Interactive List) */}
+          {/* ================================================================= */}
+          <div className="pt-3 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  {selectedStageFilter === 'all'
+                    ? 'All 14 Journey Milestones'
+                    : `Stage Milestones • ${categoriesConfig.find((c) => c.id === selectedStageFilter)?.title}`}
+                </span>
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  Showing {filteredMilestones.length} of {milestoneResult.totalMilestonesCount}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedStageFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStageFilter('all')}
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowMilestonesList(!showMilestonesList)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                >
+                  <span>{showMilestonesList ? 'Collapse Milestones' : 'Expand Milestones'}</span>
+                  {showMilestonesList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {showMilestonesList && (
+              <div className="space-y-2.5">
+                {filteredMilestones.map((item) => {
+                  const def = item.definition;
+                  const isCompleted = item.isCompleted;
+                  const isNext = item.isNextStep;
+                  const isBlocked = item.isBlockedByPrereq;
+
+                  return (
+                    <div
+                      key={def.id}
+                      className={`p-4 sm:p-4.5 rounded-xl border transition-all ${
+                        isCompleted
+                          ? 'bg-emerald-50/20 border-emerald-200/80 text-slate-800'
+                          : isNext
+                          ? 'bg-brand-50/40 border-brand-300 ring-2 ring-brand-500/20 shadow-xs'
+                          : isBlocked
+                          ? 'bg-slate-50/60 border-slate-200 text-slate-500'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                        {/* Milestone Identity & Description */}
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          {/* Step Number & Status Circle */}
+                          <div className="shrink-0 pt-0.5">
+                            {isCompleted ? (
+                              <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+                                ✓
+                              </div>
+                            ) : isNext ? (
+                              <div className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs animate-pulse font-mono">
+                                #{def.stepOrder}
+                              </div>
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs border border-slate-200 font-mono">
+                                #{def.stepOrder}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Text Info */}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                              <h5
+                                className={`text-sm font-bold tracking-tight ${
+                                  isCompleted
+                                    ? 'text-emerald-950 font-black'
+                                    : isNext
+                                    ? 'text-brand-950 font-black'
+                                    : 'text-slate-900 font-bold'
+                                }`}
+                              >
+                                {def.title}
+                              </h5>
+
+                              {/* Exact Points Badge */}
+                              <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-200">
+                                +{def.weight} pts
+                              </span>
+
+                              {/* Stage Tag */}
+                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                {def.categoryLabel}
+                              </span>
+
+                              {/* Verification Type Badge */}
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                                  def.completionType === 'customer_confirmation'
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : def.completionType === 'admin_verified'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-teal-50 text-teal-700 border-teal-200'
+                                }`}
+                              >
+                                {def.completionType === 'customer_confirmation'
+                                  ? 'Customer Confirmation'
+                                  : def.completionType === 'admin_verified'
+                                  ? 'Admin Verified'
+                                  : 'System Verified'}
+                              </span>
+
+                              {/* Status Tag */}
+                              {isCompleted ? (
+                                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                  ✓ Completed
+                                </span>
+                              ) : isNext ? (
+                                <span className="text-[10px] font-black text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                  ● Current Next Step
+                                </span>
+                              ) : isBlocked ? (
+                                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                                  Prerequisite Pending
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                              {def.description}
+                            </p>
+                            <p className="text-[11px] text-brand-800/90 font-medium leading-relaxed">
+                              <strong className="text-brand-900">Why it matters for funding:</strong> {def.whyItMatters}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Milestone Actions */}
+                        <div className="shrink-0 flex items-center gap-2 self-start sm:self-center pt-2 sm:pt-0">
+                          {isCompleted ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-300/80 px-3 py-1.5 rounded-lg">
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Verified</span>
+                            </span>
+                          ) : (
+                            <>
+                              {/* Mark as Complete button */}
+                              {(onMarkActionComplete || onToggleComplete) && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleCompleteAction(def)}
+                                  disabled={completingKey === (def.roadmapTaskKey || def.id)}
+                                  className="text-xs font-bold border-slate-300 text-slate-800 bg-white hover:bg-slate-50 shadow-2xs whitespace-nowrap"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                  <span>
+                                    {completingKey === (def.roadmapTaskKey || def.id)
+                                      ? 'Updating...'
+                                      : 'Mark Complete'}
+                                  </span>
+                                </Button>
+                              )}
+
+                              {/* Primary Action Button */}
+                              <Link href={def.actionHref}>
+                                <Button
+                                  variant={isNext ? 'primary' : 'outline'}
+                                  size="sm"
+                                  className={`text-xs font-bold whitespace-nowrap gap-1 ${
+                                    isNext
+                                      ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-xs'
+                                      : 'border-slate-300 text-slate-700 bg-white hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <span>{def.actionLabel}</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
         {/* =================================================================== */}
-        {/* SECTION 3: AFTER I COMPLETE THIS (Next Milestone Preview)          */}
+        {/* SECTION 3: AFTER I COMPLETE THIS (Next Step & Funding Reveal)       */}
         {/* =================================================================== */}
-        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">
               <ArrowRight className="w-4 h-4" />
             </div>
-            <div>
+            <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                AFTER I COMPLETE THIS
+                AFTER I COMPLETE THIS • FUNDING UNLOCK PROGRESSION
               </span>
               <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                <span className="text-sm font-bold text-slate-900">
-                  Next: {afterThis.nextStepTitle}
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="text-xs text-slate-600 font-medium">
-                  Potential impact: {afterThis.potentialReadiness}
-                </span>
+                {subsequentMilestone ? (
+                  <>
+                    <span className="text-sm font-bold text-slate-900">
+                      Next: {subsequentMilestone.title}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-xs text-slate-600 font-medium">
+                      Potential impact: +{subsequentMilestone.weight} pts ({subsequentMilestone.categoryLabel})
+                    </span>
+                  </>
+                ) : milestoneResult.isJourneyComplete ? (
+                  <span className="text-sm font-bold text-emerald-700">
+                    🎯 All 14 milestones complete! Ready for matched commercial funding facilities.
+                  </span>
+                ) : (
+                  <span className="text-sm font-bold text-slate-900">
+                    Final milestone in the program before 100/100 complete.
+                  </span>
+                )}
               </div>
+              {/* Dynamic Funding Unlock Guidance */}
+              <p className="text-xs text-brand-700 font-semibold flex items-center gap-1.5 pt-0.5">
+                <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                <span>
+                  {milestoneResult.score < 25
+                    ? 'Completing Stage 1 unlocks your first Tier-1 vendor credit & commercial checking accounts.'
+                    : milestoneResult.score < 50
+                    ? 'Completing Stage 2 establishes reporting bureau accounts and unlocks revolving business cards ($5K–$25K).'
+                    : milestoneResult.score < 75
+                    ? 'Completing Stage 3 optimizes payment track record and unlocks commercial credit lines ($25K–$100K).'
+                    : milestoneResult.score < 100
+                    ? 'Completing Stage 4 finalizes loan documentation for full term loans & SBA capital facilities ($100K–$500K+).'
+                    : 'All commercial funding tiers and institutional lender criteria are fully unlocked!'}
+                </span>
+              </p>
             </div>
           </div>
 
-          {/* Funding Destination Link when ready */}
-          {isFundingReady ? (
+          {/* Funding Destination Link */}
+          <div className="shrink-0 flex items-center gap-2">
             <Link href="/funding">
               <Button
                 variant="primary"
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 shadow-xs whitespace-nowrap"
+                className="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs gap-1.5 shadow-xs whitespace-nowrap"
               >
-                <span>Explore Funding Matches</span>
+                <span>Reveal Funding Matches</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>
-          ) : (
-            <div className="shrink-0 text-xs text-slate-400 italic">
-              Automated milestone progression
-            </div>
-          )}
+          </div>
         </div>
       </CardContent>
+
+      {/* Customer Confirmation Modal */}
+      <MilestoneConfirmationModal
+        milestone={confirmingMilestone}
+        isOpen={isModalOpen}
+        onClose={() => {
+          if (!modalLoading) {
+            setIsModalOpen(false);
+            setConfirmingMilestone(null);
+          }
+        }}
+        onConfirm={handleConfirmMilestone}
+        isLoading={modalLoading}
+      />
     </Card>
   );
 };
+

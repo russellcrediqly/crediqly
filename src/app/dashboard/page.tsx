@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { business, refreshBusiness } = useBusiness();
-  const { roadmap, toggleTaskCompletion, markActionCompleted, undoActionCompletion } = useRoadmap();
+  const { roadmap, completedTasks, toggleTaskCompletion, markActionCompleted, undoActionCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
   const { isPro, isAdvisory, upgradeToPro, openCustomerPortal, refreshSubscription, verifyCheckoutSession } = useSubscription();
   const [upgradedNotice, setUpgradedNotice] = useState(false);
@@ -501,6 +501,8 @@ export default function DashboardPage() {
             business={business}
             history={history}
             actions={topRecommendedActions}
+            completedTasks={completedTasks}
+            milestoneOverrides={settings?.readinessMilestoneSettings?.milestoneOverrides}
             onToggleComplete={toggleTaskCompletion}
             onMarkActionComplete={markActionCompleted}
             onUndoActionComplete={undoActionCompletion}
@@ -591,7 +593,7 @@ export default function DashboardPage() {
                     ? 'Full access to all 6 roadmap tiers, dedicated 1-on-1 advisor sessions, and tradeline concierge.'
                     : isPro
                     ? 'Complete access to reporting tradeline directories, Tier 2-4 milestones, and funding guides.'
-                    : 'Access to foundation stage. Upgrade to unlock all commercial credit tiers and verified tradelines.'}
+                    : 'Free tier includes Foundation setup and starter Net-30 vendor accounts. Upgrade to unlock all 4 roadmap stages, Tier 2/3 store cards, revolving lines, and direct commercial funding.'}
                 </p>
               </div>
             </div>
@@ -607,15 +609,26 @@ export default function DashboardPage() {
                   <span>Manage Subscription</span>
                 </Button>
               ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={upgradeToPro}
-                  className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1.5 shadow-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Upgrade to Pro ($39/mo)</span>
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={upgradeToPro}
+                    className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1.5 shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Upgrade to Pro ($39/mo)</span>
+                  </Button>
+                  <Link href="/advisory">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs font-bold border-purple-300 text-purple-700 hover:bg-purple-50"
+                    >
+                      <span>Explore Advisory</span>
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>

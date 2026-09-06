@@ -49,6 +49,8 @@ const FUNDING_CATEGORIES: FundingCategory[] = [
   'Business Credit Card',
   'Vehicle Financing',
   'Revenue-based Financing',
+  'Invoice Financing',
+  'Grant',
   'Other',
 ];
 
@@ -124,6 +126,14 @@ export default function AdminFundingPage() {
     minFundingAmount: 5000,
     maxFundingAmount: 150000,
     fundingPurposes: ['Working Capital'] as string[],
+    repaymentType: 'Medium Term' as any,
+    rateTermsInfo: '',
+    typicalTermRange: '',
+    lastReviewedDate: new Date().toISOString().split('T')[0],
+    grantDeadline: '',
+    grantAmount: '',
+    eligibilityNotes: '',
+    locationRestrictions: '',
   });
 
   const showToast = (msg: string) => {
@@ -184,6 +194,14 @@ export default function AdminFundingPage() {
       minFundingAmount: 5000,
       maxFundingAmount: 150000,
       fundingPurposes: ['Working Capital'],
+      repaymentType: 'Medium Term',
+      rateTermsInfo: '',
+      typicalTermRange: '',
+      lastReviewedDate: new Date().toISOString().split('T')[0],
+      grantDeadline: '',
+      grantAmount: '',
+      eligibilityNotes: '',
+      locationRestrictions: '',
     });
     setEditModalOpen(true);
   };
@@ -208,6 +226,14 @@ export default function AdminFundingPage() {
       minFundingAmount: product.minFundingAmount || 0,
       maxFundingAmount: product.maxFundingAmount || 0,
       fundingPurposes: product.fundingPurposes || [],
+      repaymentType: product.repaymentType || (product.category === 'Grant' ? 'Grant' : 'Medium Term'),
+      rateTermsInfo: product.rateTermsInfo || '',
+      typicalTermRange: product.typicalTermRange || '',
+      lastReviewedDate: product.lastReviewedDate || new Date().toISOString().split('T')[0],
+      grantDeadline: product.grantDeadline || '',
+      grantAmount: product.grantAmount || '',
+      eligibilityNotes: product.eligibilityNotes || '',
+      locationRestrictions: product.locationRestrictions || '',
     });
     setEditModalOpen(true);
   };
@@ -437,23 +463,25 @@ export default function AdminFundingPage() {
               <tr>
                 <th className="py-3 px-4">Funding Option & Provider</th>
                 <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Repayment &amp; Rate</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Priority</th>
                 <th className="py-3 px-4">Affiliate Routing</th>
                 <th className="py-3 px-4">Requirements Summary</th>
+                <th className="py-3 px-4">Last Reviewed</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={9} className="py-12 text-center text-slate-500">
                     <LoadingState message="Loading funding options catalog..." />
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={9} className="py-12 text-center text-slate-500">
                     No funding options found matching your criteria.
                   </td>
                 </tr>
@@ -496,6 +524,16 @@ export default function AdminFundingPage() {
                       <td className="py-3.5 px-4">
                         <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
                           {product.category}
+                        </span>
+                      </td>
+
+                      {/* Repayment & Rate */}
+                      <td className="py-3.5 px-4 text-[11px] text-slate-400 space-y-0.5">
+                        <span className="font-bold text-slate-200 block">
+                          {product.repaymentType || 'Standard'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block truncate max-w-[140px]" title={product.rateTermsInfo || 'Provider determined'}>
+                          {product.rateTermsInfo || 'Provider determined'}
                         </span>
                       </td>
 
@@ -570,6 +608,13 @@ export default function AdminFundingPage() {
                           <span className="text-slate-500">Credit:</span>{' '}
                           {product.minPersonalCredit !== 'None' ? product.minPersonalCredit : 'None'}
                         </p>
+                      </td>
+
+                      {/* Last Reviewed */}
+                      <td className="py-3.5 px-4 text-[11px]">
+                        <span className="font-mono text-slate-400 block">
+                          {product.lastReviewedDate || 'Unset'}
+                        </span>
                       </td>
 
                       {/* Actions */}
@@ -880,6 +925,101 @@ export default function AdminFundingPage() {
                     })}
                   </div>
                 </div>
+              </div>
+
+              {/* MARKETPLACE ATTRIBUTES, RATES & GRANTS */}
+              <div className="border-t border-slate-800 pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  <h4 className="font-bold text-white text-xs uppercase tracking-wider">
+                    Marketplace Terms, Rates &amp; Review Status
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Repayment Structure</label>
+                    <select
+                      value={formData.repaymentType}
+                      onChange={(e) => setFormData({ ...formData, repaymentType: e.target.value as any })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                    >
+                      <option value="Revolving">Revolving Line</option>
+                      <option value="Short Term">Short Term (&lt;12 mos)</option>
+                      <option value="Medium Term">Medium Term (12–36 mos)</option>
+                      <option value="Long Term">Long Term (36+ mos)</option>
+                      <option value="Grant">Grant ($0 Repayment)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Typical Term (Range)</label>
+                    <input
+                      type="text"
+                      value={formData.typicalTermRange}
+                      onChange={(e) => setFormData({ ...formData, typicalTermRange: e.target.value })}
+                      placeholder="e.g. 12–36 months or Revolving"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-medium mb-1">Last Reviewed Date</label>
+                    <input
+                      type="date"
+                      value={formData.lastReviewedDate}
+                      onChange={(e) => setFormData({ ...formData, lastReviewedDate: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-medium mb-1">Advertised Rates / Cost Info</label>
+                  <input
+                    type="text"
+                    value={formData.rateTermsInfo}
+                    onChange={(e) => setFormData({ ...formData, rateTermsInfo: e.target.value })}
+                    placeholder="e.g. From 7.99% fixed APR or Factor rate 1.15–1.28"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                  />
+                </div>
+
+                {/* Grant Specific Fields if category === 'Grant' */}
+                {formData.category === 'Grant' && (
+                  <div className="p-3 bg-purple-950/40 border border-purple-800/60 rounded-xl space-y-3 pt-3 mt-2">
+                    <span className="text-purple-300 font-bold block text-xs">Small Business Grant Details</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Grant Award Amount</label>
+                        <input
+                          type="text"
+                          value={formData.grantAmount}
+                          onChange={(e) => setFormData({ ...formData, grantAmount: e.target.value })}
+                          placeholder="e.g. $10,000 monthly / $25,000 annual"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-medium mb-1">Grant Deadline</label>
+                        <input
+                          type="text"
+                          value={formData.grantDeadline}
+                          onChange={(e) => setFormData({ ...formData, grantDeadline: e.target.value })}
+                          placeholder="e.g. Monthly rolling or October 31, 2026"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-medium mb-1">Eligibility Notes</label>
+                      <input
+                        type="text"
+                        value={formData.eligibilityNotes}
+                        onChange={(e) => setFormData({ ...formData, eligibilityNotes: e.target.value })}
+                        placeholder="e.g. Women-owned, min 3 months operating, US nationwide"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Form Buttons */}

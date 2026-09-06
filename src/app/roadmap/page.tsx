@@ -14,6 +14,7 @@ import { SectionInactiveNotice } from '@/components/common/SectionInactiveNotice
 import { usePlatformSections } from '@/lib/usePlatformSections';
 import { useBusiness } from '@/context/BusinessContext';
 import { useRoadmap } from '@/context/RoadmapContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { RoadmapTaskCard } from '@/components/roadmap/RoadmapTaskCard';
 import { RoadmapTaskModal } from '@/components/roadmap/RoadmapTaskModal';
 import { TaskReopenModal } from '@/components/roadmap/TaskReopenModal';
@@ -45,6 +46,7 @@ function CreditRoadmapContent() {
     actionRecords,
   } = useRoadmap();
   const { sections } = usePlatformSections();
+  const { isPro, upgradeToPro } = useSubscription();
   const searchParams = useSearchParams();
 
   const [activeStageFilter, setActiveStageFilter] = useState<string>('all');
@@ -182,6 +184,49 @@ function CreditRoadmapContent() {
               </Link>
             </CardContent>
           </Card>
+        )}
+
+        {/* Free Tier Promotional Banner */}
+        {!isPro && (
+          <div className="rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/30 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-brand-700 bg-brand-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Free Tier Active
+                </span>
+                <span className="text-xs text-slate-500 font-semibold">
+                  Stage 1 Foundation Free • Stages 2–4 Locked
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                Unlock Complete 4-Stage Credit Building &amp; Institutional Milestones
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Free accounts can build their Foundation profile and start Net-30 vendor tradelines. Upgrade to <strong>Crediqly Pro ($39/mo)</strong> or <strong>Done-For-You Advisory ($499 + $199/mo)</strong> to unlock Tier 2/3 Store Cards, Revolving Credit Accounts, and direct Commercial Funding submissions.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={upgradeToPro}
+                className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1 shadow-xs px-4"
+              >
+                <span>Upgrade to Pro ($39/mo)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+              <Link href="/advisory">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold"
+                >
+                  <span>Explore Advisory</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
         )}
 
         {/* Overall Roadmap Progress Card (Prompt 3: Completed applicable / Total applicable) */}

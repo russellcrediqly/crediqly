@@ -33,7 +33,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { isPro: contextIsPro, upgradeToPro } = useSubscription();
   const isPro = propIsPro !== undefined ? propIsPro : contextIsPro;
-  const isProLocked = !isPro && (product.category === 'net_60' || product.category === 'business_credit_cards');
+  const isProLocked =
+    !isPro &&
+    (product.category === 'net_60' ||
+      product.category === 'business_credit_cards' ||
+      product.category === 'business_banking' ||
+      product.category === 'business_loans');
   const isRecommended = 'matchLabel' in product;
   const matchLabel = isRecommended ? (product as RecommendedProduct).matchLabel : null;
   const recommendationReason = isRecommended
@@ -212,7 +217,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className="text-xs border-indigo-300 bg-indigo-50/80 text-indigo-900 hover:bg-indigo-100 gap-1.5 h-8 px-3 font-bold shadow-2xs"
             >
               <Lock className="w-3 h-3 text-indigo-700" />
-              <span>Unlock with Pro</span>
+              <span>Unlock with Pro / Advisory</span>
             </Button>
           ) : (
             <a

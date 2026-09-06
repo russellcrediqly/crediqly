@@ -17,6 +17,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SectionInactiveNotice } from '@/components/common/SectionInactiveNotice';
 import { usePlatformSections } from '@/lib/usePlatformSections';
 import { calculateReadiness } from '@/lib/scoring';
+import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import {
   US_STATES,
   BUSINESS_STRUCTURES,
@@ -58,6 +59,7 @@ export default function BusinessProfilePage() {
 
   // Compute live readiness scores
   const readiness = calculateReadiness(business);
+  const milestoneRes = calculateMilestoneReadiness(business);
   const lastCalculatedText = business?.readinessUpdatedAt || business?.updatedAt
     ? new Date(business.readinessUpdatedAt || business.updatedAt!).toLocaleDateString(undefined, {
         month: 'short',
@@ -199,10 +201,27 @@ export default function BusinessProfilePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-white border-2 border-brand-300 shadow-xs space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-800">Readiness Journey</span>
+                    <span className="text-xl font-black text-brand-600">
+                      {milestoneRes.score}%
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={milestoneRes.score}
+                    color="brand"
+                    showPercentage={false}
+                  />
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium">
+                    <span>Stage: {milestoneRes.currentStage}</span>
+                  </div>
+                </div>
+
                 <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-600">Business Readiness</span>
+                    <span className="text-xs font-semibold text-slate-600">Business Foundation</span>
                     <span className="text-xl font-black text-brand-700">
                       {readiness.businessReadiness.score}%
                     </span>
@@ -219,7 +238,7 @@ export default function BusinessProfilePage() {
 
                 <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-600">Credit Readiness</span>
+                    <span className="text-xs font-semibold text-slate-600">Credit Tradelines</span>
                     <span className="text-xl font-black text-emerald-700">
                       {readiness.creditReadiness.score}%
                     </span>

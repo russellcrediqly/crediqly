@@ -1,4 +1,5 @@
 import type { BusinessProfile } from '@/types/business';
+import { calculateMilestoneReadiness } from './readinessMilestoneEngine';
 import type {
   FundingReadinessResult,
   FundingReadinessLevel,
@@ -538,208 +539,102 @@ export function calculateFundingReadiness(
   profileScore = Math.min(20, Math.max(0, profileScore));
 
   // --------------------------------------------------------------------------
-  // TOTAL SCORE & READINESS LEVEL
+  // TOTAL SCORE & READINESS LEVEL (Calculated Strictly From Milestone Engine)
   // --------------------------------------------------------------------------
-  const rawTotal = foundationScore + creditScore + financialScore + profileScore;
-  const score = Math.min(100, Math.max(0, rawTotal));
+  const milestoneRes = calculateMilestoneReadiness(p);
+  const score = milestoneRes.score;
   const level = getFundingReadinessLevel(score);
   const description = getFundingReadinessDescription(level);
 
   // --------------------------------------------------------------------------
-  // DETERMINE SINGLE NEXT BEST ACTION
+  // DETERMINE SINGLE NEXT BEST ACTION (From Milestone Progression)
   // --------------------------------------------------------------------------
   let nextBestAction: FundingNextAction;
-
-  if (p.hasBusinessBankAccount !== 'yes') {
+  if (milestoneRes.nextMilestone) {
+    const nm = milestoneRes.nextMilestone;
     nextBestAction = {
-      id: 'act_bank_account',
-      title: p.hasBusinessBankAccount === 'not_sure' ? 'Verify your commercial bank account' : 'Open a dedicated business bank account',
-      explanation: 'Lenders require verifiable separation between business and personal finances. Establishing a dedicated commercial account is a prerequisite for nearly all business funding.',
-      actionLabel: 'View Roadmap Step',
-      actionHref: '/roadmap?filter=foundation',
-      roadmapTaskKey: 'task_bank_account',
-      priority: 'high',
-    };
-  } else if (p.hasEIN !== 'yes') {
-    nextBestAction = {
-      id: 'act_ein',
-      title: p.hasEIN === 'not_sure' ? 'Confirm your Federal EIN status' : 'Obtain a Federal EIN from the IRS',
-      explanation: 'Your Employer Identification Number is the primary corporate tax ID used by lenders to link commercial credit reporting and verify business legitimacy.',
-      actionLabel: 'View Roadmap Step',
-      actionHref: '/roadmap?filter=foundation',
-      roadmapTaskKey: 'task_ein',
-      priority: 'high',
-    };
-  } else if (p.hasBusinessCreditProfile !== 'yes') {
-    nextBestAction = {
-      id: 'act_credit_profile',
-      title: p.hasBusinessCreditProfile === 'not_sure' ? 'Verify your business credit profile' : 'Establish your business credit file',
-      explanation: 'Without an active commercial credit file at Dun & Bradstreet, Experian Business, or Equifax Business, lenders cannot assess your payment track record.',
-      actionLabel: 'View Roadmap Step',
-      actionHref: '/roadmap?filter=credit_foundation',
-      roadmapTaskKey: 'task_profile_bureau',
-      priority: 'high',
-    };
-  } else if (p.hasReportingAccounts !== 'yes') {
-    nextBestAction = {
-      id: 'act_reporting_accounts',
-      title: 'Establish reporting business accounts',
-      explanation: 'Your business has foundational elements in place. The next step is to establish trade credit accounts that report monthly payment experiences to commercial credit bureaus.',
-      actionLabel: 'Explore Credit Products',
-      actionHref: '/products?category=net_30',
-      roadmapTaskKey: 'task_reporting_accounts',
-      priority: 'high',
-    };
-  } else if (p.hasBusinessCreditCard !== 'yes') {
-    nextBestAction = {
-      id: 'act_credit_card',
-      title: 'Establish a business credit card',
-      explanation: 'A revolving commercial card demonstrates credit management, separates daily operating expenses, and builds trade line depth across major credit bureaus.',
-      actionLabel: 'Explore Business Cards',
-      actionHref: '/products?category=business_credit_cards',
-      roadmapTaskKey: 'task_build_business_card',
+      id: `act_${nm.id}`,
+      title: nm.title,
+      explanation: nm.whyItMatters,
+      actionLabel: nm.actionLabel,
+      actionHref: nm.actionHref,
+      roadmapTaskKey: nm.roadmapTaskKey,
       priority: 'high',
     };
   } else {
     nextBestAction = {
-      id: 'act_prep_funding',
-      title: 'Prepare financial documentation for funding',
-      explanation: 'Your business has established a solid credit foundation. Organize your last 3–6 months of business bank statements, P&L statements, and tax returns for future lender review.',
-      actionLabel: 'View Roadmap Step',
-      actionHref: '/roadmap?filter=funding',
-      roadmapTaskKey: 'task_fund_organize_bank_statements',
-      priority: 'high',
+      id: 'act_funding_ready',
+      title: 'Explore Matched Funding Opportunities',
+      explanation: 'All 14 readiness milestones are complete. Your business profile demonstrates strong institutional foundation and documentation.',
+      actionLabel: 'Explore Funding Matches',
+      actionHref: '/funding',
+      priority: 'low',
     };
   }
 
   // --------------------------------------------------------------------------
   // PRIORITIZED LIST OF UP TO 5 ACTIONS
   // --------------------------------------------------------------------------
-  const candidateActions: FundingNextAction[] = [];
-
-  if (p.hasBusinessBankAccount !== 'yes') {
-    candidateActions.push({
-      id: 'p_act_bank',
-      title: p.hasBusinessBankAccount === 'not_sure' ? 'Verify dedicated commercial bank account' : 'Open a dedicated commercial bank account',
-      explanation: 'Ensure clean separation of business finances for lender bank statement analysis.',
-      actionLabel: 'View in Roadmap',
-      actionHref: '/roadmap?filter=foundation',
-      roadmapTaskKey: 'task_bank_account',
-      priority: 'high',
-    });
-  }
-
-  if (p.hasEIN !== 'yes') {
-    candidateActions.push({
-      id: 'p_act_ein',
-      title: p.hasEIN === 'not_sure' ? 'Confirm Federal EIN status' : 'Obtain a Federal EIN from the IRS',
-      explanation: 'Lenders evaluate the company under its EIN to assess commercial credit standing.',
-      actionLabel: 'View in Roadmap',
-      actionHref: '/roadmap?filter=foundation',
-      roadmapTaskKey: 'task_ein',
-      priority: 'high',
-    });
-  }
-
-  if (p.hasBusinessCreditProfile !== 'yes') {
-    candidateActions.push({
-      id: 'p_act_profile',
-      title: p.hasBusinessCreditProfile === 'not_sure' ? 'Verify business credit bureau presence' : 'Establish business credit bureau file',
-      explanation: 'Activate files with Dun & Bradstreet, Experian, and Equifax.',
-      actionLabel: 'View in Roadmap',
-      actionHref: '/roadmap?filter=credit_foundation',
-      roadmapTaskKey: 'task_profile_bureau',
-      priority: 'high',
-    });
-  }
-
-  if (p.hasReportingAccounts !== 'yes') {
-    candidateActions.push({
-      id: 'p_act_reporting',
-      title: 'Establish reporting vendor accounts',
-      explanation: 'Open Tier-1 Net-30 vendor trade lines that report on-time payments monthly.',
-      actionLabel: 'Explore Credit Products',
-      actionHref: '/products?category=net_30',
-      roadmapTaskKey: 'task_reporting_accounts',
-      priority: 'high',
-    });
-  }
-
-  if (p.hasBusinessCreditCard !== 'yes') {
-    candidateActions.push({
-      id: 'p_act_card',
-      title: 'Apply for a dedicated business credit card',
-      explanation: 'Revolving commercial credit lines provide cash flow flexibility and trade depth.',
-      actionLabel: 'Explore Cards',
-      actionHref: '/products?category=business_credit_cards',
-      roadmapTaskKey: 'task_build_business_card',
-      priority: 'medium',
-    });
-  }
-
-  candidateActions.push({
-    id: 'p_act_bank_statements',
-    title: 'Organize 3–6 months of business bank statements',
-    explanation: 'Most commercial lenders evaluate average daily balances, deposit consistency, and non-sufficient funds (NSF) marks.',
-    actionLabel: 'View in Roadmap',
-    actionHref: '/roadmap?filter=funding',
-    roadmapTaskKey: 'task_fund_organize_bank_statements',
-    priority: 'medium',
-  });
-
-  candidateActions.push({
-    id: 'p_act_financial_docs',
-    title: 'Assemble business financial statements (P&L and Balance Sheet)',
-    explanation: 'Up-to-date financial statements speed up lender underwriting decisions.',
-    actionLabel: 'View in Roadmap',
-    actionHref: '/roadmap?filter=funding',
-    roadmapTaskKey: 'task_fund_financial_documentation',
-    priority: 'medium',
-  });
-
-  candidateActions.push({
-    id: 'p_act_criteria',
-    title: 'Review funding requirements before applying',
-    explanation: 'Understanding underwriting criteria helps you apply only when your business is properly prepared.',
-    actionLabel: 'View in Roadmap',
-    actionHref: '/roadmap?filter=funding',
-    roadmapTaskKey: 'task_fund_know_requirements',
-    priority: 'low',
-  });
-
-  const prioritizedActions = candidateActions.slice(0, 5);
+  const prioritizedActions: FundingNextAction[] = milestoneRes.items
+    .filter((i) => !i.isCompleted)
+    .slice(0, 5)
+    .map((i) => ({
+      id: `p_act_${i.definition.id}`,
+      title: i.definition.title,
+      explanation: i.definition.whyItMatters,
+      actionLabel: i.definition.actionLabel,
+      actionHref: i.definition.actionHref,
+      roadmapTaskKey: i.definition.roadmapTaskKey,
+      priority: i.isBlockedByPrereq ? 'medium' : 'high',
+    }));
 
   // --------------------------------------------------------------------------
-  // CATEGORIES BREAKDOWN
+  // CATEGORIES BREAKDOWN (4 categories x 25 pts = exactly 100)
   // --------------------------------------------------------------------------
+  const foundationCompletedPts = milestoneRes.items
+    .filter((i) => i.definition.category === 'foundation' && i.isCompleted)
+    .reduce((s, i) => s + i.definition.weight, 0);
+
+  const creditCompletedPts = milestoneRes.items
+    .filter((i) => i.definition.category === 'bureau_tradelines' && i.isCompleted)
+    .reduce((s, i) => s + i.definition.weight, 0);
+
+  const financialCompletedPts = milestoneRes.items
+    .filter((i) => i.definition.category === 'revolving_seasoning' && i.isCompleted)
+    .reduce((s, i) => s + i.definition.weight, 0);
+
+  const profileCompletedPts = milestoneRes.items
+    .filter((i) => i.definition.category === 'funding_readiness' && i.isCompleted)
+    .reduce((s, i) => s + i.definition.weight, 0);
+
   const categories: FundingReadinessResult['categories'] = {
     foundation: {
       category: 'foundation',
       label: 'Business Foundation',
-      score: foundationScore,
+      score: foundationCompletedPts,
       maxScore: 25,
-      percentage: Math.round((foundationScore / 25) * 100),
+      percentage: Math.round((foundationCompletedPts / 25) * 100),
     },
     businessCredit: {
       category: 'credit',
-      label: 'Business Credit',
-      score: creditScore,
-      maxScore: 30,
-      percentage: Math.round((creditScore / 30) * 100),
+      label: 'Business Credit & Tradelines',
+      score: creditCompletedPts,
+      maxScore: 25,
+      percentage: Math.round((creditCompletedPts / 25) * 100),
     },
     financialReadiness: {
       category: 'financial',
-      label: 'Financial Readiness',
-      score: financialScore,
+      label: 'Revolving Credit & Seasoning',
+      score: financialCompletedPts,
       maxScore: 25,
-      percentage: Math.round((financialScore / 25) * 100),
+      percentage: Math.round((financialCompletedPts / 25) * 100),
     },
     fundingProfile: {
       category: 'profile',
-      label: 'Credit & Funding Profile',
-      score: profileScore,
-      maxScore: 20,
-      percentage: Math.round((profileScore / 20) * 100),
+      label: 'Funding Preparation & Profile',
+      score: profileCompletedPts,
+      maxScore: 25,
+      percentage: Math.round((profileCompletedPts / 25) * 100),
     },
   };
 

@@ -1,4 +1,4 @@
-import type { BusinessProfile, ReadinessScoreResult, ScoreLevel, ScoreCategoryBreakdown } from '@/types/business';
+import type { BusinessProfile, ReadinessScoreResult, ScoreLevel, ScoreCategoryBreakdown } from '../../types/business';
 
 /**
  * Score Level categorization

@@ -52,6 +52,7 @@ import { UserRole, AccountStatus } from '@/types/user';
 import { BusinessProfile } from '@/types/business';
 import { Product, RecommendedProduct, CATEGORY_LABELS } from '@/types/product';
 import { calculateReadiness, getNextBestAction } from '@/lib/scoring';
+import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
 import { generateRoadmap } from '@/lib/roadmap';
 import { getRecommendedProducts } from '@/lib/products/recommendationEngine';
@@ -303,6 +304,7 @@ export default function AdminCustomerDetailPage() {
   // Calculate live scores and recommendations
   const bizProfile = userDetail.business;
   const readiness = bizProfile ? calculateReadiness(bizProfile) : null;
+  const milestoneRes = bizProfile ? calculateMilestoneReadiness(bizProfile) : null;
   const fundingReadiness = bizProfile ? calculateFundingReadiness(bizProfile) : null;
   const nextBest = bizProfile ? getNextBestAction(bizProfile) : null;
   const userCompletions: Record<string, string> = {};
@@ -406,6 +408,14 @@ export default function AdminCustomerDetailPage() {
         <div className="flex items-center gap-3 self-start md:self-center flex-wrap">
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-center">
             <div>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">Readiness Journey</div>
+              <div className="text-base font-extrabold text-emerald-400">
+                {milestoneRes?.score ?? 0}
+                <span className="text-[10px] text-slate-400 font-normal">/100</span>
+              </div>
+            </div>
+            <div className="h-6 w-px bg-slate-800 mx-1" />
+            <div>
               <div className="text-[10px] text-slate-400 font-semibold uppercase">Business Score</div>
               <div className="text-base font-extrabold text-teal-400">
                 {readiness?.businessReadiness.score ?? userDetail.readinessScore?.businessReadinessScore ?? 0}
@@ -420,7 +430,7 @@ export default function AdminCustomerDetailPage() {
             </div>
             <div className="h-6 w-px bg-slate-800 mx-1" />
             <div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase">Funding Score</div>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">Funding Match</div>
               <div className="text-base font-extrabold text-amber-400">
                 {fundingReadiness?.score ?? userDetail.fundingReadinessScore?.score ?? 0}
               </div>

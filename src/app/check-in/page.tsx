@@ -18,6 +18,8 @@ import {
   HelpCircle,
   FileCheck,
   RefreshCw,
+  Lock,
+  Check,
 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -28,7 +30,9 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
 import { useRoadmap } from '@/context/RoadmapContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { calculateReadiness } from '@/lib/scoring';
+import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import { logActivity } from '@/lib/supabase/activityService';
 import {
   getLatestCheckIn,
@@ -118,6 +122,7 @@ export default function MonthlyCheckInPage() {
   const { user } = useAuth();
   const { business, saveBusinessProfile } = useBusiness();
   const { roadmap, toggleTaskCompletion, refreshRoadmap } = useRoadmap();
+  const { isPro, upgradeToPro, upgradeToAdvisory } = useSubscription();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -144,17 +149,10 @@ export default function MonthlyCheckInPage() {
 
   const isProfileComplete = Boolean(business && business.profileCompleted);
 
-  const initialReadiness = useMemo(() => {
-    return calculateReadiness(business);
-  }, [business]);
-
   const initialScore = useMemo(() => {
     if (!isProfileComplete) return 0;
-    return Math.round(
-      (initialReadiness.businessReadiness.score || 0) * 0.5 +
-      (initialReadiness.creditReadiness.score || 0) * 0.5
-    );
-  }, [isProfileComplete, initialReadiness]);
+    return calculateMilestoneReadiness(business).score;
+  }, [isProfileComplete, business]);
 
   useEffect(() => {
     let isMounted = true;
@@ -239,15 +237,9 @@ export default function MonthlyCheckInPage() {
       }
 
       // 3. Recalculate score & next best action
-      const updatedReadiness = calculateReadiness({ ...business, ...profileUpdates } as any);
-      const newScore = isProfileComplete
-        ? Math.round(
-            (updatedReadiness.businessReadiness.score || 0) * 0.5 +
-            (updatedReadiness.creditReadiness.score || 0) * 0.5
-          )
-        : initialScore;
-
-      const updatedNextActionTitle = activeTask?.title || 'Review Vendor Tradelines';
+      const newMilestoneRes = calculateMilestoneReadiness({ ...business, ...profileUpdates } as any);
+      const newScore = isProfileComplete ? newMilestoneRes.score : initialScore;
+      const updatedNextActionTitle = newMilestoneRes.nextMilestone?.title || activeTask?.title || 'Review Vendor Tradelines';
 
       // 4. Save check-in record
       const record = await submitMonthlyCheckIn({
@@ -331,8 +323,103 @@ export default function MonthlyCheckInPage() {
             </div>
           </div>
 
-          {/* ALREADY SUBMITTED STATE / SUCCESS CONFIRMATION */}
-          {(completedSubmitted || (!isDue && latestRecord && currentStep === 0 && !completedSubmitted)) ? (
+          {/* FREE TIER PROMOTIONAL GATE FOR MONTHLY CHECK-IN */}
+          {!isPro ? (
+            <div className="space-y-6">
+              <div className="rounded-3xl border-2 border-brand-300 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/40 p-6 sm:p-8 shadow-md">
+                <div className="max-w-2xl mx-auto text-center space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Monthly Check-In — Premium &amp; Advisory Feature</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    Calibrate Your Credit Standing Monthly
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Automated monthly trajectory tracking continuously recalibrates your commercial readiness score, verifies credit bureau reporting updates across D&amp;B, Experian, and Equifax, and updates your personalized Next Best Action.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 text-left">
+                    {/* Crediqly Pro */}
+                    <div className="p-5 rounded-2xl bg-white border-2 border-brand-200 shadow-sm space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-brand-700">Self-Directed</span>
+                          <span className="text-lg font-black text-slate-900">
+                            $39<span className="text-xs font-normal text-slate-500">/mo</span>
+                          </span>
+                        </div>
+                        <h3 className="text-base font-extrabold text-slate-900">Crediqly Pro</h3>
+                        <ul className="text-xs text-slate-600 space-y-2 pt-1">
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Monthly 60-second score recalibration &amp; progress deltas</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Unlock full 4-stage credit roadmap &amp; revolving milestones</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Complete 17+ commercial lenders &amp; pre-qualification simulator</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={upgradeToPro}
+                        className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
+                      >
+                        <span>Unlock with Pro ($39/mo)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Premium Advisory */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-brand-50/50 border-2 border-purple-200 shadow-sm space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-purple-700">Done-For-You</span>
+                          <span className="text-lg font-black text-slate-900">
+                            $499 <span className="text-xs font-normal text-slate-500">+ $199/mo</span>
+                          </span>
+                        </div>
+                        <h3 className="text-base font-extrabold text-slate-900">Premium Advisory</h3>
+                        <ul className="text-xs text-slate-600 space-y-2 pt-1">
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                            <span>Dedicated credit strategist reviews &amp; files check-in for you</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                            <span>Direct lender introductions &amp; personalized capital packaging</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                            <span>Full white-glove credit building &amp; bureau dispute support</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <Link href="/advisory">
+                        <Button
+                          variant="primary"
+                          size="md"
+                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
+                        >
+                          <span>Explore Premium Advisory</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ALREADY SUBMITTED STATE / SUCCESS CONFIRMATION */}
+              {(completedSubmitted || (!isDue && latestRecord && currentStep === 0 && !completedSubmitted)) ? (
             <Card className="border-emerald-200 bg-white shadow-lg overflow-hidden">
               <div className="bg-emerald-500/10 border-b border-emerald-100 p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
@@ -604,6 +691,8 @@ export default function MonthlyCheckInPage() {
               </CardContent>
             </Card>
           )}
+        </>
+      )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

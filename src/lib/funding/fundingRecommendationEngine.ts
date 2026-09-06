@@ -1,53 +1,37 @@
-import type { BusinessProfile } from '@/types/business';
+import type { BusinessProfile } from '../../types/business';
 import type {
   FundingProduct,
   FundingMatchResult,
   FundingMatchLevel,
-} from '@/types/fundingProduct';
+} from '../../types/fundingProduct';
 
-function parseBusinessAgeMonths(age?: string): number | null {
+function parseBusinessAgeMonths(age?: string | number): number | null {
+  if (typeof age === 'number') return age;
   if (!age || age === 'not_sure' || age === 'Not sure') return null;
-  switch (age) {
-    case '5+ years':
-      return 60;
-    case '3+ years':
-    case '2–5 years':
-      return 36;
-    case '1–2 years':
-      return 18;
-    case '6–12 months':
-      return 9;
-    case 'Less than 6 months':
-    case '3–6 months':
-      return 4;
-    case 'Less than 3 months':
-      return 1;
-    default:
-      return null;
-  }
+  const clean = String(age).replace(/[–—]/g, '-').trim();
+  if (clean.includes('5+')) return 60;
+  if (clean.includes('3+') || clean.includes('2-5') || clean.includes('3-5')) return 36;
+  if (clean.includes('1-2')) return 18;
+  if (clean.includes('6-12')) return 9;
+  if (clean.includes('3-6')) return 4;
+  if (clean.toLowerCase().includes('less than') || clean.toLowerCase().includes('startup')) return 1;
+  const num = parseInt(clean.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? null : num;
 }
 
-function parseRevenueNumber(rev?: string): number | null {
+function parseRevenueNumber(rev?: string | number): number | null {
+  if (typeof rev === 'number') return rev;
   if (!rev || rev === 'not_sure' || rev === 'Not sure') return null;
-  switch (rev) {
-    case '$1,000,000+':
-      return 1000000;
-    case '$500,000+':
-      return 500000;
-    case '$250,000–$500,000':
-      return 250000;
-    case '$100,000–$250,000':
-      return 100000;
-    case '$50,000–$100,000':
-      return 50000;
-    case '$10,000–$50,000':
-      return 25000;
-    case 'Under $10,000':
-    case 'Pre-revenue':
-      return 5000;
-    default:
-      return null;
-  }
+  const clean = String(rev).replace(/[–—]/g, '-').trim();
+  if (clean.includes('1,000,000') || clean.includes('1M')) return 1000000;
+  if (clean.includes('500,000')) return 500000;
+  if (clean.includes('250,000')) return 250000;
+  if (clean.includes('100,000')) return 100000;
+  if (clean.includes('50,000')) return 50000;
+  if (clean.includes('25,000') || clean.includes('10,000')) return 25000;
+  if (clean.toLowerCase().includes('under') || clean.toLowerCase().includes('pre-revenue')) return 5000;
+  const num = parseInt(clean.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? null : num;
 }
 
 function parseMinRevenueRequirement(revStr?: string): number {
@@ -60,27 +44,17 @@ function parseMinRevenueRequirement(revStr?: string): number {
   return isNaN(num) ? 0 : num;
 }
 
-function parsePersonalCreditScore(tier?: string): number | null {
+function parsePersonalCreditScore(tier?: string | number): number | null {
+  if (typeof tier === 'number') return tier;
   if (!tier || tier === 'not_sure' || tier === 'Not sure') return null;
-  switch (tier) {
-    case '720+':
-    case '720–850':
-    case 'Excellent (720+)':
-      return 740;
-    case '680–719':
-    case 'Good (680–719)':
-      return 700;
-    case '640–679':
-    case 'Fair (640–679)':
-      return 660;
-    case '600–639':
-      return 620;
-    case 'Under 600':
-    case 'Poor':
-      return 550;
-    default:
-      return null;
-  }
+  const clean = String(tier).replace(/[–—]/g, '-').trim();
+  if (clean.includes('720+') || clean.includes('720-850') || clean.toLowerCase().includes('excellent')) return 740;
+  if (clean.includes('680-719') || clean.toLowerCase().includes('good')) return 700;
+  if (clean.includes('640-679') || clean.toLowerCase().includes('fair')) return 660;
+  if (clean.includes('600-639')) return 620;
+  if (clean.toLowerCase().includes('under') || clean.toLowerCase().includes('poor') || clean.includes('580-619') || clean.toLowerCase().includes('below 580')) return 550;
+  const num = parseInt(clean.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? null : num;
 }
 
 function parseMinPersonalCreditRequirement(creditStr?: string): number {
@@ -115,72 +89,111 @@ export function matchFundingProducts(
     let score = 50; // Baseline neutrality
     const verificationNotes: string[] = [];
     const matchedStrengths: string[] = [];
+    const checklistMet: string[] = [];
+    const checklistPending: string[] = [];
+    const nextStepsToImprove: string[] = [];
     let hasDisqualification = false;
     let hasUnverifiedKeyField = false;
+    const isGrant = product.category === 'Grant';
 
+    // =========================================================================
     // 1. Business Age Evaluation
+    // =========================================================================
     if (product.minBusinessAgeMonths > 0) {
       if (userAgeMonths === null) {
         verificationNotes.push('Business operating longevity needs verification with provider.');
+        checklistPending.push(`Operating age requirement: ${product.minBusinessAgeMonths}+ months (unverified)`);
         hasUnverifiedKeyField = true;
       } else if (userAgeMonths >= product.minBusinessAgeMonths) {
         score += 15;
         matchedStrengths.push('Operating longevity aligns with criteria');
+        checklistMet.push(`Operating age requirement satisfied (${product.minBusinessAgeMonths}+ months)`);
       } else {
         score -= 25;
         hasDisqualification = true;
+        checklistPending.push(`Operating seasoning needed (requires ${product.minBusinessAgeMonths} months)`);
+        nextStepsToImprove.push(`Build operational seasoning towards ${product.minBusinessAgeMonths} months (Milestone #13)`);
       }
     } else {
       score += 5; // Open to new entities
+      checklistMet.push('Open to new and early-stage entities');
     }
 
+    // =========================================================================
     // 2. Annual Revenue Evaluation
+    // =========================================================================
     const reqRevenue = parseMinRevenueRequirement(product.minAnnualRevenue);
     if (reqRevenue > 0) {
       if (userRevenue === null) {
         verificationNotes.push('Annual revenue range should be verified with provider.');
+        checklistPending.push(`Revenue requirement: ${product.minAnnualRevenue}/yr (unverified)`);
         hasUnverifiedKeyField = true;
       } else if (userRevenue >= reqRevenue) {
         score += 15;
         matchedStrengths.push('Reported revenue meets baseline threshold');
+        checklistMet.push(`Reported revenue satisfies baseline (${product.minAnnualRevenue}/yr)`);
       } else {
         score -= 25;
         hasDisqualification = true;
+        checklistPending.push(`Annual revenue threshold: requires ${product.minAnnualRevenue}/yr`);
+        nextStepsToImprove.push(`Grow operating business deposits and revenue documentation (Milestone #13)`);
       }
     } else {
       score += 5;
+      checklistMet.push('No minimum revenue requirement');
     }
 
-    // 3. Personal Credit Evaluation
-    const reqCredit = parseMinPersonalCreditRequirement(product.minPersonalCredit);
-    if (reqCredit > 0) {
-      if (userCredit === null) {
-        verificationNotes.push('Personal credit tier should be verified with provider.');
-        hasUnverifiedKeyField = true;
-      } else if (userCredit >= reqCredit) {
-        score += 10;
-        matchedStrengths.push('Personal credit tier satisfies provider baseline');
+    // =========================================================================
+    // 3. Personal Credit Evaluation (Skipped for Grants)
+    // =========================================================================
+    if (!isGrant) {
+      const reqCredit = parseMinPersonalCreditRequirement(product.minPersonalCredit);
+      if (reqCredit > 0) {
+        if (userCredit === null) {
+          verificationNotes.push('Personal credit tier should be verified with provider.');
+          checklistPending.push(`Credit tier requirement: ${product.minPersonalCredit} (unverified)`);
+          hasUnverifiedKeyField = true;
+        } else if (userCredit >= reqCredit) {
+          score += 10;
+          matchedStrengths.push('Personal credit tier satisfies provider baseline');
+          checklistMet.push(`Personal credit satisfies baseline (${product.minPersonalCredit})`);
+        } else {
+          score -= 20;
+          hasDisqualification = true;
+          checklistPending.push(`Credit baseline: ${product.minPersonalCredit} required`);
+          nextStepsToImprove.push(`Strengthen credit profile and maintain revolving utilization under 30% (Milestone #10)`);
+        }
       } else {
-        score -= 20;
-        hasDisqualification = true;
+        checklistMet.push('No minimum personal credit score requirement');
       }
+    } else {
+      checklistMet.push('Non-dilutive grant award: zero credit check required');
     }
 
+    // =========================================================================
     // 4. Commercial Business Credit Required
+    // =========================================================================
     if (product.businessCreditRequired === 'yes') {
-      if (hasBizCredit === 'yes') {
+      if (hasBizCredit === 'yes' || hasBizCredit === true) {
         score += 10;
         matchedStrengths.push('Active commercial credit profile established');
+        checklistMet.push('Active commercial credit bureau profile established');
       } else if (hasBizCredit === 'not_sure') {
         verificationNotes.push('Verify whether business credit profile is registered with commercial bureaus.');
+        checklistPending.push('Commercial bureau profile registration (pending verification)');
         hasUnverifiedKeyField = true;
       } else {
         score -= 20;
         hasDisqualification = true;
+        checklistPending.push('Commercial bureau registration required');
+        nextStepsToImprove.push(`Register and activate D-U-N-S and bureau file (Milestone #06)`);
+        nextStepsToImprove.push(`Establish tier-1 vendor Net-30 reporting tradelines (Milestone #07)`);
       }
     }
 
+    // =========================================================================
     // 5. Funding Purpose Alignment
+    // =========================================================================
     if (userGoal && product.fundingPurposes && product.fundingPurposes.length > 0) {
       const normalizedGoal = userGoal.toLowerCase();
       const matchesGoal = product.fundingPurposes.some((purpose) =>
@@ -189,55 +202,83 @@ export function matchFundingProducts(
       if (matchesGoal) {
         score += 15;
         matchedStrengths.push(`Directly matches your stated focus on ${userGoal}`);
+        checklistMet.push(`Matches purpose: ${userGoal}`);
       }
     }
 
+    // =========================================================================
     // 6. Funding Readiness Adjustment
+    // =========================================================================
     if (fundingReadinessScore >= 70) {
-      score += 10;
-    } else if (fundingReadinessScore < 40) {
-      score -= 5;
+      score += 15;
+    } else if (fundingReadinessScore >= 50) {
+      score += 5;
+    } else if (fundingReadinessScore < 30 && (product.category === 'SBA-related Financing' || product.minBusinessAgeMonths >= 24)) {
+      score -= 20;
+      hasDisqualification = true;
+      nextStepsToImprove.push('Complete foundational readiness milestones (Milestones #01 to #05)');
     }
 
+    // =========================================================================
     // 7. Admin Priority Boost
-    // Priority 1 = +10, Priority 2 = 0, Priority 3 = -10
+    // =========================================================================
     if (product.priority === 1) score += 10;
     if (product.priority === 3) score -= 10;
     if (product.featured) score += 5;
 
-    // 8. Match Level Classification
-    let matchLevel: FundingMatchLevel = 'Explore';
+    // =========================================================================
+    // 8. Match Level Classification (Never fake approval)
+    // =========================================================================
+    let matchLevel: FundingMatchLevel = 'Possible Match';
 
-    if (!hasDisqualification && !hasUnverifiedKeyField && score >= 75) {
+    if (isGrant) {
+      matchLevel = score >= 50 ? 'Strong Match' : 'Possible Match';
+    } else if (hasDisqualification) {
+      matchLevel = 'Not Ready Yet';
+    } else if (!hasUnverifiedKeyField && score >= 70) {
       matchLevel = 'Strong Match';
-    } else if (!hasDisqualification && (score >= 50 || hasUnverifiedKeyField)) {
-      matchLevel = 'Potential Match';
     } else {
-      matchLevel = 'Explore';
+      matchLevel = 'Possible Match';
     }
 
+    // =========================================================================
     // 9. Deterministic "Why this fits" narrative
+    // =========================================================================
     let whyThisFits = '';
-    if (matchedStrengths.length >= 2) {
-      whyThisFits = `Your reported business information (${matchedStrengths.slice(0, 2).join(', ').toLowerCase()}) aligns well with the baseline parameters for this option.`;
-    } else if (matchedStrengths.length === 1) {
-      whyThisFits = `${matchedStrengths[0]}. Review provider terms for specific underwriting details.`;
-    } else if (hasUnverifiedKeyField) {
-      whyThisFits = 'This option may fit your general profile, though some requirements (such as operating longevity or revenue) still need verification with the provider.';
-    } else if (product.minBusinessAgeMonths <= 3) {
-      whyThisFits = 'Accessible option with minimal operational history requirements, suitable for earlier stage businesses.';
+    if (matchLevel === 'Strong Match') {
+      if (isGrant) {
+        whyThisFits = 'Your business profile is eligible to apply for this non-dilutive grant opportunity. Zero repayment required.';
+      } else if (matchedStrengths.length >= 2) {
+        whyThisFits = `Your reported business profile (${matchedStrengths.slice(0, 2).join(', ').toLowerCase()}) aligns strongly with the baseline parameters for this option.`;
+      } else {
+        whyThisFits = 'Your profile appears consistent with provider underwriting baselines based on reported information.';
+      }
+    } else if (matchLevel === 'Possible Match') {
+      if (hasUnverifiedKeyField) {
+        whyThisFits = 'You may fit the basic profile for this option, but additional documentation (such as banking activity or operating history) may be required.';
+      } else {
+        whyThisFits = 'Potential preliminary fit. Review provider criteria and terms to confirm your specific business eligibility.';
+      }
     } else {
-      whyThisFits = 'Explore this provider to evaluate whether their terms and capital structure suit your current business priorities.';
+      whyThisFits = 'Your current readiness profile suggests completing additional foundational or credit-building steps before pursuing this financing option.';
     }
 
+    // =========================================================================
     // 10. Requirement Summary
+    // =========================================================================
     const requirementSummary = {
       minAge: product.minBusinessAgeMonths > 0 ? `${product.minBusinessAgeMonths}+ months in business` : 'No minimum age',
       minRevenue: product.minAnnualRevenue && product.minAnnualRevenue !== '$0' ? `${product.minAnnualRevenue}/year` : 'No minimum revenue',
-      minCredit: product.minPersonalCredit && product.minPersonalCredit !== 'None' ? `${product.minPersonalCredit} personal score` : 'No minimum credit score',
+      minCredit: isGrant
+        ? 'None (Grant)'
+        : product.minPersonalCredit && product.minPersonalCredit !== 'None'
+        ? `${product.minPersonalCredit} personal score`
+        : 'No minimum credit score',
       fundingRange: product.minFundingAmount && product.maxFundingAmount
         ? `$${product.minFundingAmount.toLocaleString()} – $${product.maxFundingAmount.toLocaleString()}`
         : 'Varies by provider',
+      repayment: product.typicalTermRange || (product.repaymentType || (isGrant ? 'Non-repayable Grant' : 'Fixed Term')),
+      rates: product.rateTermsInfo || 'Rate/terms determined by provider',
     };
 
     return {
@@ -247,18 +288,24 @@ export function matchFundingProducts(
       whyThisFits,
       verificationNotes,
       requirementSummary,
+      checklistMet,
+      checklistPending,
+      nextStepsToImprove,
+      isGrant,
     };
   });
 
-  // Sort by match level priority, then score descending, then product priority ascending
+  // Sort: Strong Match first, then Possible Match, then Not Ready Yet; then score descending
   const levelWeights: Record<FundingMatchLevel, number> = {
     'Strong Match': 300,
+    'Possible Match': 200,
     'Potential Match': 200,
-    'Explore': 100,
+    'Explore': 150,
+    'Not Ready Yet': 100,
   };
 
   return results.sort((a, b) => {
-    const weightDiff = levelWeights[b.matchLevel] - levelWeights[a.matchLevel];
+    const weightDiff = (levelWeights[b.matchLevel] || 0) - (levelWeights[a.matchLevel] || 0);
     if (weightDiff !== 0) return weightDiff;
     if (b.score !== a.score) return b.score - a.score;
     return a.product.priority - b.product.priority;

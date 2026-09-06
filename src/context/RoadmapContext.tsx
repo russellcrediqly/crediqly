@@ -19,6 +19,7 @@ import { usePlatformSections } from '@/lib/usePlatformSections';
 
 interface RoadmapContextType {
   roadmap: RoadmapResult;
+  completedTasks: string[];
   loading: boolean;
   actionRecords: Record<string, CustomerActionRecord>;
   toggleTaskCompletion: (taskKey: string) => Promise<void>;
@@ -144,6 +145,55 @@ const TASK_PROFILE_MAP: Record<string, TaskProfileMapping> = {
   },
   // Credit Score Checking
   task_check_scores: {
+    completedUpdates: { knowsBusinessCreditScore: 'yes' },
+    undoUpdates: { knowsBusinessCreditScore: 'no' },
+  },
+  // Official Readiness Milestones
+  m_profile_entity: {
+    completedUpdates: { entityType: 'LLC' },
+    undoUpdates: { entityType: '' },
+  },
+  m_ein: {
+    completedUpdates: { hasEIN: 'yes' },
+    undoUpdates: { hasEIN: 'no' },
+  },
+  m_business_bank: {
+    completedUpdates: { hasBusinessBankAccount: 'yes' },
+    undoUpdates: { hasBusinessBankAccount: 'no' },
+  },
+  m_commercial_presence: {
+    completedUpdates: { hasWebsite: 'yes', hasBusinessPhone: 'yes', hasBusinessEmail: 'yes' },
+    undoUpdates: { hasWebsite: 'no' },
+  },
+  m_commercial_address: {
+    completedUpdates: { hasBusinessAddress: 'yes', hasBusinessLicense: 'yes' },
+    undoUpdates: { hasBusinessAddress: 'no' },
+  },
+  m_duns_bureau: {
+    completedUpdates: { hasBusinessCreditProfile: 'yes', hasDuns: 'yes' },
+    undoUpdates: { hasBusinessCreditProfile: 'no' },
+  },
+  m_tier1_tradelines: {
+    completedUpdates: { hasReportingAccounts: 'yes', businessCreditAccountCount: '1-3' },
+    undoUpdates: { hasReportingAccounts: 'no', businessCreditAccountCount: '0' },
+  },
+  m_credit_depth: {
+    completedUpdates: { businessCreditAccountCount: '4+' },
+    undoUpdates: { businessCreditAccountCount: '1-3' },
+  },
+  m_revolving_card: {
+    completedUpdates: { hasBusinessCreditCard: 'yes' },
+    undoUpdates: { hasBusinessCreditCard: 'no' },
+  },
+  m_funding_profile: {
+    completedUpdates: { fundingAmount: '$50,000' },
+    undoUpdates: { fundingAmount: '' },
+  },
+  m_revenue_operating: {
+    completedUpdates: { annualRevenueRange: '$100,000–$249,999', businessAge: '1–2 years' },
+    undoUpdates: { annualRevenueRange: 'Pre-revenue' },
+  },
+  m_credit_monitoring: {
     completedUpdates: { knowsBusinessCreditScore: 'yes' },
     undoUpdates: { knowsBusinessCreditScore: 'no' },
   },
@@ -455,10 +505,15 @@ export const RoadmapProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await loadCompletions();
   };
 
+  const completedTasks = useMemo(() => {
+    return (roadmap.allTasks || []).filter((t) => t.status === 'completed').map((t) => t.key);
+  }, [roadmap.allTasks]);
+
   return (
     <RoadmapContext.Provider
       value={{
         roadmap,
+        completedTasks,
         loading,
         actionRecords,
         toggleTaskCompletion,

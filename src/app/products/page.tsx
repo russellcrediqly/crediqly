@@ -388,7 +388,12 @@ function CreditProductsContent() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               {CATEGORY_TABS.map((tab) => {
                 const isActive = activeCategory === tab.key;
-                const isTabLocked = !isPro && (tab.key === 'net_60' || tab.key === 'business_credit_cards');
+                const isTabLocked =
+                  !isPro &&
+                  (tab.key === 'net_60' ||
+                    tab.key === 'business_credit_cards' ||
+                    tab.key === 'business_banking' ||
+                    tab.key === 'business_loans');
                 return (
                   <button
                     key={tab.key}
@@ -418,20 +423,32 @@ function CreditProductsContent() {
           </div>
 
           {/* Dedicated Category Pro Lock Notice */}
-          {!isPro && (activeCategory === 'net_60' || activeCategory === 'business_credit_cards') && (
-            <ProGate
-              featureName={
-                activeCategory === 'net_60'
-                  ? 'Tier 2 & Tier 3 Net-60 Vendor Tradelines'
-                  : 'Business Credit Cards & Revolving Credit Lines'
-              }
-              description={
-                activeCategory === 'net_60'
-                  ? 'Upgrade to Crediqly Pro to unlock vetted Tier 2 and Tier 3 Net-60 vendor accounts, higher credit limits, and multiple bureau reporting.'
-                  : 'Upgrade to Crediqly Pro to access unsecured corporate credit cards, 0% introductory APR lines, and underwriting qualification criteria.'
-              }
-            />
-          )}
+          {!isPro &&
+            (activeCategory === 'net_60' ||
+              activeCategory === 'business_credit_cards' ||
+              activeCategory === 'business_banking' ||
+              activeCategory === 'business_loans') && (
+              <ProGate
+                featureName={
+                  activeCategory === 'net_60'
+                    ? 'Tier 2 & Tier 3 Net-60 Vendor Tradelines'
+                    : activeCategory === 'business_credit_cards'
+                    ? 'Business Credit Cards & Revolving Credit Lines'
+                    : activeCategory === 'business_banking'
+                    ? 'Commercial Business Banking Directory'
+                    : 'Commercial Loans & Capital Facilities'
+                }
+                description={
+                  activeCategory === 'net_60'
+                    ? 'Upgrade to Crediqly Pro or Premium Advisory to unlock vetted Tier 2 and Tier 3 Net-60 vendor accounts, higher credit limits, and multiple bureau reporting.'
+                    : activeCategory === 'business_credit_cards'
+                    ? 'Upgrade to Crediqly Pro or Premium Advisory to access unsecured corporate credit cards, 0% introductory APR lines, and underwriting qualification criteria.'
+                    : activeCategory === 'business_banking'
+                    ? 'Upgrade to Crediqly Pro or Premium Advisory to access commercial banking underwriting matrices, business checking fee comparisons, and lender rating guidelines.'
+                    : 'Upgrade to Crediqly Pro or Premium Advisory to view verified commercial loan facilities, SBA lender criteria, and matched funding terms.'
+                }
+              />
+            )}
 
           {/* Product Cards Grid */}
           {filteredCatalog.length === 0 ? (

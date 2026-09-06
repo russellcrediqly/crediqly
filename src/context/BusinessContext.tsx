@@ -154,6 +154,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const stored = localStorage.getItem(localKey);
       if (stored) {
         loadedFromLocal = JSON.parse(stored);
+        // Pre-populate immediately to eliminate delay and layout shift
+        setBusiness(loadedFromLocal);
       }
     } catch (e) {
       console.warn('Error reading local business storage:', e);
@@ -161,13 +163,19 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isSupabaseConfigured && supabase && isUUID(user.id)) {
       try {
-        const { data, error: dbError } = await supabase
+        const fetchPromise = supabase
           .from('businesses')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
+
+        const timeoutPromise = new Promise<{ data: null; error: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: null }), 2500)
+        );
+
+        const { data, error: dbError } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (!dbError && data) {
           const parsed = fromDbRow(data);
@@ -176,19 +184,19 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             localStorage.setItem(localKey, JSON.stringify(parsed));
           } catch (e) {}
         } else {
-          // If Supabase returned error or empty, use local cache
+          // If Supabase returned error, empty, or timed out, maintain local cache
           if (loadedFromLocal) {
             setBusiness(loadedFromLocal);
-          } else {
+          } else if (!data && dbError) {
             setBusiness(null);
           }
         }
       } catch (err) {
         console.warn('Database fetch fallback to local storage:', err);
-        setBusiness(loadedFromLocal);
+        if (loadedFromLocal) setBusiness(loadedFromLocal);
       }
     } else {
-      setBusiness(loadedFromLocal);
+      if (loadedFromLocal) setBusiness(loadedFromLocal);
     }
 
     setLoading(false);

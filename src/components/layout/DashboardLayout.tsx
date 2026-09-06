@@ -29,14 +29,20 @@ import {
   Sparkles,
   Headphones,
   Lock,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export interface DashboardLayoutProps {
-  children: React.ReactNode;
+interface SubNavItemDef {
+  href: string;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  sectionKey?: DashboardSectionKey;
+  proBadge?: 'Pro' | 'VIP';
 }
 
 interface NavItemDef {
@@ -45,6 +51,7 @@ interface NavItemDef {
   icon: React.ComponentType<{ className?: string }>;
   sectionKey?: DashboardSectionKey;
   proBadge?: 'Pro' | 'VIP';
+  subItems?: SubNavItemDef[];
 }
 
 interface NavGroupDef {
@@ -59,34 +66,57 @@ const NAV_GROUPS: NavGroupDef[] = [
     ],
   },
   {
-    title: 'MY BUSINESS',
+    title: 'READINESS & JOURNEY',
     items: [
-      { href: '/business', label: 'Business Profile', icon: Building2, sectionKey: 'business_profile' },
-      { href: '/readiness', label: 'Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
-      { href: '/roadmap', label: 'Credit Roadmap', icon: GitFork, sectionKey: 'roadmap' },
+      {
+        href: '/readiness',
+        label: 'Readiness Journey',
+        icon: ShieldCheck,
+        sectionKey: 'funding_readiness',
+        subItems: [
+          { href: '/readiness', label: '0–100 Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
+          { href: '/roadmap', label: 'Milestone Roadmap', icon: GitFork, sectionKey: 'roadmap' },
+          { href: '/business', label: 'Business Profile', icon: Building2, sectionKey: 'business_profile' },
+        ],
+      },
     ],
   },
   {
-    title: 'BUILD CREDIT',
+    title: 'CAPITAL & FUNDING',
+    items: [
+      {
+        href: '/funding',
+        label: 'Funding Marketplace',
+        icon: DollarSign,
+        sectionKey: 'funding',
+        subItems: [
+          { href: '/funding', label: 'Explore & Grants', icon: DollarSign, sectionKey: 'funding' },
+          { href: '/funding-tracker', label: 'Application Pipeline', icon: FileCheck, sectionKey: 'funding_tracker' },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'CREDIT BUILDING',
     items: [
       { href: '/products', label: 'Credit Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
-      { href: '/advisory', label: 'Premium Advisory', icon: Headphones, proBadge: 'VIP' },
       { href: '/learn', label: 'Resource Library', icon: BookOpen },
+      { href: '/advisory', label: 'VIP Advisory', icon: Headphones, proBadge: 'VIP' },
     ],
   },
   {
-    title: 'FUNDING',
+    title: 'ACCOUNT & SETTINGS',
     items: [
-      { href: '/funding', label: 'Funding Matches', icon: DollarSign, sectionKey: 'funding' },
-      { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck, sectionKey: 'funding_tracker' },
-    ],
-  },
-  {
-    title: 'ACCOUNT',
-    items: [
-      { href: '/pricing', label: 'Plans & Pricing', icon: Sparkles },
-      { href: '/profile', label: 'Account Profile', icon: User },
-      { href: '/check-in', label: 'Monthly Check-In', icon: CalendarCheck },
+      {
+        href: '/profile',
+        label: 'Account & Settings',
+        icon: User,
+        subItems: [
+          { href: '/profile', label: 'Profile & Business Info', icon: User },
+          { href: '/pricing', label: 'Plans & Billing', icon: Sparkles },
+          { href: '/check-in', label: 'Monthly Check-In', icon: CalendarCheck },
+        ],
+      },
     ],
   },
 ];
@@ -99,6 +129,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const { isPro } = useSubscription();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  const toggleMenu = (key: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [key]: prev[key] !== undefined ? !prev[key] : false,
+    }));
+  };
+
+  const isMenuExpanded = (item: NavItemDef) => {
+    if (!item.subItems || item.subItems.length === 0) return false;
+    if (expandedMenus[item.label] !== undefined) {
+      return expandedMenus[item.label];
+    }
+    const isChildActive = item.subItems.some(
+      (sub) => pathname === sub.href || (sub.href !== '/dashboard' && pathname?.startsWith(sub.href + '/'))
+    );
+    const isParentActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href + '/'));
+    return isChildActive || isParentActive;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -184,35 +234,120 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                   )}
                   {visibleItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive =
+                    const hasSubItems = item.subItems && item.subItems.length > 0;
+                    const isExpanded = hasSubItems ? isMenuExpanded(item) : false;
+
+                    const visibleSubItems = (item.subItems || []).filter((sub) => {
+                      if (!sub.sectionKey) return true;
+                      return sections[sub.sectionKey] !== false;
+                    });
+
+                    const isParentDirectActive =
                       item.href === '/dashboard'
                         ? pathname === '/dashboard'
-                        : pathname === item.href || pathname?.startsWith(item.href + '/');
+                        : pathname === item.href;
+
+                    const isAnyChildActive = visibleSubItems.some(
+                      (sub) => pathname === sub.href || (sub.href !== '/dashboard' && pathname?.startsWith(sub.href + '/'))
+                    );
+
+                    const isHighlighted = isParentDirectActive || isAnyChildActive;
 
                     return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileNavOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                          isActive
-                            ? 'bg-brand-50 text-brand-900 font-bold border-l-4 border-brand-600 pl-2 shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Icon
-                          className={`w-4 h-4 shrink-0 ${
-                            isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
-                          }`}
-                        />
-                        <span className="truncate">{item.label}</span>
-                        {item.proBadge && !isPro && (
-                          <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-300/60 flex items-center gap-0.5 shrink-0">
-                            <Lock className="w-2.5 h-2.5 text-amber-700" />
-                            <span>{item.proBadge}</span>
-                          </span>
+                      <div key={item.href} className="space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <Link
+                            href={item.href}
+                            onClick={() => {
+                              if (!hasSubItems) setMobileNavOpen(false);
+                            }}
+                            className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                              isParentDirectActive && !hasSubItems
+                                ? 'bg-brand-50 text-brand-900 font-bold border-l-4 border-brand-600 pl-2 shadow-2xs'
+                                : isHighlighted && hasSubItems
+                                ? 'text-brand-900 font-bold bg-brand-50/60'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                            }`}
+                          >
+                            <Icon
+                              className={`w-4 h-4 shrink-0 ${
+                                isHighlighted ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
+                              }`}
+                            />
+                            <span className="truncate">{item.label}</span>
+                            {item.proBadge && !isPro && (
+                              <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-300/60 flex items-center gap-0.5 shrink-0">
+                                <Lock className="w-2.5 h-2.5 text-amber-700" />
+                                <span>{item.proBadge}</span>
+                              </span>
+                            )}
+                          </Link>
+
+                          {hasSubItems && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleMenu(item.label);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors ml-1"
+                              aria-label={`Toggle ${item.label} submenu`}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Sub Items Accordion */}
+                        {hasSubItems && isExpanded && (
+                          <div className="ml-4 pl-3 border-l-2 border-slate-200/80 space-y-1 py-1">
+                            {visibleSubItems.map((sub) => {
+                              const SubIcon = sub.icon;
+                              const isSubActive =
+                                pathname === sub.href ||
+                                (sub.href !== '/dashboard' && pathname?.startsWith(sub.href + '/'));
+
+                              return (
+                                <Link
+                                  key={sub.href}
+                                  href={sub.href}
+                                  onClick={() => setMobileNavOpen(false)}
+                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    isSubActive
+                                      ? 'bg-brand-50 text-brand-900 font-bold border-l-2 border-brand-600 pl-2 shadow-2xs'
+                                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {SubIcon ? (
+                                    <SubIcon
+                                      className={`w-3.5 h-3.5 shrink-0 ${
+                                        isSubActive ? 'text-brand-600' : 'text-slate-400'
+                                      }`}
+                                    />
+                                  ) : (
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                        isSubActive ? 'bg-brand-600' : 'bg-slate-300'
+                                      }`}
+                                    />
+                                  )}
+                                  <span className="truncate">{sub.label}</span>
+                                  {sub.proBadge && !isPro && (
+                                    <span className="ml-auto text-[9px] font-black uppercase text-amber-800 bg-amber-100 px-1 py-0.2 rounded border border-amber-300/60">
+                                      {sub.proBadge}
+                                    </span>
+                                  )}
+                                </Link>
+                              );
+                            })}
+                          </div>
                         )}
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>

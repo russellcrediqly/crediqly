@@ -35,6 +35,7 @@ import { useBusiness } from '@/context/BusinessContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { useRoadmap } from '@/context/RoadmapContext';
 import { calculateReadiness } from '@/lib/scoring';
+import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import { getFundingReadiness } from '@/lib/supabase/fundingService';
 import { FundingReadinessResult } from '@/types/funding';
 import { FundingGapAnalysis } from '@/components/readiness/FundingGapAnalysis';
@@ -102,19 +103,21 @@ function ReadinessPageContent() {
     };
   }, [user?.id, business]);
 
-  // Calculate local business & credit readiness
+  // Calculate local business & credit readiness for pillar breakdowns
   const readiness = useMemo(() => calculateReadiness(business), [business]);
 
-  // Overall combined readiness score (weighted: 35% Business, 35% Credit, 30% Funding)
+  // Authoritative 0–100 Milestone-Based Readiness
+  const milestoneRes = useMemo(() => {
+    return calculateMilestoneReadiness(business);
+  }, [business]);
+
+  // Overall authoritative readiness score (0–100, exactly matching dashboard)
   const overallScore = useMemo(() => {
     if (!isProfileComplete) return 0;
-    const bScore = readiness.businessReadiness.score || 0;
-    const cScore = readiness.creditReadiness.score || 0;
-    const fScore = fundingResult?.score || 0;
-    return Math.round(bScore * 0.35 + cScore * 0.35 + fScore * 0.3);
-  }, [isProfileComplete, readiness, fundingResult]);
+    return milestoneRes.score;
+  }, [isProfileComplete, milestoneRes]);
 
-  // Single highest-leverage primary recommendation
+  // Single highest-leverage primary recommendation strictly derived from next authoritative milestone
   const primaryNextStep = useMemo(() => {
     if (!isProfileComplete) {
       return {
@@ -126,56 +129,14 @@ function ReadinessPageContent() {
       };
     }
 
-    // Business foundation checks
-    if (business?.hasEIN !== 'yes') {
+    if (milestoneRes.nextMilestone) {
+      const nm = milestoneRes.nextMilestone;
       return {
-        title: 'Obtain Federal Employer Identification Number (EIN)',
-        reason: 'Lenders and credit bureaus require an official federal tax ID to establish an independent commercial credit file.',
-        actionLabel: 'Update Business Profile',
-        href: '/business',
-        category: 'Foundation',
-      };
-    }
-    if (business?.hasBusinessBankAccount !== 'yes') {
-      return {
-        title: 'Open a Dedicated Commercial Checking Account',
-        reason: 'Underwriting algorithms reject applications commingled with personal bank accounts.',
-        actionLabel: 'View Commercial Banking',
-        href: '/products?category=business_banking',
-        category: 'Banking',
-      };
-    }
-    if (business?.hasDuns !== 'yes') {
-      return {
-        title: 'Register for a Free Dun & Bradstreet D-U-N-S® Number',
-        reason: 'A D-U-N-S number is mandatory for D&B Paydex score generation and federal contracting tradelines.',
-        actionLabel: 'Register Free D-U-N-S',
-        href: '/roadmap',
-        category: 'Bureau Profile',
-      };
-    }
-
-    // Tradeline checks
-    const hasReporting = business?.hasReportingAccounts === 'yes';
-    if (!hasReporting) {
-      return {
-        title: 'Establish Your First 3 Tier-1 Vendor Net-30 Accounts',
-        reason: 'You have zero reporting commercial tradelines. Open net-30 accounts with reporting suppliers like Uline, Grainger, and Quill.',
-        actionLabel: 'Browse Vendor Tradelines',
-        href: '/products',
-        category: 'Tradelines',
-      };
-    }
-
-    // Roadmap task fallback
-    const activeTask = roadmap?.allTasks?.find((t) => t.status === 'not_started' || t.status === 'in_progress');
-    if (activeTask) {
-      return {
-        title: activeTask.title,
-        reason: activeTask.whyItMatters || 'Completing this milestone advances your business along the commercial credit roadmap.',
-        actionLabel: 'Go to Milestone',
-        href: '/roadmap',
-        category: 'Roadmap',
+        title: nm.title,
+        reason: nm.whyItMatters || nm.description,
+        actionLabel: nm.actionLabel || 'Complete Milestone',
+        href: nm.actionHref || '/roadmap',
+        category: nm.categoryLabel || 'Funding Readiness',
       };
     }
 
@@ -186,7 +147,7 @@ function ReadinessPageContent() {
       href: '/funding',
       category: 'Funding',
     };
-  }, [isProfileComplete, business, roadmap]);
+  }, [isProfileComplete, milestoneRes]);
 
   if (sections.business_readiness === false && sections.funding_readiness === false) {
     return (

@@ -139,6 +139,22 @@ export interface RoadmapAdminSettings {
   taskOverrides?: Record<string, RoadmapTaskOverride>;
 }
 
+export interface MilestoneAdminOverride {
+  weight?: number;
+  active?: boolean;
+  completionType?: 'system_verified' | 'customer_confirmation' | 'admin_verified';
+  title?: string;
+  description?: string;
+  whyItMatters?: string;
+  actionLabel?: string;
+  actionHref?: string;
+}
+
+export interface ReadinessMilestoneSettings {
+  milestoneOverrides?: Record<string, MilestoneAdminOverride>;
+  customMilestones?: any[];
+}
+
 export interface PlatformSettings {
   sections: Record<DashboardSectionKey, boolean>;
   platformName: string;
@@ -147,7 +163,9 @@ export interface PlatformSettings {
   allowNewSignups: boolean;
   messaging?: PlatformMessaging;
   roadmapSettings?: RoadmapAdminSettings;
+  readinessMilestoneSettings?: ReadinessMilestoneSettings;
   updatedAt: string;
   updatedBy?: string;
 }
+
 

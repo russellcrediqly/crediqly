@@ -48,6 +48,14 @@ function fromDbRow(row: any): FundingProduct {
     minFundingAmount: typeof row.min_funding_amount === 'number' ? row.min_funding_amount : Number(row.min_funding_amount) || 0,
     maxFundingAmount: typeof row.max_funding_amount === 'number' ? row.max_funding_amount : Number(row.max_funding_amount) || 0,
     fundingPurposes: Array.isArray(row.funding_purposes) ? row.funding_purposes : [],
+    repaymentType: row.repayment_type || undefined,
+    rateTermsInfo: row.rate_terms_info || undefined,
+    typicalTermRange: row.typical_term_range || undefined,
+    lastReviewedDate: row.last_reviewed_date || undefined,
+    grantDeadline: row.grant_deadline || undefined,
+    grantAmount: row.grant_amount || undefined,
+    eligibilityNotes: row.eligibility_notes || undefined,
+    locationRestrictions: row.location_restrictions || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -72,6 +80,14 @@ function toDbRow(p: Partial<FundingProduct>): Record<string, any> {
   if (p.minFundingAmount !== undefined) row.min_funding_amount = p.minFundingAmount;
   if (p.maxFundingAmount !== undefined) row.max_funding_amount = p.maxFundingAmount;
   if (p.fundingPurposes !== undefined) row.funding_purposes = p.fundingPurposes;
+  if (p.repaymentType !== undefined) row.repayment_type = p.repaymentType;
+  if (p.rateTermsInfo !== undefined) row.rate_terms_info = p.rateTermsInfo;
+  if (p.typicalTermRange !== undefined) row.typical_term_range = p.typicalTermRange;
+  if (p.lastReviewedDate !== undefined) row.last_reviewed_date = p.lastReviewedDate;
+  if (p.grantDeadline !== undefined) row.grant_deadline = p.grantDeadline;
+  if (p.grantAmount !== undefined) row.grant_amount = p.grantAmount;
+  if (p.eligibilityNotes !== undefined) row.eligibility_notes = p.eligibilityNotes;
+  if (p.locationRestrictions !== undefined) row.location_restrictions = p.locationRestrictions;
   row.updated_at = new Date().toISOString();
   return row;
 }

@@ -25,6 +25,10 @@ const DEFAULT_SETTINGS: PlatformSettings = {
     disabledTasks: [],
     taskOverrides: {},
   },
+  readinessMilestoneSettings: {
+    milestoneOverrides: {},
+    customMilestones: [],
+  },
   updatedAt: new Date().toISOString(),
 };
 
@@ -50,6 +54,11 @@ function getLocalSettings(): PlatformSettings {
         disabledTasks: [],
         taskOverrides: {},
         ...(parsed.roadmapSettings || {}),
+      },
+      readinessMilestoneSettings: {
+        milestoneOverrides: {},
+        customMilestones: [],
+        ...(parsed.readinessMilestoneSettings || {}),
       },
     };
   } catch (err) {
@@ -90,6 +99,11 @@ function fromDbRow(row: any): PlatformSettings {
     taskOverrides: row.roadmap_settings?.taskOverrides || row.roadmapSettings?.taskOverrides || {},
   };
 
+  const readinessMilestoneSettings = {
+    milestoneOverrides: row.readiness_milestone_settings?.milestoneOverrides || row.readinessMilestoneSettings?.milestoneOverrides || {},
+    customMilestones: row.readiness_milestone_settings?.customMilestones || row.readinessMilestoneSettings?.customMilestones || [],
+  };
+
   return {
     sections,
     platformName: row.platform_name || DEFAULT_SETTINGS.platformName,
@@ -98,6 +112,7 @@ function fromDbRow(row: any): PlatformSettings {
     allowNewSignups: row.allow_new_signups !== false,
     messaging,
     roadmapSettings,
+    readinessMilestoneSettings,
     updatedAt: row.updated_at || new Date().toISOString(),
     updatedBy: row.updated_by || undefined,
   };
@@ -201,6 +216,10 @@ export async function updatePlatformSettings(
       ...(current.roadmapSettings || {}),
       ...(updates.roadmapSettings || {}),
     },
+    readinessMilestoneSettings: {
+      ...(current.readinessMilestoneSettings || {}),
+      ...(updates.readinessMilestoneSettings || {}),
+    },
     updatedAt: new Date().toISOString(),
     updatedBy: adminUserId || current.updatedBy,
   };
@@ -222,6 +241,7 @@ export async function updatePlatformSettings(
           consultation_message: newSettings.messaging?.consultationMessage || '',
           funding_guidance: newSettings.messaging?.fundingGuidanceMessage || '',
           roadmap_settings: newSettings.roadmapSettings || {},
+          readiness_milestone_settings: newSettings.readinessMilestoneSettings || {},
           updated_at: newSettings.updatedAt,
           updated_by: newSettings.updatedBy,
         })

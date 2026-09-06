@@ -7,11 +7,15 @@ export type FundingCategory =
   | 'Business Credit Card'
   | 'Vehicle Financing'
   | 'Revenue-based Financing'
+  | 'Invoice Financing'
+  | 'Grant'
   | 'Other';
 
 export type FundingProductStatus = 'active' | 'inactive';
 
 export type BusinessCreditRequiredOption = 'yes' | 'no' | 'not_specified';
+
+export type RepaymentTypeOption = 'Revolving' | 'Short Term' | 'Medium Term' | 'Long Term' | 'Grant';
 
 export interface FundingProduct {
   id: string;
@@ -35,11 +39,28 @@ export interface FundingProduct {
   maxFundingAmount?: number; // e.g. 250000
   fundingPurposes: string[]; // e.g. ['Working Capital', 'Equipment', 'Expansion', 'Inventory', 'Payroll', 'Marketing', 'Vehicle', 'Debt Refinancing', 'Business Acquisition', 'Other']
   
+  // Marketplace & transparency attributes
+  repaymentType?: RepaymentTypeOption; // Revolving, Short Term, Medium Term, Long Term, Grant
+  rateTermsInfo?: string; // e.g. "From 8.99% APR", "Factor rate 1.15–1.28", or "Rate/terms determined by provider"
+  typicalTermRange?: string; // e.g. "12–36 months", "Revolving", "6–18 months"
+  lastReviewedDate?: string; // e.g. "2026-09-01"
+  
+  // Grant specific fields
+  grantDeadline?: string; // e.g. "Rolling / Monthly", "October 31, 2026"
+  grantAmount?: string; // e.g. "$10,000", "$25,000"
+  eligibilityNotes?: string; // e.g. "Women-owned businesses, min 3 months in operation"
+  locationRestrictions?: string; // e.g. "US nationwide", "Select states"
+
   createdAt?: string;
   updatedAt?: string;
 }
 
-export type FundingMatchLevel = 'Strong Match' | 'Potential Match' | 'Explore';
+export type FundingMatchLevel =
+  | 'Strong Match'
+  | 'Possible Match'
+  | 'Potential Match'
+  | 'Not Ready Yet'
+  | 'Explore';
 
 export interface FundingMatchResult {
   product: FundingProduct;
@@ -52,5 +73,11 @@ export interface FundingMatchResult {
     minRevenue: string;
     minCredit: string;
     fundingRange: string;
+    repayment: string;
+    rates: string;
   };
+  checklistMet: string[];
+  checklistPending: string[];
+  nextStepsToImprove: string[];
+  isGrant?: boolean;
 }

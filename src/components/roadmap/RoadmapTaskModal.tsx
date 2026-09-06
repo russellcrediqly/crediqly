@@ -42,7 +42,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
   onSetStatus,
   actionRecord,
 }) => {
-  const { isPro, upgradeToPro } = useSubscription();
+  const { isPro, upgradeToPro, upgradeToAdvisory } = useSubscription();
 
   if (!isOpen || !task) return null;
 
@@ -64,7 +64,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
       : 'bg-slate-100 text-slate-600 border-slate-200';
 
   const handleStatusChange = (status: 'not_started' | 'in_progress' | 'completed') => {
-    if (isLocked && status === 'completed') {
+    if (isLocked) {
       upgradeToPro();
       return;
     }
@@ -131,6 +131,47 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
 
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          {/* Pro / Advisory Lock Banner if locked */}
+          {isLocked && (
+            <div className="p-4 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 via-white to-brand-50/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0">
+                  <Lock className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                    Stage Locked — Pro &amp; Advisory Milestone
+                  </h4>
+                  <p className="text-[11px] text-slate-600">
+                    Tier 2/3 Store Cards, Revolving Lines, and Commercial Milestones require Crediqly Pro or Premium Advisory.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    upgradeToPro();
+                  }}
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1 shadow-2xs h-8 px-3"
+                >
+                  <span>Crediqly Pro ($39/mo)</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Button>
+                <Link href="/advisory" onClick={onClose}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold gap-1 h-8 px-3"
+                  >
+                    <span>Done-For-You Advisory</span>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Tri-State Status Selector */}
           <div className="space-y-2 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
             <div className="flex items-center justify-between">
@@ -323,18 +364,29 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
           </Button>
 
           {isLocked && !isCompleted ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                onClose();
-                upgradeToPro();
-              }}
-              className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Unlock with Pro</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/advisory" onClick={onClose}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  <span>Done-For-You Advisory</span>
+                </Button>
+              </Link>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  upgradeToPro();
+                }}
+                className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Unlock with Pro ($39/mo)</span>
+              </Button>
+            </div>
           ) : (
             <Button
               variant={isCompleted ? 'outline' : 'primary'}

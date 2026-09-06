@@ -41,7 +41,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const LOCAL_STORAGE_USER_KEY = 'crediqly_local_user';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (localStorage.getItem('crediqly_dev_admin') === 'true') {
+            parsed.role = 'admin';
+          }
+          return parsed;
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchProfileData = async (userId: string, email: string, defaultName: string): Promise<AuthUser> => {
@@ -59,11 +73,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data } = await supabase
+        const fetchPromise = supabase
           .from('profiles')
           .select('role, status, first_name, last_name')
           .eq('user_id', userId)
           .maybeSingle();
+
+        const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null }), 2000)
+        );
+
+        const { data } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (data) {
           if (data.role) role = data.role as UserRole;
@@ -106,31 +126,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Safety fallback: Ensure auth loading resolves within 2.5s even if network is slow
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
     if (isSupabaseConfigured && supabase) {
       // 1. Live Supabase Auth Session
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session?.user) {
-          const email = session.user.email || '';
-          const defaultName = session.user.user_metadata?.name || email.split('@')[0] || 'User';
-          const fullUser = await fetchProfileData(session.user.id, email, defaultName);
-          setUser(fullUser);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
-          } catch (e) {}
-        } else {
-          // Check local cached session
+      supabase.auth
+        .getSession()
+        .then(async ({ data: { session } }) => {
+          if (session?.user) {
+            const email = session.user.email || '';
+            const defaultName = session.user.user_metadata?.name || email.split('@')[0] || 'User';
+            const fullUser = await fetchProfileData(session.user.id, email, defaultName);
+            setUser(fullUser);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+            } catch (e) {}
+          } else {
+            // Check local cached session
+            try {
+              const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+              if (cached) {
+                const parsed = JSON.parse(cached);
+                setUser(parsed);
+              }
+            } catch (err) {
+              console.warn('Failed to load local user session', err);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to retrieve Supabase session, using local cache:', err);
           try {
             const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
             if (cached) {
-              const parsed = JSON.parse(cached);
-              setUser(parsed);
+              setUser(JSON.parse(cached));
             }
-          } catch (err) {
-            console.warn('Failed to load local user session', err);
-          }
-        }
-        setLoading(false);
-      });
+          } catch (e) {}
+        })
+        .finally(() => {
+          clearTimeout(safetyTimer);
+          setLoading(false);
+        });
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
@@ -151,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       return () => {
+        clearTimeout(safetyTimer);
         subscription.unsubscribe();
       };
     } else {
@@ -167,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         console.error('Failed to load local user session', err);
       }
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   }, []);

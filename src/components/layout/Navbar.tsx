@@ -29,10 +29,10 @@ export const Navbar: React.FC = () => {
               Features
             </Link>
             <Link href="/#route-map" className="hover:text-slate-900 transition-colors">
-              Route Map
+              Readiness Journey
             </Link>
             <Link href="/#funding" className="hover:text-slate-900 transition-colors">
-              Funding Matches
+              Funding Marketplace
             </Link>
             <Link href="/pricing" className="text-slate-800 hover:text-brand-600 font-bold transition-colors">
               Pricing
@@ -103,14 +103,14 @@ export const Navbar: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-slate-50"
             >
-              Route Map
+              Readiness Journey
             </Link>
             <Link
               href="/#funding"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-slate-50"
             >
-              Funding Matches
+              Funding Marketplace
             </Link>
             <Link
               href="/pricing"

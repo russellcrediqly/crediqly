@@ -3,6 +3,7 @@
 import React from 'react';
 import { Product, RecommendedProduct, CATEGORY_LABELS } from '@/types/product';
 import { Button } from '@/components/ui/Button';
+import { useSubscription } from '@/context/SubscriptionContext';
 import {
   ExternalLink,
   ShieldCheck,
@@ -13,6 +14,7 @@ import {
   Info,
   Building,
   CreditCard,
+  Lock,
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -29,6 +31,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onVisitProvider,
 }) => {
   if (!isOpen || !product) return null;
+
+  const { isPro, upgradeToPro } = useSubscription();
+  const isProLocked =
+    !isPro &&
+    (product.category === 'net_60' ||
+      product.category === 'business_credit_cards' ||
+      product.category === 'business_banking' ||
+      product.category === 'business_loans');
 
   const isRecommended = 'matchLabel' in product;
   const matchLabel = isRecommended ? (product as RecommendedProduct).matchLabel : null;
@@ -214,22 +224,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             Close
           </Button>
 
-          <a
-            href={targetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleVisit}
-            className="inline-block"
-          >
+          {isProLocked ? (
             <Button
               variant="primary"
               size="md"
-              className="gap-2 shadow-xs text-xs font-semibold px-4"
+              onClick={() => {
+                onClose();
+                upgradeToPro();
+              }}
+              className="gap-2 shadow-xs text-xs font-bold px-4 bg-brand-600 hover:bg-brand-500 text-white"
             >
-              <span>Visit Provider</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <Lock className="w-3.5 h-3.5" />
+              <span>Unlock with Pro / Advisory ($39/mo)</span>
             </Button>
-          </a>
+          ) : (
+            <a
+              href={targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleVisit}
+              className="inline-block"
+            >
+              <Button
+                variant="primary"
+                size="md"
+                className="gap-2 shadow-xs text-xs font-semibold px-4"
+              >
+                <span>Visit Provider</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </a>
+          )}
         </div>
       </div>
     </div>

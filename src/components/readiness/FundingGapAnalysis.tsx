@@ -356,29 +356,38 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
 
         {/* Free Preview Unlock Prompt (Phase 6 & 7) */}
         {!isPro && (
-          <div className="p-4 rounded-xl border border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-teal-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="p-4 sm:p-5 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-purple-50/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <Lock className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">
-                  Unlock Full Institutional Gap Analysis with Crediqly Pro
+              <div className="space-y-0.5">
+                <span className="text-xs font-extrabold text-slate-900 block">
+                  Unlock Full Institutional Gap Analysis &amp; Underwriting Ratios
                 </span>
                 <span className="text-xs text-slate-600 block">
-                  Access bank rating ratios, DSCR underwriting benchmarks, and full tradeline gap sequencing.
+                  Free accounts preview 2 foundation gaps. Upgrade to view DSCR benchmarks, complete 4-category analysis, or let our advisors resolve gaps for you.
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
               <Button
                 size="sm"
                 onClick={upgradeToPro}
-                className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1 shadow-xs"
+                className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1 shadow-xs px-3"
               >
-                <span>Upgrade to Pro — $39/mo</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Crediqly Pro ($39/mo)</span>
+                <ArrowRight className="w-3 h-3" />
               </Button>
+              <Link href="/advisory">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold px-3"
+                >
+                  <span>Done-For-You Advisory</span>
+                </Button>
+              </Link>
             </div>
           </div>
         )}

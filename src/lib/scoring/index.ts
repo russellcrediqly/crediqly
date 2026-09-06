@@ -1,4 +1,4 @@
-import { BusinessProfile, FullReadinessResult } from '@/types/business';
+import type { BusinessProfile, FullReadinessResult } from '../../types/business';
 import { calculateBusinessReadiness, calculateCreditReadiness } from './engine';
 import { getNextBestAction } from './nextBestAction';
 
