@@ -1,6 +1,7 @@
 export type ActivityType =
   | 'task_completed'
   | 'task_reopened'
+  | 'task_started'
   | 'profile_updated'
   | 'readiness_updated'
   | 'milestone_completed';

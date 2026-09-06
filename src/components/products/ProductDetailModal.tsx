@@ -191,14 +191,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
           )}
 
-          {/* Affiliate Disclosure (Prompt 8) */}
+          {/* Professional Educational Disclosure */}
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 space-y-1">
             <div className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Info className="w-3.5 h-3.5 text-slate-400" />
-              <span>Affiliate & Educational Disclosure</span>
+              <span>Disclosure</span>
             </div>
             <p className="leading-relaxed">
-              Some links may be affiliate links. Crediqly may earn a commission if you apply through certain links, at no additional cost to you. Crediqly does not guarantee approval, credit-score increases, or funding. Always verify current provider terms directly.
+              The information and resources provided are for educational purposes only. Requirements, terms, availability, and eligibility may vary by provider. Review all terms carefully before taking action. Some links may provide a commission to Crediqly at no additional cost to you.
             </p>
           </div>
         </div>

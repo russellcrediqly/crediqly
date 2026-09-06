@@ -33,13 +33,19 @@ export interface RecommendedAction {
 export function getTopRecommendedActions(
   profile: Partial<BusinessProfile> | null,
   roadmap: RoadmapResult,
-  fundingReadiness?: FundingReadinessResult | null
+  fundingReadiness?: FundingReadinessResult | null,
+  actionCompletions?: Record<string, any>
 ): RecommendedAction[] {
   const p = profile || {};
-  const completions = roadmap?.completedCount > 0 ? (roadmap as any).userCompletions || {} : {};
+  const completions: Record<string, any> = {
+    ...((roadmap as any)?.userCompletions || {}),
+    ...(actionCompletions || {}),
+  };
 
-  // Helper to check if a specific task key is marked completed
-  const isTaskCompleted = (taskKey: string): boolean => {
+  // Helper to check if a specific task key or action ID is marked completed
+  const isTaskCompleted = (taskKey: string, actionId?: string): boolean => {
+    if (completions[taskKey]) return true;
+    if (actionId && completions[actionId]) return true;
     const task = roadmap?.allTasks?.find((t) => t.key === taskKey);
     if (!task) return false;
     return task.status === 'completed' || Boolean(task.completedAt) || task.satisfiedByProfile;
@@ -148,12 +154,13 @@ export function getTopRecommendedActions(
   if (p.hasReportingAccounts !== 'yes' || p.businessCreditAccountCount === '1-3' || !p.businessCreditAccountCount) {
     candidates.push({
       id: 'rec_credit_depth',
-      title: 'Improve Business Credit Depth',
+      title: 'Add a Reporting Business Tradeline',
       priority: 'High',
       explanation: 'Your current profile indicates limited business credit depth and few active reporting vendor tradelines.',
-      whyItMatters: 'Lenders look for at least 3–5 trade lines reporting on-time payment history to verify payment reliability.',
-      potentialImpact: 'Could improve your readiness.',
-      actionLabel: 'Browse Net-30 Vendors',
+      whyItMatters:
+        'Reporting tradelines can contribute business credit payment information to business credit files. Not every vendor reports, so customers should verify the provider\'s current reporting terms.',
+      potentialImpact: 'May strengthen your business credit profile.',
+      actionLabel: 'View Recommended Tradelines',
       actionHref: '/products?category=net_30',
       roadmapTaskKey: 'task_reporting_accounts',
       category: 'credit',
@@ -295,7 +302,7 @@ export function getTopRecommendedActions(
   // ==========================================================================
   // FILTER OUT COMPLETED ACTIONS & SLICE TOP 3
   // ==========================================================================
-  const uncompleted = candidates.filter((action) => !isTaskCompleted(action.roadmapTaskKey));
+  const uncompleted = candidates.filter((action) => !isTaskCompleted(action.roadmapTaskKey, action.id));
 
   // Take top 3 and assign order
   const top3 = uncompleted.slice(0, 3).map((action, index) => ({

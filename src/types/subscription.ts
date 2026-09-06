@@ -56,9 +56,11 @@ export interface PaymentRecord {
  */
 export function hasPremiumAdvisory(subscription?: Partial<Subscription> | null): boolean {
   if (!subscription) return false;
+  const plan = (subscription.plan || (subscription as any).plan_id || '').toLowerCase();
+  const status = (subscription.status || '').toLowerCase();
   return (
-    subscription.plan === 'premium_advisory' &&
-    (subscription.status === 'active' || subscription.status === 'trialing')
+    (plan === 'premium_advisory' || plan === 'advisory') &&
+    (status === 'active' || status === 'trialing' || status === 'paid')
   );
 }
 
@@ -66,10 +68,31 @@ export function hasPremiumAdvisory(subscription?: Partial<Subscription> | null):
  * Authoritative client/server access helper:
  * Returns true if the user has active Pro software access.
  * Premium Advisory customers strictly inherit all Pro software capabilities (Premium Advisory > Pro > Free).
+ * Also correctly honors active period for subscriptions set to cancel at period end.
  */
 export function hasActiveProSubscription(subscription?: Partial<Subscription> | null): boolean {
   if (!subscription) return false;
   // Premium Advisory automatically grants all Pro software features
   if (hasPremiumAdvisory(subscription)) return true;
-  return subscription.plan === 'pro' && (subscription.status === 'active' || subscription.status === 'trialing');
+
+  const plan = (subscription.plan || (subscription as any).plan_id || '').toLowerCase();
+  const status = (subscription.status || '').toLowerCase();
+
+  const isProPlan = plan === 'pro' || plan === 'pro_monthly' || plan === 'pro_tier' || plan.includes('pro');
+  if (!isProPlan) return false;
+
+  // Active, trialing, or paid status
+  if (status === 'active' || status === 'trialing' || status === 'paid') {
+    return true;
+  }
+
+  // Canceled but still within active paid period (cancel_at_period_end)
+  if (subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd) {
+    const end = new Date(subscription.currentPeriodEnd).getTime();
+    if (end > Date.now()) {
+      return true;
+    }
+  }
+
+  return false;
 }

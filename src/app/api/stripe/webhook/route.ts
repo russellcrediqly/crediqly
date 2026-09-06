@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
-import { upsertSubscription, recordPayment } from '@/lib/supabase/subscriptionService';
+import { upsertSubscription, recordPayment, getSubscriptionByCustomerId } from '@/lib/supabase/subscriptionService';
 import { updateConsultationPaymentStatus } from '@/lib/supabase/consultationService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
@@ -181,9 +181,16 @@ export async function POST(req: Request) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = dataObject;
-        const userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
+        let userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
         const customerId = sub.customer as string;
         const planMetadata = sub.metadata?.crediqly_plan || sub.metadata?.plan;
+
+        if (!userId && customerId) {
+          const existing = await getSubscriptionByCustomerId(customerId);
+          if (existing?.userId) {
+            userId = existing.userId;
+          }
+        }
 
         // Map Stripe subscription status to Crediqly status
         let mappedStatus: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'expired' = 'active';
@@ -218,7 +225,15 @@ export async function POST(req: Request) {
       // 3. Subscription Deleted (Expired / Terminated)
       case 'customer.subscription.deleted': {
         const sub = dataObject;
-        const userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
+        let userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
+        const customerId = sub.customer as string;
+
+        if (!userId && customerId) {
+          const existing = await getSubscriptionByCustomerId(customerId);
+          if (existing?.userId) {
+            userId = existing.userId;
+          }
+        }
 
         if (userId) {
           await upsertSubscription({
@@ -238,8 +253,15 @@ export async function POST(req: Request) {
         const customerId = invoice.customer as string;
         const subscriptionId = invoice.subscription as string;
         const lineMeta = invoice.lines?.data?.[0]?.metadata;
-        const userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
+        let userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
         const planMeta = lineMeta?.crediqly_plan || lineMeta?.plan || invoice.subscription_details?.metadata?.crediqly_plan || invoice.subscription_details?.metadata?.plan;
+
+        if (!userId && customerId) {
+          const existing = await getSubscriptionByCustomerId(customerId);
+          if (existing?.userId) {
+            userId = existing.userId;
+          }
+        }
 
         if (userId) {
           const isAdvisory = planMeta === 'advisory' || planMeta === 'premium_advisory';

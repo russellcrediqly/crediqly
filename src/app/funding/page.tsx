@@ -754,8 +754,8 @@ export default function FundingPage() {
               Match indicators (Strong Match, Potential Match, Explore) are internal Crediqly evaluations based on the business information you have provided and administrator-defined provider criteria. Match designations do not represent pre-approval, loan offers, qualification guarantees, or lender underwriting decisions. Actual requirements and approval terms are established solely by individual providers.
             </p>
             <p>
-              <span className="font-semibold text-slate-700">Partner & Affiliate Disclosure: </span>
-              Crediqly is an independent educational and readiness platform. Some links on this page are partner or affiliate referral links, meaning Crediqly may receive compensation if you click through or choose to work with a partner, at no additional cost to you. We do not originate loans or broker credit agreements.
+              <span className="font-semibold text-slate-700">Partner & Provider Disclosure: </span>
+              The information and resources provided are for educational purposes only. Requirements, terms, availability, and eligibility may vary by provider. Review all terms carefully before taking action. Some links on this page are partner referral links, meaning Crediqly may receive compensation if you choose to work with a partner, at no additional cost to you. We do not originate loans or broker credit agreements.
             </p>
           </div>
         </div>

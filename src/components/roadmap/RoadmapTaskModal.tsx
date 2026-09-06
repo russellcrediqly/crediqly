@@ -7,15 +7,19 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Circle,
   ArrowRight,
   ShieldCheck,
   HelpCircle,
   ListOrdered,
   FileCheck2,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { RoadmapTask } from '@/lib/roadmap/types';
+import { CustomerActionRecord } from '@/lib/supabase/roadmapService';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { Lock } from 'lucide-react';
 
@@ -25,6 +29,8 @@ interface RoadmapTaskModalProps {
   onClose: () => void;
   onToggleComplete: (taskKey: string) => void;
   onRequestReopen?: (task: RoadmapTask) => void;
+  onSetStatus?: (taskKey: string, status: 'not_started' | 'in_progress' | 'completed') => void;
+  actionRecord?: CustomerActionRecord;
 }
 
 export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
@@ -33,12 +39,21 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
   onClose,
   onToggleComplete,
   onRequestReopen,
+  onSetStatus,
+  actionRecord,
 }) => {
   const { isPro, upgradeToPro } = useSubscription();
 
   if (!isOpen || !task) return null;
 
   const isCompleted = task.status === 'completed';
+  const isInProgress = actionRecord?.status === 'in_progress';
+  const currentStatus: 'not_started' | 'in_progress' | 'completed' = isCompleted
+    ? 'completed'
+    : isInProgress
+    ? 'in_progress'
+    : 'not_started';
+
   const isLocked = !isPro && task.stage !== 'foundation';
 
   const priorityColor =
@@ -47,6 +62,26 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
       : task.priority === 'medium'
       ? 'bg-amber-50 text-amber-700 border-amber-200'
       : 'bg-slate-100 text-slate-600 border-slate-200';
+
+  const handleStatusChange = (status: 'not_started' | 'in_progress' | 'completed') => {
+    if (isLocked && status === 'completed') {
+      upgradeToPro();
+      return;
+    }
+    if (onSetStatus) {
+      onSetStatus(task.key, status);
+    } else {
+      if (status === 'completed' && !isCompleted) {
+        onToggleComplete(task.key);
+      } else if (status !== 'completed' && isCompleted) {
+        if (onRequestReopen) {
+          onRequestReopen(task);
+        } else {
+          onToggleComplete(task.key);
+        }
+      }
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -67,6 +102,11 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                 <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Completed
+                </span>
+              ) : isInProgress ? (
+                <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  <Clock className="w-3.5 h-3.5" />
+                  In Progress
                 </span>
               ) : (
                 <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
@@ -91,6 +131,61 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
 
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          {/* Tri-State Status Selector */}
+          <div className="space-y-2 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Current Progress Status
+              </span>
+              <span className="text-[11px] text-slate-500">
+                {currentStatus === 'completed'
+                  ? 'Milestone completed'
+                  : currentStatus === 'in_progress'
+                  ? 'Currently working on this'
+                  : 'Action pending'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleStatusChange('not_started')}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  currentStatus === 'not_started'
+                    ? 'bg-white text-slate-900 shadow-2xs border border-slate-300 ring-1 ring-slate-200'
+                    : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                }`}
+              >
+                <Circle className="w-3.5 h-3.5" />
+                <span>Not Started</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStatusChange('in_progress')}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  currentStatus === 'in_progress'
+                    ? 'bg-amber-500 text-white shadow-2xs'
+                    : 'bg-transparent text-slate-500 hover:text-amber-700 hover:bg-amber-50'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>In Progress</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStatusChange('completed')}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  currentStatus === 'completed'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-transparent text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Completed</span>
+              </button>
+            </div>
+          </div>
           {/* Why This Matters */}
           <div className="space-y-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -204,9 +299,15 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
             </div>
           )}
 
-          {/* Educational Disclaimer */}
-          <div className="text-[11px] text-slate-400 italic">
-            * Crediqly provides educational information and organization guidance. It does not provide legal advice or guarantee credit approval.
+          {/* Educational Disclosure */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 space-y-1">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Info className="w-3.5 h-3.5 text-slate-400" />
+              <span>Disclosure</span>
+            </div>
+            <p className="leading-relaxed">
+              The information and resources provided are for educational purposes only. Requirements, terms, availability, and eligibility may vary by provider. Review all terms carefully before taking action. Crediqly does not guarantee credit approvals or specific credit scores.
+            </p>
           </div>
         </div>
 
@@ -243,14 +344,14 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                   onClose();
                   onRequestReopen(task);
                 } else {
-                  onToggleComplete(task.key);
+                  handleStatusChange(isCompleted ? 'not_started' : 'completed');
                   onClose();
                 }
               }}
               className={`text-xs gap-1.5 ${
                 isCompleted
                   ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
-                  : 'bg-brand-600 hover:bg-brand-500 text-white'
+                  : 'bg-brand-600 hover:bg-brand-500 text-white font-bold'
               }`}
             >
               <CheckCircle2 className="w-4 h-4" />

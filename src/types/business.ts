@@ -76,6 +76,8 @@ export interface BusinessProfile {
   creditReadinessScore?: number;
   readinessUpdatedAt?: string;
 
+  completedDbTasks?: string[];
+
   createdAt?: string;
   updatedAt?: string;
 }

@@ -63,7 +63,11 @@ function toDbPayload(userId: string, data: Partial<BusinessProfile>) {
   if (data.annualRevenueRange !== undefined) payload.annual_revenue_range = data.annualRevenueRange;
   if (data.personalCreditRange !== undefined) payload.personal_credit_range = data.personalCreditRange;
   if (data.fundingAmount !== undefined) payload.funding_amount = data.fundingAmount;
-  if (data.fundingPurpose !== undefined) payload.funding_purpose = data.fundingPurpose;
+  if (data.fundingPurpose !== undefined || data.completedDbTasks !== undefined) {
+    const userPurposes = (data.fundingPurpose || []).filter((p: string) => !p.startsWith('__task:'));
+    const taskTags = (data.completedDbTasks || []).map((t: string) => `__task:${t}`);
+    payload.funding_purpose = Array.from(new Set([...userPurposes, ...taskTags]));
+  }
 
   if (data.profileCompleted !== undefined) payload.profile_completed = data.profileCompleted;
   if (data.profileCompletedAt !== undefined) payload.profile_completed_at = data.profileCompletedAt;
@@ -77,6 +81,12 @@ function toDbPayload(userId: string, data: Partial<BusinessProfile>) {
 
 // Helper to map Supabase snake_case to camelCase
 function fromDbRow(row: Record<string, any>): BusinessProfile {
+  const rawPurposes: string[] = Array.isArray(row.funding_purpose) ? row.funding_purpose : [];
+  const cleanPurposes = rawPurposes.filter((p: string) => !p.startsWith('__task:'));
+  const dbTasks = rawPurposes
+    .filter((p: string) => p.startsWith('__task:'))
+    .map((p: string) => p.replace('__task:', ''));
+
   return {
     businessId: row.id,
     userId: row.user_id,
@@ -106,7 +116,8 @@ function fromDbRow(row: Record<string, any>): BusinessProfile {
     annualRevenueRange: row.annual_revenue_range,
     personalCreditRange: row.personal_credit_range,
     fundingAmount: row.funding_amount,
-    fundingPurpose: row.funding_purpose || [],
+    fundingPurpose: cleanPurposes,
+    completedDbTasks: dbTasks,
 
     profileCompleted: Boolean(row.profile_completed),
     profileCompletedAt: row.profile_completed_at,

@@ -37,7 +37,13 @@ import {
 
 function CreditRoadmapContent() {
   const { business, loading: businessLoading } = useBusiness();
-  const { roadmap, loading: roadmapLoading, toggleTaskCompletion } = useRoadmap();
+  const {
+    roadmap,
+    loading: roadmapLoading,
+    toggleTaskCompletion,
+    setTaskStatus,
+    actionRecords,
+  } = useRoadmap();
   const { sections } = usePlatformSections();
   const searchParams = useSearchParams();
 
@@ -120,6 +126,8 @@ function CreditRoadmapContent() {
         }}
         onToggleComplete={toggleTaskCompletion}
         onRequestReopen={handleRequestReopen}
+        onSetStatus={setTaskStatus}
+        actionRecord={selectedTask ? actionRecords[selectedTask.key] : undefined}
       />
 
       {/* Reopening Confirmation Modal (Prompt 15) */}
@@ -227,52 +235,72 @@ function CreditRoadmapContent() {
               </div>
             </div>
 
-            {/* Stage Pills */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 text-xs">
-              {roadmap.stages.map((stage) => {
-                const isStageComplete = stage.status === 'completed';
-                const isComingNext = stage.status === 'coming_next';
-                const isInProgress = stage.status === 'in_progress';
+            {/* Visual Business Journey Path: Start → Build → Improve → Funding Ready → Grow */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">
+                <span>Business Credit Route</span>
+                <span className="hidden sm:inline text-brand-700 font-bold">
+                  Start → Build → Improve → Funding Ready → Grow
+                </span>
+              </div>
 
-                return (
-                  <div
-                    key={stage.id}
-                    onClick={() => setActiveStageFilter(stage.id)}
-                    className={`cursor-pointer p-2.5 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
-                      activeStageFilter === stage.id
-                        ? 'ring-2 ring-brand-500 bg-brand-50/60 border-brand-300'
-                        : isStageComplete
-                        ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900'
-                        : isInProgress
-                        ? 'bg-brand-50/40 border-brand-200 text-brand-950 ring-1 ring-brand-500/20'
-                        : isComingNext
-                        ? 'bg-slate-50 border-slate-200/80 text-slate-400'
-                        : 'bg-white border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider">
-                        Stage {stage.order}
+              {/* Stage Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                {roadmap.stages.map((stage) => {
+                  const isStageComplete = stage.status === 'completed';
+                  const isComingNext = stage.status === 'coming_next';
+                  const isInProgress = stage.status === 'in_progress';
+                  const journeyPhaseLabel =
+                    stage.order === 1
+                      ? 'Start'
+                      : stage.order === 2
+                      ? 'Build'
+                      : stage.order === 3
+                      ? 'Improve'
+                      : stage.order === 4
+                      ? 'Funding Ready'
+                      : 'Grow';
+
+                  return (
+                    <div
+                      key={stage.id}
+                      onClick={() => setActiveStageFilter(stage.id)}
+                      className={`cursor-pointer p-2.5 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
+                        activeStageFilter === stage.id
+                          ? 'ring-2 ring-brand-500 bg-brand-50/60 border-brand-300'
+                          : isStageComplete
+                          ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900'
+                          : isInProgress
+                          ? 'bg-brand-50/40 border-brand-200 text-brand-950 ring-1 ring-brand-500/20'
+                          : isComingNext
+                          ? 'bg-slate-50 border-slate-200/80 text-slate-400'
+                          : 'bg-white border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                          {journeyPhaseLabel}
+                        </span>
+                        {isStageComplete ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : isComingNext ? (
+                          <Lock className="w-3 h-3 text-slate-400" />
+                        ) : isInProgress ? (
+                          <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
+                        ) : (
+                          <Circle className="w-3 h-3 text-slate-300" />
+                        )}
+                      </div>
+                      <span className="font-bold text-[11px] truncate">{stage.title}</span>
+                      <span className="text-[10px] text-slate-500">
+                        {isComingNext
+                          ? 'Coming next'
+                          : `${stage.completedCount} of ${stage.applicableCount}`}
                       </span>
-                      {isStageComplete ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : isComingNext ? (
-                        <Lock className="w-3 h-3 text-slate-400" />
-                      ) : isInProgress ? (
-                        <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-                      ) : (
-                        <Circle className="w-3 h-3 text-slate-300" />
-                      )}
                     </div>
-                    <span className="font-bold text-[11px] truncate">{stage.title}</span>
-                    <span className="text-[10px] text-slate-500">
-                      {isComingNext
-                        ? 'Coming next'
-                        : `${stage.completedCount} of ${stage.applicableCount}`}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -312,5 +312,6 @@ export function generateRoadmap(
     totalCount,
     applicableTotalCount,
     percentage,
+    userCompletions,
   };
 }

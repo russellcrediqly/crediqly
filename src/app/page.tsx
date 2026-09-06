@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import {
   ArrowRight,
   ShieldCheck,
@@ -119,7 +120,7 @@ export default function LandingPage() {
 
               {/* Subtitle */}
               <p className="text-base sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                Get a crystal-clear audit of your commercial fundability, discover matched capital opportunities, and follow an actionable roadmap designed to move your business forward.
+                Understand your business credit. Measure your funding readiness. Know what to improve next. Discover matched credit and funding opportunities.
               </p>
 
               {/* Dual Action CTAs */}
@@ -169,9 +170,7 @@ export default function LandingPage() {
                 {/* Mockup Top Navigation Bar */}
                 <div className="bg-slate-900 text-white px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center font-black text-xs text-white">
-                      C
-                    </div>
+                    <CrediqlyLogo size="sm" variant="dark" showWordmark={false} />
                     <div>
                       <span className="font-extrabold text-sm text-white tracking-tight">
                         Summit Global Logistics LLC

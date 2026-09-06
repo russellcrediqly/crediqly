@@ -28,10 +28,16 @@ export default function SignInPage() {
         router.replace('/admin');
         return;
       }
-      // Returning customer is always sent directly to /dashboard
-      router.replace('/dashboard');
+      // Direct authenticated visitor appropriately
+      if (!businessLoading) {
+        if (business && business.profileCompleted === false) {
+          router.replace('/onboarding');
+        } else {
+          router.replace('/dashboard');
+        }
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, business, businessLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +53,13 @@ export default function SignInPage() {
         return;
       }
 
-      // Existing customer login ALWAYS routes to /dashboard (or /admin for administrators)
+      // Existing customer login:
+      // If profile is incomplete -> Continue onboarding at incomplete step
+      // If completed or admin -> Direct to dashboard or admin
       const targetDestination =
         res.user?.role === 'admin'
           ? '/admin'
-          : '/dashboard';
+          : (res.profileCompleted === false ? '/onboarding' : '/dashboard');
 
       router.replace(targetDestination);
     } catch (err: any) {

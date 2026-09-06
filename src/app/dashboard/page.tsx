@@ -16,6 +16,7 @@ import { calculateReadiness, calculateProfileCompletion } from '@/lib/scoring';
 import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
 import { calculateCustomerJourney } from '@/lib/roadmap/customerJourney';
 import { CustomerJourneyCard } from '@/components/dashboard/CustomerJourneyCard';
+import { GuidedJourneyCard } from '@/components/dashboard/GuidedJourneyCard';
 import { FundingReadinessScoreCard } from '@/components/dashboard/FundingReadinessScoreCard';
 import { WhatShouldIDoNextCard } from '@/components/dashboard/WhatShouldIDoNextCard';
 import { getTopRecommendedActions } from '@/lib/recommendations/nextActionsEngine';
@@ -60,23 +61,30 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { business } = useBusiness();
-  const { roadmap, toggleTaskCompletion } = useRoadmap();
+  const { business, refreshBusiness } = useBusiness();
+  const { roadmap, toggleTaskCompletion, markActionCompleted, undoActionCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
-  const { isPro, isAdvisory, upgradeToPro, openCustomerPortal, refreshSubscription } = useSubscription();
+  const { isPro, isAdvisory, upgradeToPro, openCustomerPortal, refreshSubscription, verifyCheckoutSession } = useSubscription();
   const [upgradedNotice, setUpgradedNotice] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
 
-  // Check for checkout return upgrade query param
+  // Check for checkout return upgrade query param or session_id
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('upgraded') === 'true') {
+      const isUpgraded = params.get('upgraded') === 'true';
+      const sessionId = params.get('session_id');
+
+      if (isUpgraded || sessionId) {
         setUpgradedNotice(true);
-        refreshSubscription();
+        if (sessionId) {
+          verifyCheckoutSession(sessionId);
+        } else {
+          refreshSubscription();
+        }
       }
     }
-  }, [refreshSubscription]);
+  }, [verifyCheckoutSession, refreshSubscription]);
 
   const [history, setHistory] = useState<ProgressHistoryItem[]>([]);
   const [trackedApps, setTrackedApps] = useState<FundingApplication[]>([]);
@@ -485,7 +493,25 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 2. PROMINENT FUNDING READINESS SCORE & BIGGEST OPPORTUNITY (Phase A) */}
+          {/* 2. GUIDED BUSINESS CREDIT & FUNDING JOURNEY (Consolidated)        */}
+          {/* ================================================================= */}
+          <GuidedJourneyCard
+            journey={customerJourney}
+            fundingReadiness={fundingReadiness}
+            business={business}
+            history={history}
+            actions={topRecommendedActions}
+            onToggleComplete={toggleTaskCompletion}
+            onMarkActionComplete={markActionCompleted}
+            onUndoActionComplete={undoActionCompletion}
+            onReassessReadiness={refreshBusiness}
+            isPro={isPro}
+            isAdvisory={isAdvisory}
+            onUpgradeToPro={upgradeToPro}
+          />
+
+          {/* ================================================================= */}
+          {/* 3. DETAILED FUNDING READINESS AUDIT BREAKDOWN                      */}
           {/* ================================================================= */}
           {sections.funding_readiness !== false && (
             <div className="space-y-3">
@@ -505,31 +531,6 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-
-          {/* ================================================================= */}
-          {/* 3. NEXT 3 ACTIONS — WHAT SHOULD I DO NEXT?                       */}
-          {/* ================================================================= */}
-          <WhatShouldIDoNextCard
-            actions={topRecommendedActions}
-            onToggleComplete={toggleTaskCompletion}
-            isPro={isPro}
-          />
-
-          {/* ================================================================= */}
-          {/* 4. BUSINESS CREDIT JOURNEY (Establish → Build → Strengthen...)    */}
-          {/* ================================================================= */}
-          <div className="space-y-3">
-            <CustomerJourneyCard journey={customerJourney} />
-            <div className="flex justify-end">
-              <Link
-                href="/roadmap"
-                className="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline flex items-center gap-1.5"
-              >
-                <span>View Complete Step-by-Step Roadmap</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
 
           {/* ================================================================= */}
           {/* 5B. EXPANDED PERSONALIZED RECOMMENDATIONS (Net-30, Cards, Loans)  */}

@@ -39,13 +39,37 @@ function defaultFreeSubscription(userId: string): Subscription {
 }
 
 function fromDbSubscription(row: any): Subscription {
+  const rawPlan = (row.plan || row.plan_id || '').toLowerCase();
+  let plan: SubscriptionPlan = 'free';
+  if (rawPlan === 'premium_advisory' || rawPlan === 'advisory') {
+    plan = 'premium_advisory';
+  } else if (rawPlan === 'pro' || rawPlan === 'pro_monthly' || rawPlan === 'pro_tier' || rawPlan.includes('pro')) {
+    plan = 'pro';
+  }
+
+  const rawStatus = (row.status || '').toLowerCase();
+  let status: SubscriptionStatus = 'free';
+  if (rawStatus === 'active' || rawStatus === 'paid') {
+    status = 'active';
+  } else if (rawStatus === 'trialing') {
+    status = 'trialing';
+  } else if (rawStatus === 'cancelled' || rawStatus === 'canceled') {
+    status = 'cancelled';
+  } else if (rawStatus === 'past_due') {
+    status = 'past_due';
+  } else if (rawStatus === 'expired') {
+    status = 'expired';
+  } else if (rawStatus) {
+    status = rawStatus as SubscriptionStatus;
+  }
+
   return {
     id: row.id,
     userId: row.user_id,
-    stripeCustomerId: row.stripe_customer_id || undefined,
-    stripeSubscriptionId: row.stripe_subscription_id || undefined,
-    plan: (row.plan as SubscriptionPlan) || 'free',
-    status: (row.status as SubscriptionStatus) || 'free',
+    stripeCustomerId: row.stripe_customer_id || row.provider_customer_id || undefined,
+    stripeSubscriptionId: row.stripe_subscription_id || row.provider_subscription_id || undefined,
+    plan,
+    status,
     currentPeriodStart: row.current_period_start || undefined,
     currentPeriodEnd: row.current_period_end || undefined,
     cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
@@ -56,6 +80,31 @@ function fromDbSubscription(row: any): Subscription {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Lookup subscription record by Stripe customer ID.
+ */
+export async function getSubscriptionByCustomerId(customerId: string): Promise<Subscription | null> {
+  if (!customerId) return null;
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .or(`stripe_customer_id.eq.${customerId},provider_customer_id.eq.${customerId}`)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        return fromDbSubscription(data);
+      }
+    } catch (err) {
+      console.warn('Lookup subscription by customer ID failed:', err);
+    }
+  }
+  return null;
 }
 
 function fromDbPayment(row: any): PaymentRecord {
@@ -126,8 +175,15 @@ export async function upsertSubscription(
     updated_at: now,
   };
 
-  if (subscription.stripeCustomerId !== undefined) payload.stripe_customer_id = subscription.stripeCustomerId;
-  if (subscription.stripeSubscriptionId !== undefined) payload.stripe_subscription_id = subscription.stripeSubscriptionId;
+  if (subscription.stripeCustomerId !== undefined) {
+    payload.stripe_customer_id = subscription.stripeCustomerId;
+    payload.provider_customer_id = subscription.stripeCustomerId;
+  }
+  if (subscription.stripeSubscriptionId !== undefined) {
+    payload.stripe_subscription_id = subscription.stripeSubscriptionId;
+    payload.provider_subscription_id = subscription.stripeSubscriptionId;
+  }
+  payload.plan_id = subscription.plan || 'free';
   if (subscription.currentPeriodStart !== undefined) payload.current_period_start = subscription.currentPeriodStart;
   if (subscription.currentPeriodEnd !== undefined) payload.current_period_end = subscription.currentPeriodEnd;
   if (subscription.cancelAtPeriodEnd !== undefined) payload.cancel_at_period_end = subscription.cancelAtPeriodEnd;
@@ -143,6 +199,18 @@ export async function upsertSubscription(
         .upsert(payload, { onConflict: 'user_id' })
         .select()
         .single();
+
+      // Also update profiles table for admin / user list consistency
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            plan: subscription.plan || 'free',
+            subscription_status: subscription.status || 'active',
+            updated_at: now,
+          })
+          .eq('user_id', userId);
+      } catch (profErr) {}
 
       if (!error && data) {
         const sub = fromDbSubscription(data);

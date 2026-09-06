@@ -49,7 +49,7 @@ const STEPS = [
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { business, loading: businessLoading, saveBusinessProfile, saveDraft, getDraft } = useBusiness();
+  const { business, loading: businessLoading, saveBusinessProfile, saveDraft, getDraft, clearDraft } = useBusiness();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize draft or existing business data on mount
+  // Initialize draft or existing business data on mount & resume active step
   useEffect(() => {
     const draft = getDraft();
     if (draft) {
@@ -109,12 +109,45 @@ export default function OnboardingPage() {
     } else if (business) {
       setFormData((prev) => ({ ...prev, ...business }));
     }
+
+    const data = draft || business;
+    if (data) {
+      // Resume from saved step or first incomplete step
+      const savedStep = (data as any)?._lastStep;
+      if (typeof savedStep === 'number' && savedStep >= 1 && savedStep <= 5) {
+        setCurrentStep(savedStep);
+      } else {
+        // Automatically determine first incomplete step so users don't restart at step 1
+        const hasStep1 = Boolean(
+          data.businessName?.trim() &&
+          data.entityType &&
+          data.state &&
+          data.industry &&
+          data.businessAge
+        );
+        if (hasStep1) {
+          const hasStep2 = data.hasEIN !== undefined || data.hasBusinessBankAccount !== undefined;
+          const hasStep3 = data.hasBusinessCreditProfile !== undefined || data.hasReportingAccounts !== undefined;
+          const hasStep4 = Boolean(data.annualRevenueRange || data.personalCreditRange);
+
+          if (!hasStep2) {
+            setCurrentStep(2);
+          } else if (!hasStep3) {
+            setCurrentStep(3);
+          } else if (!hasStep4) {
+            setCurrentStep(4);
+          } else {
+            setCurrentStep(5);
+          }
+        }
+      }
+    }
   }, [business, getDraft]);
 
   const updateField = (field: keyof BusinessProfile, value: any) => {
     setFormData((prev) => {
       const next = { ...prev, [field]: value };
-      saveDraft(next);
+      saveDraft({ ...next, ...({ _lastStep: currentStep } as any) });
       return next;
     });
 
@@ -155,14 +188,18 @@ export default function OnboardingPage() {
     if (currentStep === 1) {
       if (!validateStep1()) return;
     }
+    const nextStep = Math.min(5, currentStep + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setCurrentStep((prev) => Math.min(5, prev + 1));
+    setCurrentStep(nextStep);
+    saveDraft({ ...formData, ...({ _lastStep: nextStep } as any) });
   };
 
   const handleBack = () => {
     setSaveError(null);
+    const prevStep = Math.max(1, currentStep - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setCurrentStep((prev) => Math.max(1, prev - 1));
+    setCurrentStep(prevStep);
+    saveDraft({ ...formData, ...({ _lastStep: prevStep } as any) });
   };
 
   const handleComplete = async () => {
@@ -176,6 +213,7 @@ export default function OnboardingPage() {
     });
 
     if (result.success) {
+      clearDraft();
       router.push('/dashboard');
     } else {
       setSubmitting(false);

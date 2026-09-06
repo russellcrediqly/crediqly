@@ -235,7 +235,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                   </Link>
                 )}
                 <span className="text-[10px] text-slate-400 text-center block mt-1.5">
-                  Eligibility varies by provider.
+                  Final eligibility and approval are determined by the provider.
                 </span>
               </div>
             </CardContent>
@@ -312,7 +312,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                   </Link>
                 )}
                 <span className="text-[10px] text-slate-400 text-center block mt-1.5">
-                  Eligibility varies by provider.
+                  Final eligibility and approval are determined by the provider.
                 </span>
               </div>
             </CardContent>
@@ -384,7 +384,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                   </Button>
                 </Link>
                 <span className="text-[10px] text-slate-400 text-center block mt-1.5">
-                  Eligibility varies by provider.
+                  Final eligibility and approval are determined by the provider.
                 </span>
               </div>
             </CardContent>

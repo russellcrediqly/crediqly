@@ -27,27 +27,27 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.98]';
 
   const variants = {
     primary:
-      'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus:ring-brand-500 shadow-xs font-bold',
+      'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus-visible:ring-brand-500 shadow-xs font-bold',
     secondary:
-      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus:ring-slate-700 shadow-xs font-bold',
+      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus-visible:ring-slate-700 shadow-xs font-bold',
     outline:
-      'border border-slate-300 bg-white text-slate-800 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-400 focus:ring-brand-500 shadow-2xs font-semibold',
+      'border border-slate-300 bg-white text-slate-800 hover:text-slate-950 hover:bg-slate-50 hover:border-slate-400 active:bg-slate-100 focus-visible:ring-brand-500 shadow-2xs font-semibold',
     'outline-white':
-      'border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 focus:ring-white/40 shadow-2xs font-semibold backdrop-blur-xs',
+      'border border-white/60 bg-white/20 text-white hover:bg-white/30 hover:border-white/80 active:bg-white/35 focus-visible:ring-white shadow-2xs font-semibold backdrop-blur-xs',
     'outline-inverted':
-      'border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 focus:ring-white/40 shadow-2xs font-semibold backdrop-blur-xs',
+      'border border-white/60 bg-white/20 text-white hover:bg-white/30 hover:border-white/80 active:bg-white/35 focus-visible:ring-white shadow-2xs font-semibold backdrop-blur-xs',
     ghost:
-      'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 focus:ring-slate-400 font-semibold',
+      'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90 active:bg-slate-200/70 focus-visible:ring-slate-400 font-semibold',
     'ghost-white':
-      'text-white/90 hover:text-white hover:bg-white/10 focus:ring-white/40 font-semibold',
+      'text-white hover:text-white hover:bg-white/20 active:bg-white/30 focus-visible:ring-white font-semibold',
     'ghost-inverted':
-      'text-white/90 hover:text-white hover:bg-white/10 focus:ring-white/40 font-semibold',
+      'text-white hover:text-white hover:bg-white/20 active:bg-white/30 focus-visible:ring-white font-semibold',
     danger:
-      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus:ring-rose-500 shadow-xs font-bold',
+      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus-visible:ring-rose-500 shadow-xs font-bold',
   };
 
   const sizes = {

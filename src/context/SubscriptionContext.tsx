@@ -11,6 +11,7 @@ interface SubscriptionContextType {
   isAdvisory: boolean;
   loading: boolean;
   refreshSubscription: () => Promise<void>;
+  verifyCheckoutSession: (sessionId: string) => Promise<void>;
   upgradeToPro: () => Promise<void>;
   upgradeToAdvisory: () => Promise<void>;
   openCustomerPortal: () => Promise<void>;
@@ -40,8 +41,41 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user?.id]);
 
+  const verifyCheckoutSession = useCallback(async (sessionId: string) => {
+    if (!user?.id || !sessionId) return;
+    try {
+      setLoading(true);
+      const res = await fetch('/api/stripe/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, userId: user.id }),
+      });
+      const data = await res.json();
+      if (data.success && data.subscription) {
+        setSubscription(data.subscription);
+      } else {
+        await fetchSubscription();
+      }
+    } catch (err) {
+      console.warn('Checkout session verification error:', err);
+      await fetchSubscription();
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, fetchSubscription]);
+
   useEffect(() => {
-    fetchSubscription();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session_id');
+      if (sessionId && user?.id) {
+        verifyCheckoutSession(sessionId);
+      } else {
+        fetchSubscription();
+      }
+    } else {
+      fetchSubscription();
+    }
 
     // Listen for live subscription updates
     const handleSubUpdated = (e: Event) => {
@@ -57,7 +91,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       window.removeEventListener('crediqly_subscription_updated', handleSubUpdated);
     };
-  }, [fetchSubscription, user?.id]);
+  }, [fetchSubscription, verifyCheckoutSession, user?.id]);
 
   const isPro = hasActiveProSubscription(subscription);
   const isAdvisory = hasPremiumAdvisory(subscription);
@@ -154,6 +188,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isAdvisory,
         loading,
         refreshSubscription: fetchSubscription,
+        verifyCheckoutSession,
         upgradeToPro,
         upgradeToAdvisory,
         openCustomerPortal,

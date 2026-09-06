@@ -50,4 +50,5 @@ export interface RoadmapResult {
   totalCount: number;
   applicableTotalCount: number;
   percentage: number;
+  userCompletions?: Record<string, string>;
 }

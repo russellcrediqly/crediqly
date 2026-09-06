@@ -302,12 +302,12 @@ function CreditProductsContent() {
           </p>
         </div>
 
-        {/* Affiliate & Educational Disclosure Notice (Prompt 8 & 24) */}
+        {/* Educational Disclosure Notice */}
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3 text-xs text-slate-600">
           <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="leading-relaxed">
-              <strong>Educational & Affiliate Disclosure:</strong> Some links may be affiliate links. Crediqly may earn a commission if you apply through certain links, at no additional cost to you.
+              <strong>Disclosure:</strong> The information and resources provided are for educational purposes only. Requirements, terms, availability, and eligibility may vary by provider. Review all terms carefully before taking action. Some links may provide a commission to Crediqly at no additional cost to you.
             </p>
             <p className="text-[11px] text-slate-500">
               Crediqly does not submit applications on your behalf, nor do we guarantee approval or credit-score increases. Always verify current provider terms and eligibility before applying.
@@ -487,10 +487,10 @@ function CreditProductsContent() {
           </p>
         </div>
 
-        {/* Footer Editorial & Affiliate Disclosure */}
+        {/* Footer Editorial & Provider Disclosure */}
         <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 text-center space-y-2">
           <p className="text-xs font-semibold text-slate-700">
-            Editorial and Affiliate Disclosure
+            Editorial and Provider Disclosure
           </p>
           <p className="text-[11px] text-slate-500 leading-relaxed max-w-3xl mx-auto">
             Crediqly provides educational resources and personalized organization tools. We may receive compensation from certain product partners when you click links or open accounts. This compensation never influences our rule-based recommendations. Crediqly does not guarantee credit approvals or specific credit scores. All terms, fees, and requirements are determined solely by the respective third-party providers.

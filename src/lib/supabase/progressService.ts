@@ -167,3 +167,52 @@ export async function recordProgressSnapshot(
 
   return { success: true, data: newItem };
 }
+
+export interface ScoreProgression {
+  startingScore: number;
+  currentScore: number;
+  netDelta: number;
+  historyTrail: number[];
+  hasImproved: boolean;
+}
+
+/**
+ * Extracts a clean, lightweight score progression trail from chronological history.
+ * E.g. [60, 66] with startingScore = 60, currentScore = 66, netDelta = +6
+ */
+export function extractScoreProgression(
+  history: ProgressHistoryItem[],
+  currentScore: number
+): ScoreProgression {
+  // Extract all valid funding scores from history in chronological order (oldest to newest)
+  const validScores: number[] = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const s = history[i].fundingReadinessScore;
+    if (typeof s === 'number' && !isNaN(s) && s > 0) {
+      // Deduplicate consecutive identical scores
+      if (validScores.length === 0 || validScores[validScores.length - 1] !== s) {
+        validScores.push(s);
+      }
+    }
+  }
+
+  // Ensure currentScore is the tail of historyTrail if different
+  if (currentScore > 0) {
+    if (validScores.length === 0 || validScores[validScores.length - 1] !== currentScore) {
+      validScores.push(currentScore);
+    }
+  }
+
+  const startingScore = validScores.length > 0 ? validScores[0] : currentScore;
+  const netDelta = currentScore - startingScore;
+  const hasImproved = netDelta > 0;
+
+  return {
+    startingScore,
+    currentScore,
+    netDelta,
+    historyTrail: validScores.length > 0 ? validScores : [currentScore],
+    hasImproved,
+  };
+}
+
