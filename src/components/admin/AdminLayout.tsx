@@ -31,6 +31,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 
 export interface AdminLayoutProps {
   children: React.ReactNode;
@@ -70,12 +71,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row font-sans">
       {/* Mobile Admin Header */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-sm">
-            C
-          </div>
-          <span className="font-bold text-white tracking-tight">Crediqly Admin</span>
-        </div>
+        <Link href="/admin">
+          <CrediqlyLogo size="sm" variant="dark" subtitle="Admin" />
+        </Link>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
@@ -94,20 +92,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div>
           {/* Brand & Console Header */}
           <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-teal-700 flex items-center justify-center text-white font-black text-base shadow-sm">
-                C
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-extrabold tracking-tight text-white font-sans">
-                  Crediqly
-                </span>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-brand-400 -mt-0.5 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  Admin Console
-                </span>
-              </div>
-            </div>
+            <Link href="/admin">
+              <CrediqlyLogo size="md" variant="dark" subtitle="Admin Console" />
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="md:hidden p-1 text-slate-400 hover:text-white"

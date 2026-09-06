@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { APP_VERSION } from '@/lib/version';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 
 export const Footer: React.FC = () => {
   return (
@@ -9,12 +10,9 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand & Purpose */}
           <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-base">
-                C
-              </div>
-              <span className="text-xl font-bold text-white tracking-tight">Crediqly</span>
-            </div>
+            <Link href="/" className="inline-block">
+              <CrediqlyLogo size="md" variant="dark" showSubtitle={false} />
+            </Link>
             <p className="text-sm text-slate-400 max-w-md leading-relaxed">
               Crediqly gives U.S. small-business owners a personalized step-by-step roadmap to build their business credit profile and prepare for potential funding opportunities.
             </p>

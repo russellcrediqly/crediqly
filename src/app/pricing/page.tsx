@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/context/SubscriptionContext';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -223,12 +224,7 @@ export default function PricingPage() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-base shadow-sm">
-              C
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-slate-900">
-              Crediqly
-            </span>
+            <CrediqlyLogo size="md" />
           </Link>
 
           <div className="flex items-center gap-3">

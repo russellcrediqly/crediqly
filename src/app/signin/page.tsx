@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { ShieldCheck } from 'lucide-react';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -62,11 +63,8 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-navy-900 flex items-center justify-center text-white font-black text-xl shadow-sm">
-            C
-          </div>
-          <span className="text-2xl font-black tracking-tight text-slate-900">Crediqly</span>
+        <Link href="/" className="inline-flex items-center gap-2 mb-4 justify-center">
+          <CrediqlyLogo size="lg" />
         </Link>
         <h2 className="text-xl font-bold tracking-tight text-slate-900">
           Sign in to your account

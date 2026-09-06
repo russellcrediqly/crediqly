@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import { Menu, X, ShieldCheck } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -16,17 +17,7 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between h-16 items-center">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-navy-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              C
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-slate-900 font-sans">
-                Crediqly
-              </span>
-              <span className="text-[10px] font-medium tracking-wide uppercase text-brand-700 -mt-1">
-                Business Credit & Funding
-              </span>
-            </div>
+            <CrediqlyLogo size="md" subtitle="Business Credit & Funding" />
           </Link>
 
           {/* Desktop Links */}

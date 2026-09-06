@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/Button';
 import { ConsultationModal } from '@/components/ui/ConsultationModal';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import { usePlatformSections } from '@/lib/usePlatformSections';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { DashboardSectionKey } from '@/types/settings';
@@ -119,10 +120,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Mobile Top Bar */}
       <header className="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-sm shadow-2xs">
-            C
-          </div>
-          <span className="font-extrabold text-slate-900 tracking-tight text-lg">Crediqly</span>
+          <CrediqlyLogo size="sm" showSubtitle={false} />
         </Link>
         <div className="flex items-center gap-2">
           {isConsultationEnabled && (
@@ -157,17 +155,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <div className="flex flex-col flex-1 min-h-0">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-navy-900 flex items-center justify-center text-white font-black text-base shadow-xs">
-                C
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-black tracking-tight text-slate-900 font-sans">
-                  Crediqly
-                </span>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-brand-700 -mt-1">
-                  Command Center
-                </span>
-              </div>
+              <CrediqlyLogo size="md" subtitle="Command Center" />
             </Link>
             <button
               onClick={() => setMobileNavOpen(false)}

@@ -25,6 +25,7 @@ import {
   FUNDING_PURPOSES,
 } from '@/lib/constants';
 import { BusinessProfile } from '@/types/business';
+import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import {
   Building,
   ShieldCheck,
@@ -216,19 +217,7 @@ export default function OnboardingPage() {
         <div className="max-w-3xl mx-auto">
           {/* Header & Logo with direct Return to Dashboard option */}
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-base shadow-xs">
-                C
-              </div>
-              <div>
-                <span className="font-extrabold text-slate-900 text-lg tracking-tight block">
-                  Crediqly
-                </span>
-                <span className="text-[11px] text-slate-500 font-medium block">
-                  Business Onboarding Wizard
-                </span>
-              </div>
-            </div>
+            <CrediqlyLogo size="md" subtitle="Business Onboarding" />
 
             <button
               type="button"
