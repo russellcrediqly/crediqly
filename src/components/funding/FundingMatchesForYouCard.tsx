@@ -141,10 +141,37 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
         </div>
       )}
 
-      {/* 3-Column Card Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* CARD 1: 🟢 STRONG MATCH */}
-        {strongMatch ? (
+      {/* 3-Column Card Layout or Informative Empty State */}
+      {!strongMatch && !possibleMatch && !improveReadinessMatch ? (
+        <div className="p-6 sm:p-7 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xs">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200 mt-0.5">
+              <AlertCircle className="w-5 h-5 text-amber-700" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900">
+                No funding matches yet.
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
+                Complete more of your business profile to receive personalized recommendations and matched capital options.
+              </p>
+            </div>
+          </div>
+          <Link href="/business" className="shrink-0 w-full sm:w-auto">
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow-xs text-xs px-4 py-2.5"
+            >
+              <span>Complete Profile</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* CARD 1: 🟢 STRONG MATCH */}
+          {strongMatch ? (
           <Card className="border-emerald-200/90 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between bg-gradient-to-b from-emerald-50/20 via-white to-white shadow-xs overflow-hidden">
             <CardContent className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
               <div className="space-y-3.5">
@@ -364,6 +391,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
           </Card>
         ) : null}
       </div>
+      )}
 
       {/* Educational Compliance Disclaimer */}
       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed">

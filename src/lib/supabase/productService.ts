@@ -54,6 +54,11 @@ function fromDbRow(row: any): Product {
     priority: typeof row.priority === 'number' ? row.priority : (row.featured ? 1 : 2),
     status: row.status as ProductStatus,
     featured: Boolean(row.featured),
+    annualFee: row.annual_fee || (row.category === 'business_credit_cards' ? '$0' : undefined),
+    introOffer: row.intro_offer,
+    terms: row.terms || (row.category === 'net_30' ? 'Net-30' : row.category === 'net_60' ? 'Net-60' : undefined),
+    potentialFundingRange: row.potential_funding_range,
+    potentialFit: row.potential_fit,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -84,6 +89,11 @@ function toDbRow(p: Partial<Product>): Record<string, any> {
   if (p.priority !== undefined) row.priority = p.priority;
   if (p.status !== undefined) row.status = p.status;
   if (p.featured !== undefined) row.featured = p.featured;
+  if (p.annualFee !== undefined) row.annual_fee = p.annualFee;
+  if (p.introOffer !== undefined) row.intro_offer = p.introOffer;
+  if (p.terms !== undefined) row.terms = p.terms;
+  if (p.potentialFundingRange !== undefined) row.potential_funding_range = p.potentialFundingRange;
+  if (p.potentialFit !== undefined) row.potential_fit = p.potentialFit;
   row.updated_at = new Date().toISOString();
   return row;
 }

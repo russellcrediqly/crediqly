@@ -4,11 +4,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 import { UserRole, AccountStatus } from '@/types/user';
+import { updateCustomerProfile } from '@/lib/supabase/profileService';
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   role?: UserRole;
   status?: AccountStatus;
 }
@@ -28,6 +31,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string; message?: string }>;
+  updateProfile?: (data: { firstName: string; lastName: string }) => Promise<{ success: boolean; error?: string }>;
+  refreshUser?: () => Promise<void>;
   toggleDevAdmin?: () => void;
 }
 
@@ -43,6 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let role: UserRole = 'user';
     let status: AccountStatus = 'active';
     let name = defaultName;
+    let firstName = '';
+    let lastName = '';
+
+    if (defaultName) {
+      const parts = defaultName.trim().split(/\s+/);
+      firstName = parts[0] || '';
+      lastName = parts.slice(1).join(' ') || '';
+    }
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -56,12 +69,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data.role) role = data.role as UserRole;
           if (data.status) status = data.status as AccountStatus;
           if (data.first_name) {
-            name = `${data.first_name} ${data.last_name || ''}`.trim();
+            firstName = data.first_name;
+            lastName = data.last_name || '';
+            name = `${firstName} ${lastName}`.trim() || defaultName;
           }
         }
       } catch (err) {
         console.warn('Could not fetch user profile role:', err);
       }
+    }
+
+    // Local profile cache fallback
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`crediqly_user_profile_${userId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.firstName) firstName = parsed.firstName;
+          if (parsed.lastName) lastName = parsed.lastName;
+          if (parsed.name) name = parsed.name;
+        }
+      } catch (e) {}
     }
 
     // Dedicated Administrator Account (Step 8 / Section 21)
@@ -74,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role = 'admin';
     }
 
-    return { id: userId, email, name, role, status };
+    return { id: userId, email, name, firstName, lastName, role, status };
   };
 
   useEffect(() => {
@@ -182,6 +210,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: data.user.id,
           email: emailVal,
           name: name || 'User',
+          firstName,
+          lastName,
           role: 'user',
           status: 'active',
         };
@@ -214,10 +244,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { destination: '/onboarding' };
     } else {
       // Local fallback mode
+      const nameParts = (name || email.split('@')[0]).trim().split(/\s+/);
       const mockUser: AuthUser = {
         id: `usr_${Date.now()}`,
         email,
         name: name || email.split('@')[0],
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
         role: 'user',
         status: 'active',
       };
@@ -303,10 +336,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ? 'admin'
         : (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true' ? 'admin' : 'user');
 
+      let displayName = email.split('@')[0];
+      let firstName = '';
+      let lastName = '';
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = localStorage.getItem(`crediqly_saved_profile_${email.toLowerCase()}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.firstName) firstName = parsed.firstName;
+            if (parsed.lastName) lastName = parsed.lastName;
+            if (parsed.name) displayName = parsed.name;
+          }
+        } catch (e) {}
+      }
+      if (!firstName && displayName) {
+        const parts = displayName.trim().split(/\s+/);
+        firstName = parts[0] || '';
+        lastName = parts.slice(1).join(' ') || '';
+      }
+
       const mockUser: AuthUser = {
         id: 'usr_demo_123',
         email,
-        name: email.split('@')[0],
+        name: displayName,
+        firstName,
+        lastName,
         role,
         status: 'active',
       };
@@ -336,6 +391,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         destination,
       };
     }
+  };
+
+  const updateProfile = async (data: { firstName: string; lastName: string }): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: 'Authentication required. Please sign in.' };
+    }
+
+    const res = await updateCustomerProfile(user.id, data);
+    if (!res.success) {
+      return { success: false, error: res.error || 'Unable to save changes. Please try again.' };
+    }
+
+    const trimmedFirst = data.firstName.trim();
+    const trimmedLast = data.lastName.trim();
+    const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
+
+    const updatedUser: AuthUser = {
+      ...user,
+      name: fullName,
+      firstName: trimmedFirst,
+      lastName: trimmedLast,
+    };
+
+    setUser(updatedUser);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(updatedUser));
+    } catch (e) {}
+
+    return { success: true };
+  };
+
+  const refreshUser = async () => {
+    if (!user) return;
+    const refreshed = await fetchProfileData(user.id, user.email, user.name);
+    setUser(refreshed);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(refreshed));
+    } catch (e) {}
   };
 
   const signOut = async () => {
@@ -374,6 +467,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         resetPassword,
+        updateProfile,
+        refreshUser,
         toggleDevAdmin,
       }}
     >

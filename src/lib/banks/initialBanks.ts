@@ -55,7 +55,7 @@ export const INITIAL_BANKS: Bank[] = [
   },
   {
     id: 'bank-mercury',
-    name: 'Mercury',
+    name: 'Mercury Bank',
     slug: 'mercury',
     description: 'Commercial banking and financial stack crafted for tech startups, ecommerce, and scaling enterprises. Features robust API access, automated wire transfers, and yield on treasury balances.',
     shortDescription: 'Commercial banking and treasury management built for modern startups and scaling businesses.',

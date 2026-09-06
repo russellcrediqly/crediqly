@@ -24,6 +24,11 @@ import { FundingMatchesForYouCard } from '@/components/funding/FundingMatchesFor
 import { calculateFundingForecast } from '@/lib/forecast/fundingForecastEngine';
 import { FundingForecastCard } from '@/components/dashboard/FundingForecastCard';
 import { CrediqlyAIMentorCard } from '@/components/dashboard/CrediqlyAIMentorCard';
+import { PersonalizedRecommendationsCard } from '@/components/dashboard/PersonalizedRecommendationsCard';
+import {
+  getUnifiedDashboardRecommendations,
+  UnifiedDashboardRecommendations,
+} from '@/lib/recommendations/unifiedRecommendationService';
 import type { SafeCustomerAIContext } from '@/types/aiMentor';
 import { evaluateMajorReadinessAreas } from '@/lib/readiness/fundingFactors';
 import { getFundingProducts } from '@/lib/supabase/fundingProductService';
@@ -79,6 +84,7 @@ export default function DashboardPage() {
   const [latestConsultation, setLatestConsultation] = useState<Consultation | null>(null);
   const [checkInDue, setCheckInDue] = useState(false);
   const [latestCheckIn, setLatestCheckIn] = useState<MonthlyCheckInRecord | null>(null);
+  const [unifiedRecommendations, setUnifiedRecommendations] = useState<UnifiedDashboardRecommendations | null>(null);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Business Owner';
   const isProfileComplete = Boolean(business && business.profileCompleted);
@@ -118,9 +124,6 @@ export default function DashboardPage() {
   const topRecommendedActions = useMemo(() => {
     return getTopRecommendedActions(business, roadmap, fundingReadiness);
   }, [business, roadmap, fundingReadiness]);
-
-  // Single highest priority next step for Command Center
-  const primaryNextStep = topRecommendedActions[0] || null;
 
   // Compute personalized funding matches (Phase D)
   const personalizedFundingMatches = useMemo(() => {
@@ -253,6 +256,25 @@ export default function DashboardPage() {
       isMounted = false;
     };
   }, [user?.id, business?.profileCompleted, readiness.businessReadiness.score, readiness.creditReadiness.score, fundingReadiness.score, roadmap.percentage]);
+
+  // Load unified recommendations (Net-30, Credit Cards, Loans)
+  useEffect(() => {
+    let isMounted = true;
+    async function loadUnified() {
+      try {
+        const recs = await getUnifiedDashboardRecommendations(business, roadmap, fundingReadiness.score);
+        if (isMounted) {
+          setUnifiedRecommendations(recs);
+        }
+      } catch (err) {
+        console.warn('Failed to load unified recommendations:', err);
+      }
+    }
+    loadUnified();
+    return () => {
+      isMounted = false;
+    };
+  }, [business, roadmap, fundingReadiness.score]);
 
   return (
     <ProtectedRoute>
@@ -485,43 +507,13 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 3. YOUR NEXT STEP — CLEAR PRIMARY ACTION                          */}
+          {/* 3. NEXT 3 ACTIONS — WHAT SHOULD I DO NEXT?                       */}
           {/* ================================================================= */}
-          {primaryNextStep && (
-            <div className="p-6 sm:p-7 rounded-2xl bg-white border border-brand-200/80 shadow-xs hover:border-brand-300 transition-colors">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-                <div className="space-y-1.5 max-w-2xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
-                      YOUR NEXT STEP
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      Priority: <strong className="text-slate-800">{primaryNextStep.priority}</strong> • {primaryNextStep.category}
-                    </span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    {primaryNextStep.title}
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {primaryNextStep.explanation}
-                  </p>
-                </div>
-
-                <div className="shrink-0 flex items-center gap-3">
-                  <Link href={primaryNextStep.actionHref}>
-                    <Button
-                      variant="primary"
-                      size="md"
-                      className="gap-2 shadow-xs bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap text-sm px-5"
-                    >
-                      <span>{primaryNextStep.actionLabel || 'Continue Setup'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
+          <WhatShouldIDoNextCard
+            actions={topRecommendedActions}
+            onToggleComplete={toggleTaskCompletion}
+            isPro={isPro}
+          />
 
           {/* ================================================================= */}
           {/* 4. BUSINESS CREDIT JOURNEY (Establish → Build → Strengthen...)    */}
@@ -540,13 +532,11 @@ export default function DashboardPage() {
           </div>
 
           {/* ================================================================= */}
-          {/* 5. IMPORTANT RECOMMENDATIONS — WHAT SHOULD I DO NEXT? (Phase B)   */}
+          {/* 5B. EXPANDED PERSONALIZED RECOMMENDATIONS (Net-30, Cards, Loans)  */}
           {/* ================================================================= */}
-          <WhatShouldIDoNextCard
-            actions={topRecommendedActions}
-            onToggleComplete={toggleTaskCompletion}
-            isPro={isPro}
-          />
+          {unifiedRecommendations && (
+            <PersonalizedRecommendationsCard data={unifiedRecommendations} />
+          )}
 
           {/* ================================================================= */}
           {/* 6. FUNDING OPPORTUNITIES & FORECAST (Phase D & Phase F)           */}

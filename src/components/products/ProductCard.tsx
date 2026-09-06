@@ -53,14 +53,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const getMatchBadge = (label: string) => {
     switch (label) {
+      case 'Strong Potential Match':
       case 'Strong Match':
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200/80';
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+      case 'Possible Match':
       case 'Potential Match':
-        return 'bg-brand-50 text-brand-800 border-brand-200/80';
+        return 'bg-amber-50 text-amber-800 border-amber-300';
+      case 'Improve Readiness First':
+        return 'bg-rose-50 text-rose-800 border-rose-300';
       case 'Explore':
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
+  };
+
+  const getMatchIndicatorDot = (label: string) => {
+    if (label.includes('Strong')) return '🟢';
+    if (label.includes('Possible') || label.includes('Potential')) return '🟡';
+    if (label.includes('Improve')) return '🔴';
+    return '⚪';
   };
 
   return (
@@ -69,9 +80,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="space-y-3.5">
           {/* Header row: Category & Match Badges */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-500 bg-slate-100/90 px-2.5 py-0.5 rounded-full border border-slate-200/70">
-              {CATEGORY_LABELS[product.category] || product.category}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 bg-slate-100/90 px-2.5 py-0.5 rounded-full border border-slate-200/70">
+                {CATEGORY_LABELS[product.category] || product.category}
+              </span>
+              {product.terms && (
+                <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/60">
+                  {product.terms}
+                </span>
+              )}
+            </div>
 
             {isProLocked ? (
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-800 inline-flex items-center gap-1">
@@ -80,14 +98,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             ) : matchLabel ? (
               <span
-                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 ${getMatchBadge(
+                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5 ${getMatchBadge(
                   matchLabel
                 )}`}
               >
-                {matchLabel === 'Strong Match' && (
-                  <Sparkles className="w-3 h-3 text-emerald-600" />
-                )}
-                {matchLabel}
+                <span>{getMatchIndicatorDot(matchLabel)}</span>
+                <span>{matchLabel}</span>
               </span>
             ) : null}
           </div>
@@ -138,13 +154,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Key Requirement Badges */}
           <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-slate-500">
+            {product.annualFee && (
+              <span className="bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded font-semibold text-slate-800">
+                Annual Fee: {product.annualFee}
+              </span>
+            )}
+            {product.minimumPurchase && product.category === 'net_30' && (
+              <span className="bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded text-slate-700">
+                {product.minimumPurchase}
+              </span>
+            )}
             {product.einRequired && (
               <span className="bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded">
                 EIN Required
               </span>
             )}
             {product.personalGuaranteeRequired === 'no' && (
-              <span className="bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded text-slate-700 font-medium">
+              <span className="bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded text-emerald-800 font-semibold bg-emerald-50/50">
                 No Personal Guarantee
               </span>
             )}
@@ -201,7 +227,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 size="sm"
                 className="text-xs border-brand-200 text-brand-700 hover:bg-brand-50 gap-1 h-8 px-3 font-semibold"
               >
-                <span>Visit Provider</span>
+                <span>
+                  {product.category === 'business_credit_cards'
+                    ? 'View Card'
+                    : product.category === 'net_30'
+                    ? 'Learn More'
+                    : 'Visit Provider'}
+                </span>
                 <ExternalLink className="w-3 h-3 text-brand-600" />
               </Button>
             </a>

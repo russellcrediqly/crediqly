@@ -1,6 +1,11 @@
 export type UserRole = 'admin' | 'staff' | 'user';
 export type AccountStatus = 'active' | 'disabled' | 'suspended';
 
+export interface UpdateProfileInput {
+  firstName: string;
+  lastName: string;
+}
+
 export interface UserProfile {
   id?: string;
   userId: string;

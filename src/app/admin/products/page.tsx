@@ -38,6 +38,7 @@ const CATEGORIES: ProductCategory[] = [
   'net_30',
   'net_60',
   'business_credit_cards',
+  'business_loans',
   'business_banking',
   'business_services',
 ];
@@ -758,7 +759,7 @@ export default function AdminProductsPage() {
                   Reporting Commercial Bureaus
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {['Dun & Bradstreet', 'Experian Business', 'Equifax Business', 'SBFE'].map((bureau) => {
+                  {['Dun & Bradstreet', 'Experian Business', 'Equifax Business', 'CreditSafe', 'SBFE'].map((bureau) => {
                     const checked = editingProduct.reportingBureaus.includes(bureau);
                     return (
                       <label
@@ -868,6 +869,59 @@ export default function AdminProductsPage() {
                     placeholder="e.g. No minimum or 6+ months"
                   />
                 </div>
+              </div>
+
+              {/* Terms, Annual Fee, Funding Range & Best Fit */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Payment / Credit Terms</label>
+                  <input
+                    type="text"
+                    value={editingProduct.terms || ''}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, terms: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                    placeholder="e.g. Net-30, Net-60, Revolving"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Annual Fee</label>
+                  <input
+                    type="text"
+                    value={editingProduct.annualFee || ''}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, annualFee: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                    placeholder="e.g. $0 or $95/year"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Potential Funding / Limit Range</label>
+                  <input
+                    type="text"
+                    value={editingProduct.potentialFundingRange || ''}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, potentialFundingRange: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                    placeholder="e.g. $10K–$100K"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Potential Fit / Target Profile</label>
+                <input
+                  type="text"
+                  value={editingProduct.potentialFit || ''}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, potentialFit: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                  placeholder="e.g. Established businesses with a stronger credit profile or $25k+ bank balance"
+                />
               </div>
 
               {/* Stage, Priority, Status, Featured */}

@@ -19,9 +19,12 @@ import { useBusiness } from '@/context/BusinessContext';
 import { useRoadmap } from '@/context/RoadmapContext';
 import { getProducts, trackProductClick } from '@/lib/supabase/productService';
 import { getBanks } from '@/lib/supabase/bankService';
+import { getFundingProducts } from '@/lib/supabase/fundingProductService';
 import { getRecommendedProducts } from '@/lib/products/recommendationEngine';
+import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
 import { Product, RecommendedProduct, ProductCategory, CATEGORY_LABELS } from '@/types/product';
 import { Bank } from '@/types/bank';
+import { FundingProduct } from '@/types/fundingProduct';
 import {
   CreditCard,
   Search,
@@ -32,14 +35,17 @@ import {
   CheckCircle2,
   ExternalLink,
   ArrowRight,
+  DollarSign,
+  Building2,
 } from 'lucide-react';
 
 const CATEGORY_TABS: { key: string; label: string }[] = [
-  { key: 'all', label: 'All Products' },
-  { key: 'business_credit_builders', label: 'Business Credit Builders' },
-  { key: 'net_30', label: 'Net-30' },
-  { key: 'net_60', label: 'Net-60' },
+  { key: 'all', label: 'All Recommendations' },
+  { key: 'net_30', label: 'Net-30 Vendors' },
   { key: 'business_credit_cards', label: 'Business Credit Cards' },
+  { key: 'business_credit_builders', label: 'Credit Builders' },
+  { key: 'business_loans', label: 'Loans & Funding' },
+  { key: 'net_60', label: 'Net-60 Terms' },
   { key: 'business_banking', label: 'Business Banking' },
   { key: 'business_services', label: 'Business Services' },
 ];
@@ -67,12 +73,19 @@ function CreditProductsContent() {
     }
   }, [searchParams]);
 
-  // Load products & commercial banks catalog
+  // Compute live funding readiness
+  const fundingReadiness = useMemo(() => calculateFundingReadiness(business), [business]);
+
+  // Load products, commercial banks, and loan/funding catalog
   useEffect(() => {
     let isMounted = true;
     async function loadCatalog() {
       try {
-        const [prods, banks] = await Promise.all([getProducts(), getBanks()]);
+        const [prods, banks, funding] = await Promise.all([
+          getProducts(),
+          getBanks(),
+          getFundingProducts(),
+        ]);
         if (isMounted) {
           // Convert active banks to business_banking category products
           const bankProducts: Product[] = banks.map((b) => ({
@@ -88,6 +101,8 @@ function CreditProductsContent() {
             affiliateEnabled: b.affiliateEnabled,
             reportingBureaus: [],
             productType: 'Commercial Checking Account',
+            terms: 'Commercial Checking',
+            annualFee: '$0',
             minimumPurchase: b.minDeposit || 'No minimum deposit',
             subscriptionRequired: false,
             typicalBusinessAge: 'No minimum',
@@ -96,6 +111,7 @@ function CreditProductsContent() {
             businessWebsiteRequired: false,
             personalGuaranteeRequired: 'no',
             personalCreditRequirement: 'None',
+            potentialFit: 'Startups and operating businesses needing dedicated commercial checking.',
             recommendedStage: b.recommendedStage || 'foundation',
             priority: b.priority,
             status: b.status,
@@ -104,11 +120,84 @@ function CreditProductsContent() {
             updatedAt: b.updatedAt,
           }));
 
-          // Avoid duplicates if same slug already exists in prods
-          const existingSlugs = new Set(bankProducts.map((bp) => bp.slug));
-          const filteredProds = prods.filter((p) => !existingSlugs.has(p.slug));
+          // Convert active funding providers to business_loans category products
+          const loanProducts: Product[] = funding.map((f) => ({
+            id: f.id,
+            name: `${f.provider} — ${f.name}`,
+            slug: `loan-${f.id}`,
+            category: 'business_loans',
+            description: f.description,
+            shortDescription: f.description,
+            websiteUrl: f.websiteUrl,
+            affiliateUrl: f.affiliateUrl,
+            affiliateEnabled: f.affiliateEnabled,
+            reportingBureaus: f.businessCreditRequired === 'yes' ? ['Commercial Bureaus'] : [],
+            productType: f.category,
+            terms: f.category,
+            annualFee: 'Varies by loan',
+            potentialFundingRange:
+              f.minFundingAmount && f.maxFundingAmount
+                ? `$${Math.round(f.minFundingAmount / 1000)}K–$${Math.round(f.maxFundingAmount / 1000)}K`
+                : 'Funding Available',
+            potentialFit: `Best for ${f.fundingPurposes.slice(0, 2).join(', ')}. Min revenue: ${f.minAnnualRevenue}.`,
+            minimumPurchase: f.minAnnualRevenue ? `Min Revenue: ${f.minAnnualRevenue}` : undefined,
+            subscriptionRequired: false,
+            typicalBusinessAge: f.minBusinessAgeMonths > 0 ? `${f.minBusinessAgeMonths}+ months` : 'No minimum',
+            einRequired: true,
+            businessBankAccountRequired: true,
+            businessWebsiteRequired: false,
+            personalGuaranteeRequired: f.businessCreditRequired === 'yes' ? 'yes' : 'no',
+            personalCreditRequirement: f.minPersonalCredit,
+            recommendedStage: 'funding',
+            priority: f.priority,
+            status: f.status,
+            featured: f.featured,
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+          }));
 
-          setAllProducts([...filteredProds, ...bankProducts]);
+          // Combine catalogs with robust deduplication for business banking and other providers
+          const existingSlugs = new Set([
+            ...bankProducts.map((bp) => bp.slug),
+            ...bankProducts.map((bp) => `${bp.slug}-banking`),
+            ...loanProducts.map((lp) => lp.slug),
+          ]);
+
+          const normalizeName = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const existingBankNamesList = bankProducts.map((bp) => normalizeName(bp.name));
+          const existingBankNames = new Set(existingBankNamesList);
+
+          const filteredProds = prods.filter((p) => {
+            if (existingSlugs.has(p.slug)) return false;
+            if (p.category === 'business_banking') {
+              const norm = normalizeName(p.name);
+              const baseSlug = p.slug.toLowerCase().replace(/-banking$/, '');
+              if (existingBankNames.has(norm) || existingSlugs.has(baseSlug)) return false;
+              // Guard against naming variations (e.g. Relay / Relay Financial, Mercury / Mercury Bank)
+              if (norm.includes('relay') && existingBankNamesList.some((n) => n.includes('relay'))) return false;
+              if (norm.includes('mercury') && existingBankNamesList.some((n) => n.includes('mercury'))) return false;
+              if (norm.includes('bluevine') && existingBankNamesList.some((n) => n.includes('bluevine'))) return false;
+              if (norm.includes('chase') && existingBankNamesList.some((n) => n.includes('chase'))) return false;
+            }
+            return true;
+          });
+
+          // Final deduplication pass to guarantee every business banking recommendation appears exactly once
+          const combined = [...filteredProds, ...bankProducts, ...loanProducts];
+          const seenKeys = new Set<string>();
+          const deduplicatedProducts: Product[] = [];
+
+          for (const item of combined) {
+            const key = item.category === 'business_banking'
+              ? `bank:${normalizeName(item.name).replace(/(bank|banking|financial|inc|llc)$/, '')}`
+              : `${item.category}:${item.slug}`;
+            if (!seenKeys.has(key)) {
+              seenKeys.add(key);
+              deduplicatedProducts.push(item);
+            }
+          }
+
+          setAllProducts(deduplicatedProducts);
           setProductsLoading(false);
         }
       } catch (err) {
@@ -122,11 +211,11 @@ function CreditProductsContent() {
     };
   }, []);
 
-  // Compute deterministic recommendations based on profile and roadmap
+  // Compute deterministic recommendations based on profile, roadmap, and funding readiness score
   const recommendedProducts = useMemo(() => {
     if (allProducts.length === 0) return [];
-    return getRecommendedProducts(business, roadmap, allProducts);
-  }, [business, roadmap, allProducts]);
+    return getRecommendedProducts(business, roadmap, allProducts, fundingReadiness.score);
+  }, [business, roadmap, allProducts, fundingReadiness.score]);
 
   // Top 3-5 recommended products
   const topRecommendations = useMemo(() => {
@@ -385,6 +474,17 @@ function CreditProductsContent() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Compliance Educational Disclaimer */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-center space-y-1">
+          <p className="text-xs font-bold text-amber-900 flex items-center justify-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-amber-700" />
+            <span>Important Recommendation Notice</span>
+          </p>
+          <p className="text-xs text-amber-800 leading-relaxed max-w-3xl mx-auto font-medium">
+            Recommendations are based on the information available in your Crediqly profile. They are not guarantees of approval. Final eligibility and approval are determined by the provider.
+          </p>
         </div>
 
         {/* Footer Editorial & Affiliate Disclosure */}
