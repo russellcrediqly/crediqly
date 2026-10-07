@@ -382,7 +382,7 @@ export default function MonthlyCheckInPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase text-purple-700">Done-For-You</span>
                           <span className="text-lg font-black text-slate-900">
-                            $499 <span className="text-xs font-normal text-slate-500">+ $199/mo</span>
+                            $499 <span className="text-xs font-normal text-slate-500">+ $149/mo</span>
                           </span>
                         </div>
                         <h3 className="text-base font-extrabold text-slate-900">Premium Advisory</h3>

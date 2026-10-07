@@ -16,6 +16,7 @@ import {
   Briefcase,
   DollarSign,
   Info,
+  Lock,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -40,11 +41,15 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
   isPro: propIsPro,
 }) => {
   const { user } = useAuth();
-  const { isPro: contextIsPro } = useSubscription();
+  const { isPro: contextIsPro, upgradeToPro } = useSubscription();
   const isPro = propIsPro !== undefined ? propIsPro : contextIsPro;
   const { strongMatch, possibleMatch, improveReadinessMatch, complianceNotice } = matches;
 
   const handleOutboundClick = (item: PersonalizedFundingTier) => {
+    if (!isPro) {
+      upgradeToPro();
+      return;
+    }
     if (item.productId) {
       recordFundingProductClick(item.productId, user?.id);
     }
@@ -217,11 +222,24 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                 {strongMatch.isExternal ? (
                   <Button
                     onClick={() => handleOutboundClick(strongMatch)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-xs"
+                    className={`w-full font-bold text-xs gap-1.5 shadow-xs ${
+                      !isPro
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
                     size="sm"
                   >
-                    <span>{strongMatch.ctaText}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    {!isPro ? (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Unlock Direct Application (Pro)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{strongMatch.ctaText}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Link href={strongMatch.ctaUrl} className="w-full block">
@@ -294,11 +312,24 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                 {possibleMatch.isExternal ? (
                   <Button
                     onClick={() => handleOutboundClick(possibleMatch)}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs gap-1.5 shadow-xs"
+                    className={`w-full font-bold text-xs gap-1.5 shadow-xs ${
+                      !isPro
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                        : 'bg-slate-900 hover:bg-slate-800 text-white'
+                    }`}
                     size="sm"
                   >
-                    <span>{possibleMatch.ctaText}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    {!isPro ? (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Unlock Direct Application (Pro)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{possibleMatch.ctaText}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Link href={possibleMatch.ctaUrl} className="w-full block">

@@ -203,7 +203,7 @@ function CreditRoadmapContent() {
                 Unlock Complete 4-Stage Credit Building &amp; Institutional Milestones
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Free accounts can build their Foundation profile and start Net-30 vendor tradelines. Upgrade to <strong>Crediqly Pro ($39/mo)</strong> or <strong>Done-For-You Advisory ($499 + $199/mo)</strong> to unlock Tier 2/3 Store Cards, Revolving Credit Accounts, and direct Commercial Funding submissions.
+                Free accounts can build their Foundation profile and start Net-30 vendor tradelines. Upgrade to <strong>Crediqly Pro ($39/mo)</strong> or <strong>Done-For-You Advisory ($499 + $149/mo)</strong> to unlock Tier 2/3 Store Cards, Revolving Credit Accounts, and direct Commercial Funding submissions.
               </p>
             </div>
             <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">

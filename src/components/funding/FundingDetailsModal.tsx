@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import type { FundingMatchResult, FundingProduct } from '@/types/fundingProduct';
+import { resolveFundingProductOutboundUrl } from '@/lib/supabase/fundingProductService';
 
 interface FundingDetailsModalProps {
   matchResult: FundingMatchResult | null;
@@ -291,7 +292,7 @@ export const FundingDetailsModal: React.FC<FundingDetailsModalProps> = ({
             </Button>
 
             <a
-              href={product.websiteUrl}
+              href={resolveFundingProductOutboundUrl(product)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => onOutboundClick(product)}

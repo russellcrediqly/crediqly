@@ -168,7 +168,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       />
 
       {/* Mobile Top Bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
+      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs print:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <CrediqlyLogo size="sm" showSubtitle={false} />
         </Link>
@@ -197,7 +197,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
       {/* Desktop Sidebar / Mobile Nav Drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:h-screen md:sticky md:top-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:h-screen md:sticky md:top-0 print:hidden ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -421,13 +421,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Overlay for mobile drawer */}
       {mobileNavOpen && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/40 md:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/40 md:hidden print:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-6xl">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-6xl print:p-0 print:max-w-none print:w-full">
         {children}
       </main>
     </div>

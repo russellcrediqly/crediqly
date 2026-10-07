@@ -20,6 +20,7 @@ import {
   Check,
   ExternalLink,
   Info,
+  Printer,
 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -180,83 +181,176 @@ function ReadinessPageContent() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 font-sans">
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center justify-between">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Dashboard</span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">Crediqly Audit Engine</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Zero Credit Bureau Inquiries
-              </span>
+      {/* Printable Bank-Ready Commercial Dossier Header (Visible ONLY in Print/PDF Mode) */}
+      <div className="hidden print:block mb-6 p-6 bg-white border-b-2 border-slate-900">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div>
+            <div className="text-[10px] font-black tracking-widest uppercase text-slate-500">
+              OFFICIAL BUSINESS CREDIT &amp; CAPITAL EVALUATION
             </div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-0.5">
+              CREDIQLY COMMERCIAL READINESS DOSSIER
+            </h1>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Commercial Underwriting Preparation &amp; Readiness Index
+            </p>
+          </div>
+          <div className="text-right text-xs">
+            <span className="font-bold text-slate-900 block">
+              {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+            <span className="text-slate-500 font-mono text-[11px]">
+              Ref: CRD-{user?.id ? user.id.slice(0, 8).toUpperCase() : 'PORTFOLIO'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 pt-4 text-xs">
+          <div>
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">
+              Business Entity
+            </span>
+            <span className="font-bold text-slate-900 text-sm block">
+              {business?.businessName || 'Registered Enterprise'}
+            </span>
+            <span className="text-[11px] text-slate-600">
+              {business?.entityType || 'LLC/Corporation'} • State: {business?.state || 'US'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">
+              Bureau Identifiers
+            </span>
+            <span className="text-slate-800 block">
+              EIN: <strong className="font-mono">{business?.hasEIN === 'yes' ? 'Verified (Active)' : 'Pending'}</strong>
+            </span>
+            <span className="text-slate-800 block">
+              DUNS: <strong className="font-mono">{business?.hasDuns === 'yes' ? 'Issued (Active)' : 'Pending'}</strong>
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">
+              Underwriting Standing
+            </span>
+            <span className="font-black text-slate-900 text-sm block">
+              {overallScore}/100 Index ({getLevelLabel(overallScore)})
+            </span>
+            <span className="text-[11px] text-emerald-700 font-medium">
+              Zero Bureau Hard Inquiries
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Breadcrumb Navigation & Export Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Dashboard</span>
+        </Link>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500">Crediqly Audit Engine</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Zero Credit Bureau Inquiries
+            </span>
           </div>
 
-          {/* TOP HERO: OVERALL READINESS SCORE */}
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+          <Button
+            type="button"
+            onClick={() => {
+              if (!isPro && !isAdvisory) {
+                upgradeToPro();
+              } else {
+                window.print();
+              }
+            }}
+            variant="outline"
+            size="sm"
+            className={`text-xs font-bold gap-1.5 shadow-2xs ${
+              !isPro && !isAdvisory
+                ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                : 'border-slate-300 text-slate-700 bg-white hover:bg-slate-50'
+            }`}
+          >
+            {!isPro && !isAdvisory ? (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>Export Dossier (Pro)</span>
+              </>
+            ) : (
+              <>
+                <Printer className="w-3.5 h-3.5 text-slate-600" />
+                <span>Print / Export Dossier</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                  <span>Comprehensive Business Standing</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
-                  Commercial Readiness Audit
-                </h1>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Your business credit and funding readiness are calculated deterministically from your 21-point legal profile, commercial banking records, and active reporting tradelines.
-                </p>
+      {/* TOP HERO: OVERALL READINESS SCORE */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden print:bg-none print:bg-white print:text-slate-900 print:border print:border-slate-300 print:shadow-none print:p-5">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none print:hidden" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold uppercase tracking-wider print:border-slate-300 print:bg-slate-100 print:text-slate-700">
+              <Sparkles className="w-3.5 h-3.5 text-brand-400 print:text-brand-600" />
+              <span>Comprehensive Business Standing</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white print:text-slate-900">
+              Commercial Readiness Audit
+            </h1>
+            <p className="text-sm text-slate-300 leading-relaxed print:text-slate-600">
+              Your business credit and funding readiness are calculated deterministically from your 21-point legal profile, commercial banking records, and active reporting tradelines.
+            </p>
+          </div>
+
+          {/* Large Score Dial Card */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 sm:p-6 flex items-center gap-5 shrink-0 shadow-lg print:border-slate-300 print:bg-slate-50 print:text-slate-900 print:shadow-none">
+            <div className="text-center">
+              <div className="text-4xl sm:text-5xl font-black text-white tracking-tight print:text-slate-900">
+                {isProfileComplete ? `${overallScore}%` : '--%'}
               </div>
-
-              {/* Large Score Dial Card */}
-              <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 sm:p-6 flex items-center gap-5 shrink-0 shadow-lg">
-                <div className="text-center">
-                  <div className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                    {isProfileComplete ? `${overallScore}%` : '--%'}
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-brand-300 mt-0.5">
-                    Overall Readiness Index
-                  </div>
-                </div>
-                <div className="h-12 w-[1px] bg-white/20" />
-                <div className="space-y-1 text-left">
-                  <Badge variant={getBadgeVariant(overallScore)} className="text-xs font-bold uppercase">
-                    {getLevelLabel(overallScore)}
-                  </Badge>
-                  <p className="text-[11px] text-slate-300">
-                    {overallScore >= 70
-                      ? 'Prime candidate for tier-2/3 credit'
-                      : overallScore >= 40
-                      ? 'Solid foundation, expand tradelines'
-                      : 'Complete foundational checklist'}
-                  </p>
-                </div>
+              <div className="text-xs font-bold uppercase tracking-wider text-brand-300 mt-0.5 print:text-slate-600">
+                Overall Readiness Index
               </div>
             </div>
-
-            {/* Overall Progress Bar */}
-            <div className="mt-6 pt-6 border-t border-white/10 space-y-2 relative z-10">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-300">Readiness Progression</span>
-                <span className="text-brand-300 font-bold">{overallScore}% of 100% Target</span>
-              </div>
-              <div className="w-full h-3 bg-slate-700/60 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 transition-all duration-500 rounded-full"
-                  style={{ width: `${overallScore}%` }}
-                />
-              </div>
+            <div className="h-12 w-[1px] bg-white/20 print:bg-slate-300" />
+            <div className="space-y-1 text-left">
+              <Badge variant={getBadgeVariant(overallScore)} className="text-xs font-bold uppercase">
+                {getLevelLabel(overallScore)}
+              </Badge>
+              <p className="text-[11px] text-slate-300 print:text-slate-600">
+                {overallScore >= 70
+                  ? 'Prime candidate for tier-2/3 credit'
+                  : overallScore >= 40
+                  ? 'Solid foundation, expand tradelines'
+                  : 'Complete foundational checklist'}
+              </p>
             </div>
           </div>
+        </div>
+
+        {/* Overall Progress Bar */}
+        <div className="mt-6 pt-6 border-t border-white/10 space-y-2 relative z-10 print:border-slate-200">
+          <div className="flex items-center justify-between text-xs font-semibold">
+            <span className="text-slate-300 print:text-slate-600">Readiness Progression</span>
+            <span className="text-brand-300 font-bold print:text-slate-900">{overallScore}% of 100% Target</span>
+          </div>
+          <div className="w-full h-3 bg-slate-700/60 rounded-full overflow-hidden print:bg-slate-200">
+            <div
+              className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 transition-all duration-500 rounded-full"
+              style={{ width: `${overallScore}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
           {/* MOTIVATIONAL ENCOURAGEMENT BANNER (Phase 10) */}
           <div className="p-4 rounded-2xl bg-brand-50/70 border border-brand-200/80 flex items-center gap-3">

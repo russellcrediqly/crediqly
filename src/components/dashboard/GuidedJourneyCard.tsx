@@ -130,6 +130,19 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
   const handleConfirmMilestone = async () => {
     if (!confirmingMilestone) return;
     const milestone = confirmingMilestone;
+
+    // Gating check for non-foundation milestones
+    if (!isPro && !isAdvisory && milestone.category !== 'foundation') {
+      if (onUpgradeToPro) {
+        onUpgradeToPro();
+      } else {
+        window.location.href = '/pricing';
+      }
+      setIsModalOpen(false);
+      setConfirmingMilestone(null);
+      return;
+    }
+
     const keyToComplete = milestone.roadmapTaskKey || milestone.id;
     setModalLoading(true);
     setCompletingKey(keyToComplete);
@@ -175,6 +188,17 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
   };
 
   const handleCompleteAction = async (target: RecommendedAction | ReadinessMilestoneDefinition) => {
+    // Paywall check for non-foundation milestones/actions
+    const targetCategory = 'category' in target ? target.category : '';
+    if (!isPro && !isAdvisory && targetCategory && targetCategory !== 'foundation') {
+      if (onUpgradeToPro) {
+        onUpgradeToPro();
+      } else {
+        window.location.href = '/pricing';
+      }
+      return;
+    }
+
     // If it is a milestone requiring customer confirmation, trigger modal
     if ('completionType' in target && target.completionType === 'customer_confirmation') {
       setConfirmingMilestone(target as ReadinessMilestoneDefinition);
@@ -678,14 +702,27 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                     size="sm"
                     onClick={() => handleCompleteAction(activeMilestone)}
                     disabled={completingKey === (activeMilestone.roadmapTaskKey || activeMilestone.id)}
-                    className="text-xs font-bold text-slate-800 hover:text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
+                    className={`text-xs font-bold shadow-2xs ${
+                      !isPro && !isAdvisory && activeMilestone.category !== 'foundation'
+                        ? 'border-amber-300 text-amber-900 bg-amber-50/80 hover:bg-amber-100'
+                        : 'text-slate-800 hover:text-slate-900 border-slate-300 bg-white hover:bg-slate-50'
+                    }`}
                   >
-                    <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
-                    <span>
-                      {completingKey === (activeMilestone.roadmapTaskKey || activeMilestone.id)
-                        ? 'Updating...'
-                        : 'Mark as Complete'}
-                    </span>
+                    {!isPro && !isAdvisory && activeMilestone.category !== 'foundation' ? (
+                      <>
+                        <Lock className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+                        <span>Unlock Milestone (Pro)</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
+                        <span>
+                          {completingKey === (activeMilestone.roadmapTaskKey || activeMilestone.id)
+                            ? 'Updating...'
+                            : 'Mark as Complete'}
+                        </span>
+                      </>
+                    )}
                   </Button>
                 )}
 
@@ -1024,14 +1061,27 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                                   size="sm"
                                   onClick={() => handleCompleteAction(def)}
                                   disabled={completingKey === (def.roadmapTaskKey || def.id)}
-                                  className="text-xs font-bold border-slate-300 text-slate-800 bg-white hover:bg-slate-50 shadow-2xs whitespace-nowrap"
+                                  className={`text-xs font-bold shadow-2xs whitespace-nowrap ${
+                                    !isPro && !isAdvisory && def.category !== 'foundation'
+                                      ? 'border-amber-300 text-amber-900 bg-amber-50/80 hover:bg-amber-100'
+                                      : 'border-slate-300 text-slate-800 bg-white hover:bg-slate-50'
+                                  }`}
                                 >
-                                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                                  <span>
-                                    {completingKey === (def.roadmapTaskKey || def.id)
-                                      ? 'Updating...'
-                                      : 'Mark Complete'}
-                                  </span>
+                                  {!isPro && !isAdvisory && def.category !== 'foundation' ? (
+                                    <>
+                                      <Lock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                                      <span>Unlock Pro</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                      <span>
+                                        {completingKey === (def.roadmapTaskKey || def.id)
+                                          ? 'Updating...'
+                                          : 'Mark Complete'}
+                                      </span>
+                                    </>
+                                  )}
                                 </Button>
                               )}
 

@@ -23,7 +23,9 @@ import {
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { FundingMatchResult, FundingProduct } from '@/types/fundingProduct';
+import { resolveFundingProductOutboundUrl } from '@/lib/supabase/fundingProductService';
 
 interface FundingOpportunityCardProps {
   matchResult: FundingMatchResult;
@@ -152,6 +154,43 @@ export const FundingOpportunityCard: React.FC<FundingOpportunityCardProps> = ({
             </div>
           </div>
 
+          {/* Institutional Underwriting Criteria Badges with Micro-Tooltips */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Tooltip content="Minimum personal credit score required by provider underwriting guidelines.">
+              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 cursor-help">
+                Min Credit: <strong className="text-slate-900">{requirementSummary.minCredit}</strong>
+              </span>
+            </Tooltip>
+
+            <Tooltip content="Annual gross revenue verified through bank deposits or business tax returns.">
+              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 cursor-help">
+                Min Revenue: <strong className="text-slate-900">{requirementSummary.minRevenue}</strong>
+              </span>
+            </Tooltip>
+
+            <Tooltip content="Time since state legal entity formation (SOS registration date).">
+              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 cursor-help">
+                Min Age: <strong className="text-slate-900">{requirementSummary.minAge}</strong>
+              </span>
+            </Tooltip>
+
+            {product.category === 'SBA-related Financing' && (
+              <Tooltip content="Debt Service Coverage Ratio: Operating cash flow must be at least 1.15x total debt payments.">
+                <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 cursor-help">
+                  1.15x DSCR Target
+                </span>
+              </Tooltip>
+            )}
+
+            {product.category === 'Term Loan' && (
+              <Tooltip content="Debt Service Coverage Ratio: Operating cash flow must be at least 1.20x annual debt servicing.">
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 cursor-help">
+                  1.20x DSCR Target
+                </span>
+              </Tooltip>
+            )}
+          </div>
+
           {/* Why You're Seeing This */}
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
@@ -241,7 +280,7 @@ export const FundingOpportunityCard: React.FC<FundingOpportunityCardProps> = ({
 
             {/* Apply / Outbound Link */}
             <a
-              href={product.websiteUrl}
+              href={resolveFundingProductOutboundUrl(product)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => onOutboundClick(product)}

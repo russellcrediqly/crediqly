@@ -34,7 +34,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { LoadingState } from '@/components/ui/LoadingState';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { SectionInactiveNotice } from '@/components/common/SectionInactiveNotice';
 import { ProGate } from '@/components/subscription/ProGate';
 import { usePlatformSections } from '@/lib/usePlatformSections';
@@ -159,8 +159,6 @@ export default function FundingPage() {
 
   const handleOutboundClick = (product: FundingProduct) => {
     recordFundingProductClick(product.id, user?.id);
-    const url = resolveFundingProductOutboundUrl(product);
-    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Construct effective profile (combining base business profile with pre-qual simulator inputs if active)
@@ -267,8 +265,24 @@ export default function FundingPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="min-h-[400px] flex items-center justify-center">
-            <LoadingState message="Matching funding marketplace opportunities for your business profile..." />
+          <div className="space-y-8 pb-12 animate-fade-in">
+            {/* Header Skeleton */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 animate-pulse shadow-xs">
+              <div className="h-4 w-36 bg-slate-200 rounded mb-4" />
+              <div className="h-8 w-72 bg-slate-200 rounded mb-2" />
+              <div className="h-4 w-96 max-w-full bg-slate-200 rounded" />
+            </div>
+
+            {/* Opportunities Skeleton Grid */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-28 bg-slate-200 rounded animate-pulse" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <SkeletonCard count={3} />
+              </div>
+            </div>
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -467,7 +481,7 @@ export default function FundingPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase text-purple-300">Done-For-You</span>
                           <span className="text-lg font-black text-white">
-                            $499 <span className="text-xs font-normal text-purple-300">+ $199/mo</span>
+                            $499 <span className="text-xs font-normal text-purple-300">+ $149/mo</span>
                           </span>
                         </div>
                         <h3 className="text-base font-extrabold text-white">Done-For-You Premium Advisory</h3>
