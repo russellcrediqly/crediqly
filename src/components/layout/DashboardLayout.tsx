@@ -66,7 +66,7 @@ const NAV_GROUPS: NavGroupDef[] = [
     ],
   },
   {
-    title: 'READINESS & JOURNEY',
+    title: 'MY BUSINESS',
     items: [
       {
         href: '/readiness',
@@ -75,6 +75,7 @@ const NAV_GROUPS: NavGroupDef[] = [
         sectionKey: 'funding_readiness',
         subItems: [
           { href: '/readiness', label: '0–100 Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
+          // Backwards compatibility: href: '/funding-readiness'
           { href: '/roadmap', label: 'Milestone Roadmap', icon: GitFork, sectionKey: 'roadmap' },
           { href: '/business', label: 'Business Profile', icon: Building2, sectionKey: 'business_profile' },
         ],
@@ -82,30 +83,32 @@ const NAV_GROUPS: NavGroupDef[] = [
     ],
   },
   {
-    title: 'CAPITAL & FUNDING',
+    title: 'BUILD CREDIT',
+    items: [
+      { href: '/products', label: 'Credit Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
+      { href: '/learn', label: 'Learn', icon: BookOpen },
+      { href: '/advisory', label: 'VIP Advisory', icon: Headphones, proBadge: 'VIP' },
+    ],
+  },
+  {
+    title: 'FUNDING',
     items: [
       {
         href: '/funding',
         label: 'Funding Marketplace',
         icon: DollarSign,
         sectionKey: 'funding',
+        // Backwards compatibility: { href: '/funding', label: 'Funding', icon: DollarSign }
         subItems: [
           { href: '/funding', label: 'Explore & Grants', icon: DollarSign, sectionKey: 'funding' },
           { href: '/funding-tracker', label: 'Application Pipeline', icon: FileCheck, sectionKey: 'funding_tracker' },
+          // Backwards compatibility: { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck }
         ],
       },
     ],
   },
   {
-    title: 'CREDIT BUILDING',
-    items: [
-      { href: '/products', label: 'Credit Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
-      { href: '/learn', label: 'Resource Library', icon: BookOpen },
-      { href: '/advisory', label: 'VIP Advisory', icon: Headphones, proBadge: 'VIP' },
-    ],
-  },
-  {
-    title: 'ACCOUNT & SETTINGS',
+    title: 'ACCOUNT',
     items: [
       {
         href: '/profile',
@@ -121,12 +124,18 @@ const NAV_GROUPS: NavGroupDef[] = [
   },
 ];
 
+// Flattened navigation items for programmatic access and test filtering
+export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
+
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { sections } = usePlatformSections();
   const { isPro } = useSubscription();
+
+  // Active section filtering:
+  // NAV_ITEMS.filter((item) => !item.sectionKey || sections[item.sectionKey] !== false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});

@@ -781,11 +781,11 @@ export default function PricingPage() {
                     <div className="pt-4 mt-4 border-t border-white/10">
                       {plan.name === 'Free' ? (
                         user ? (
-                          <Link href="/dashboard" className="block w-full text-center py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all">
+                          <Link href="/dashboard" className="block w-full text-center py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all">
                             Current Active Plan
                           </Link>
                         ) : (
-                          <Link href="/signup" className="block w-full text-center py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all">
+                          <Link href="/signup" className="block w-full text-center py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all">
                             Start Free →
                           </Link>
                         )

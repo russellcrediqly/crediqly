@@ -63,6 +63,8 @@ import { FundingReadinessResult } from '@/types/funding';
 import { FundingOpportunityCard } from '@/components/funding/FundingOpportunityCard';
 import { FundingDetailsModal } from '@/components/funding/FundingDetailsModal';
 import { PreQualificationModal, PrequalCriteria } from '@/components/funding/PreQualificationModal';
+import { FundingMatchesForYouCard } from '@/components/funding/FundingMatchesForYouCard';
+import { getPersonalizedFundingMatches } from '@/lib/funding/personalizedMatchesEngine';
 
 export default function FundingPage() {
   const { user } = useAuth();
@@ -184,6 +186,11 @@ export default function FundingPage() {
   const topMatches = useMemo(() => {
     return matchedResults.slice(0, 3);
   }, [matchedResults]);
+
+  // Personalized Funding Matches (Strong, Possible, Improve Readiness)
+  const personalizedFundingMatches = useMemo(() => {
+    return getPersonalizedFundingMatches(effectiveProfile, readiness?.score ?? 0, products);
+  }, [effectiveProfile, readiness?.score, products]);
 
   // Grants only
   const grantMatches = useMemo(() => {
@@ -325,7 +332,7 @@ export default function FundingPage() {
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold text-slate-300 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
-                      Readiness Score: {score} / 100
+                      Your Funding Readiness: {score} / 100
                     </span>
                   )}
                 </div>
@@ -811,14 +818,7 @@ export default function FundingPage() {
           {/* ================================================================= */}
           {activeTab === 'top_matches' && (
             <div className="space-y-6">
-              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-emerald-950 text-xs space-y-1">
-                <span className="font-extrabold uppercase tracking-wider block text-emerald-900">
-                  Curated For Your Profile
-                </span>
-                <p className="text-slate-700 leading-relaxed">
-                  These opportunities represent the highest preliminary alignment with your reported business age, revenue range, credit score, and commercial bureau status.
-                </p>
-              </div>
+              <FundingMatchesForYouCard matches={personalizedFundingMatches} isPro={isPro} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {topMatches.map((match) => (
@@ -898,7 +898,7 @@ export default function FundingPage() {
                     No applications tracked yet
                   </h4>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Click "Track" on any marketplace card to bookmark it to your pipeline and monitor your status.
+                    Click "Track This" or "Track" on any marketplace card to bookmark it to your pipeline and monitor your status.
                   </p>
                   <Button
                     variant="primary"
@@ -1034,7 +1034,7 @@ export default function FundingPage() {
               Match indicators (Strong Match, Possible Match, Not Ready Yet) are internal Crediqly evaluations based on the business information you have provided and administrator-defined provider criteria. Match designations do not represent pre-approval, loan offers, qualification guarantees, or lender underwriting decisions. Actual requirements and approval terms are established solely by individual providers.
             </p>
             <p>
-              <span className="font-semibold text-slate-700">Partner &amp; Provider Disclosure: </span>
+              <span className="font-semibold text-slate-700">Partner & Affiliate Disclosure: </span>
               The information and resources provided are for educational purposes only. Requirements, terms, availability, and eligibility may vary by provider. Review all terms carefully before taking action. Some links on this page are partner referral links, meaning Crediqly may receive compensation if you choose to work with a partner, at no additional cost to you. We do not originate loans or broker credit agreements.
             </p>
           </div>

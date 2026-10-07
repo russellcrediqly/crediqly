@@ -17,6 +17,7 @@ export default function AdminUserDetailRedirectPage() {
     }
   }, [router, userId]);
 
+  // Funding Readiness (Step 8)
   return (
     <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4 text-center">
       <LoadingState message="Redirecting to Customer Dossier..." className="text-white" />

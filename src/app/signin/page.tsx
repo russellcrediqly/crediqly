@@ -57,9 +57,10 @@ export default function SignInPage() {
       // If profile is incomplete -> Continue onboarding at incomplete step
       // If completed or admin -> Direct to dashboard or admin
       const targetDestination =
-        res.user?.role === 'admin'
+        res.destination ||
+        (res.user?.role === 'admin'
           ? '/admin'
-          : (res.profileCompleted === false ? '/onboarding' : '/dashboard');
+          : (res.profileCompleted === false ? '/onboarding' : '/dashboard'));
 
       router.replace(targetDestination);
     } catch (err: any) {

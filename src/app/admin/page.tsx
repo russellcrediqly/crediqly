@@ -539,7 +539,7 @@ export default function AdminOverviewPage() {
           </Link>
 
           {/* Customer Database */}
-          <Link href="/admin/customers">
+          <Link href="/admin/users">
             <Card className="bg-slate-950 border-slate-800 hover:border-indigo-500/50 transition-all p-4 cursor-pointer group shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

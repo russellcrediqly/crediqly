@@ -6,14 +6,32 @@ import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
+import { SectionInactiveNotice } from '@/components/common/SectionInactiveNotice';
+import { usePlatformSections } from '@/lib/usePlatformSections';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function FundingReadinessRedirectPage() {
   const router = useRouter();
+  const { sections } = usePlatformSections();
 
   useEffect(() => {
-    router.replace('/readiness');
-  }, [router]);
+    if (sections.funding_readiness !== false) {
+      router.replace('/readiness');
+    }
+  }, [router, sections.funding_readiness]);
+
+  if (sections.funding_readiness === false) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <SectionInactiveNotice
+            title="Funding Readiness Module Inactive"
+            description="The Funding Readiness evaluation is temporarily unavailable while platform criteria are updated."
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>

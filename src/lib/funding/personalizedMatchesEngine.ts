@@ -1,7 +1,13 @@
 import type { BusinessProfile } from '@/types/business';
 import type { FundingProduct } from '@/types/fundingProduct';
-import { matchFundingProducts } from './fundingRecommendationEngine';
-import { resolveFundingProductOutboundUrl } from '@/lib/supabase/fundingProductService';
+import { matchFundingProducts } from './fundingRecommendationEngine.ts';
+
+function resolveFundingProductOutboundUrl(product: FundingProduct): string {
+  if (product.affiliateEnabled && product.affiliateUrl && product.affiliateUrl.trim().length > 0) {
+    return product.affiliateUrl.trim();
+  }
+  return product.websiteUrl ? product.websiteUrl.trim() : '';
+}
 
 export interface PersonalizedFundingTier {
   tier: 'strong' | 'possible' | 'improve_readiness';

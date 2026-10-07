@@ -1,5 +1,5 @@
 import type { BusinessProfile } from '@/types/business';
-import { calculateMilestoneReadiness } from './readinessMilestoneEngine';
+import { calculateMilestoneReadiness } from './readinessMilestoneEngine.ts';
 import type {
   FundingReadinessResult,
   FundingReadinessLevel,

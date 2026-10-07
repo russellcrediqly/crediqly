@@ -234,8 +234,12 @@ export function matchFundingProducts(
     if (isGrant) {
       matchLevel = score >= 50 ? 'Strong Match' : 'Possible Match';
     } else if (hasDisqualification) {
-      matchLevel = 'Not Ready Yet';
-    } else if (!hasUnverifiedKeyField && score >= 70) {
+      matchLevel = (product.category === 'SBA-related Financing' || product.minBusinessAgeMonths >= 24)
+        ? 'Explore'
+        : 'Not Ready Yet';
+    } else if (hasUnverifiedKeyField) {
+      matchLevel = 'Potential Match';
+    } else if (score >= 70) {
       matchLevel = 'Strong Match';
     } else {
       matchLevel = 'Possible Match';
@@ -253,12 +257,14 @@ export function matchFundingProducts(
       } else {
         whyThisFits = 'Your profile appears consistent with provider underwriting baselines based on reported information.';
       }
-    } else if (matchLevel === 'Possible Match') {
+    } else if (matchLevel === 'Possible Match' || matchLevel === 'Potential Match') {
       if (hasUnverifiedKeyField) {
         whyThisFits = 'You may fit the basic profile for this option, but additional documentation (such as banking activity or operating history) may be required.';
       } else {
         whyThisFits = 'Potential preliminary fit. Review provider criteria and terms to confirm your specific business eligibility.';
       }
+    } else if (matchLevel === 'Explore') {
+      whyThisFits = 'Explore long-term commercial capital options as you build foundational operating seasoning.';
     } else {
       whyThisFits = 'Your current readiness profile suggests completing additional foundational or credit-building steps before pursuing this financing option.';
     }

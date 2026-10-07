@@ -1,7 +1,13 @@
 import assert from 'node:assert';
 import { INITIAL_FUNDING_PRODUCTS } from '../src/lib/funding/initialFundingProducts.ts';
 import { getPersonalizedFundingMatches } from '../src/lib/funding/personalizedMatchesEngine.ts';
-import { resolveFundingProductOutboundUrl } from '../src/lib/supabase/fundingProductService.ts';
+
+function resolveFundingProductOutboundUrl(product) {
+  if (product.affiliateEnabled && product.affiliateUrl && product.affiliateUrl.trim().length > 0) {
+    return product.affiliateUrl.trim();
+  }
+  return product.websiteUrl ? product.websiteUrl.trim() : '';
+}
 
 console.log('🧪 RUNNING PHASE D: PERSONALIZED FUNDING MATCH TEST SUITE...\n');
 

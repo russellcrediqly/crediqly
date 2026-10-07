@@ -57,7 +57,7 @@ export function generateDeterministicAIMentorAnswer(
     q.includes('improve first') ||
     q.includes('what should i do next') ||
     q.includes('what should i do first') ||
-    q.includes('what should i do') ||
+    (q.includes('what should i do') && !q.includes('roadmap')) ||
     q.includes('next action') ||
     q.includes('start with')
   ) {

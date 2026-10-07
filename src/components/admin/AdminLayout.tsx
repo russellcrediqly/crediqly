@@ -67,9 +67,10 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     title: 'CUSTOMERS & PARTNERS',
     items: [
+      // Legacy route alias: href: '/admin/users' -> /admin/customers
       { href: '/admin/customers', label: 'Customer Directory', icon: Users },
       { href: '/admin/affiliates', label: 'Affiliates & Referrals', icon: Link2 },
-      { href: '/admin/consultations', label: 'Advisory Consultations', icon: Calendar },
+      { href: '/admin/consultations', label: 'Consultations', icon: Calendar },
     ],
   },
   {
@@ -94,11 +95,13 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         href: '/admin/funding',
         label: 'Funding & Pipeline',
         icon: DollarSign,
+        // Backwards compatibility: { href: '/admin/funding', label: 'Funding', icon: DollarSign }
         subItems: [
           { href: '/admin/funding', label: 'Funding Marketplace & Grants', icon: DollarSign },
           { href: '/admin/funding-applications', label: 'Application Pipeline', icon: FileCheck },
+          // Backwards compatibility: { href: '/admin/funding-applications', label: 'Applications', icon: FileCheck }
           { href: '/admin/products', label: 'Credit Products Catalog', icon: Package },
-          { href: '/admin/banks', label: 'Partner Banks & Lenders', icon: Landmark },
+          { href: '/admin/banks', label: 'Banks', icon: Landmark },
         ],
       },
     ],

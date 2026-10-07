@@ -558,7 +558,7 @@ function CreditRoadmapContent() {
                   </span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900">
-                  Want our team to build this with you? Explore Premium Advisory.
+                  Need help with your roadmap? Explore Premium Advisory.
                 </h4>
                 <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
                   Get dedicated 1-on-1 strategy, hands-on tradeline setup, and monthly advisor checkpoints while you build.
@@ -566,15 +566,15 @@ function CreditRoadmapContent() {
               </div>
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
+              <Link href="/consultation">
+                <Button size="sm" variant="outline" className="text-xs border-brand-200 text-brand-800 hover:bg-brand-50 whitespace-nowrap">
+                  <span>Request a Consultation</span>
+                </Button>
+              </Link>
               <Link href="/advisory">
                 <Button size="sm" variant="primary" className="text-xs gap-1.5 whitespace-nowrap shadow-xs bg-brand-600 hover:bg-brand-500">
                   <span>Explore Advisory</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
-              <Link href="/consultation">
-                <Button size="sm" variant="outline" className="text-xs border-brand-200 text-brand-800 hover:bg-brand-50 whitespace-nowrap">
-                  <span>Strategy Call</span>
                 </Button>
               </Link>
             </div>

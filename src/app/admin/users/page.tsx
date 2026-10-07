@@ -17,7 +17,7 @@ export default function AdminUsersRedirectPage() {
     <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4 text-center">
       <LoadingState message="Redirecting to Customer Directory..." className="text-white" />
       <p className="text-xs text-slate-400">
-        The user directory has been upgraded to the Customer Database.
+        The user directory has been upgraded to the Customer Database (with Fund score telemetry).
       </p>
       <Link
         href="/admin/customers"

@@ -311,13 +311,13 @@ function ConsultationInner() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
                 {isAdvisory
                   ? 'Book Your Monthly Advisory Meeting'
-                  : 'Personalized Guidance from a Crediqly Advisor'}
+                  : 'Need help with your business credit or funding strategy?'}
               </h1>
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                 {isAdvisory
                   ? 'Your Premium Advisory membership includes a dedicated 1-on-1 monthly strategy meeting ($0 fee). Select your preferred date and time to meet with your commercial advisor.'
                   : settings?.messaging?.consultationMessage ||
-                    'Looking for dedicated human support to navigate business credit and capital readiness? Monthly 1-on-1 strategy sessions are included in Crediqly Premium Advisory.'}
+                    'Request a consultation with the Crediqly team for personalized guidance.'}
               </p>
 
               {/* Action Options */}
@@ -341,7 +341,7 @@ function ConsultationInner() {
                     className="bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-bold shadow-md gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Explore Premium Advisory</span>
+                    <span>Request a Consultation</span>
                   </Button>
                 )}
 
@@ -350,7 +350,7 @@ function ConsultationInner() {
                   onClick={() => router.push('/dashboard')}
                   className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs sm:text-sm gap-2"
                 >
-                  <span>{isAdvisory ? 'Dashboard' : 'Continue Self-Guided'}</span>
+                  <span>{isAdvisory ? 'Dashboard' : 'Continue DIY'}</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                 </Button>
               </div>
@@ -367,7 +367,7 @@ function ConsultationInner() {
 
                 <div className="space-y-1 max-w-lg mx-auto">
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                    Advisory Meeting Requested
+                    Consultation Request Submitted
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Your request has been received ($0 fee included in your plan). Your advisor will review your preferred date and time and confirm the appointment.
@@ -700,9 +700,7 @@ function ConsultationInner() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-slate-800">
-                      {isAdvisory
-                        ? "You haven't scheduled an advisory meeting yet."
-                        : "You don't have any consultation records."}
+                      You haven't requested a consultation yet.
                     </p>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       {isAdvisory

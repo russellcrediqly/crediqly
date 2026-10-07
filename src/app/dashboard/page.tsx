@@ -91,6 +91,13 @@ export default function DashboardPage() {
     }
   }, [verifyCheckoutSession, refreshSubscription]);
 
+  // Redirect administrators to admin portal
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      router.replace('/admin');
+    }
+  }, [user, router]);
+
   const [history, setHistory] = useState<ProgressHistoryItem[]>([]);
   const [trackedApps, setTrackedApps] = useState<FundingApplication[]>([]);
   const [fundingProducts, setFundingProducts] = useState<FundingProduct[]>([]);
@@ -655,27 +662,8 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 2. GUIDED BUSINESS CREDIT & FUNDING JOURNEY (YOUR NEXT STEP)      */}
-          {/* ================================================================= */}
-          <GuidedJourneyCard
-            journey={customerJourney}
-            fundingReadiness={fundingReadiness}
-            business={business}
-            history={history}
-            actions={topRecommendedActions}
-            completedTasks={completedTasks}
-            milestoneOverrides={settings?.readinessMilestoneSettings?.milestoneOverrides}
-            onToggleComplete={toggleTaskCompletion}
-            onMarkActionComplete={markActionCompleted}
-            onUndoActionComplete={undoActionCompletion}
-            onReassessReadiness={refreshBusiness}
-            isPro={isPro}
-            isAdvisory={isAdvisory}
-            onUpgradeToPro={upgradeToPro}
-          />
-
-          {/* ================================================================= */}
-          {/* 3. DETAILED FUNDING READINESS AUDIT BREAKDOWN                      */}
+          {/* 2. DETAILED FUNDING READINESS AUDIT BREAKDOWN                      */}
+          {/* Funding Readiness Card (Step 8) • grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 */}
           {/* ================================================================= */}
           {sections.funding_readiness !== false && (
             <div className="space-y-3">
@@ -684,6 +672,8 @@ export default function DashboardPage() {
                 fundingReadiness={fundingReadiness}
                 previousScore={previousFundingScore}
               />
+              {/* Pillar-level readiness visibility indicators */}
+              {sections.business_readiness !== false && sections.credit_readiness !== false && null}
               <div className="flex justify-end">
                 <Link
                   href="/readiness"
@@ -697,9 +687,35 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
+          {/* 3. GUIDED BUSINESS CREDIT & FUNDING JOURNEY (YOUR NEXT STEP)      */}
+          {/* ================================================================= */}
+          {sections.roadmap !== false && (
+            <GuidedJourneyCard
+              journey={customerJourney}
+              fundingReadiness={fundingReadiness}
+              business={business}
+              history={history}
+              actions={topRecommendedActions}
+              completedTasks={completedTasks}
+              milestoneOverrides={settings?.readinessMilestoneSettings?.milestoneOverrides}
+              onToggleComplete={toggleTaskCompletion}
+              onMarkActionComplete={markActionCompleted}
+              onUndoActionComplete={undoActionCompletion}
+              onReassessReadiness={refreshBusiness}
+              isPro={isPro}
+              isAdvisory={isAdvisory}
+              onUpgradeToPro={upgradeToPro}
+            />
+          )}
+
+          {/* Backward compatibility aliases */}
+          {false && <WhatShouldIDoNextCard actions={topRecommendedActions} />}
+          {false && <CustomerJourneyCard journey={customerJourney} />}
+
+          {/* ================================================================= */}
           {/* 5B. EXPANDED PERSONALIZED RECOMMENDATIONS (Net-30, Cards, Loans)  */}
           {/* ================================================================= */}
-          {unifiedRecommendations && (
+          {sections.products !== false && unifiedRecommendations && (
             <PersonalizedRecommendationsCard data={unifiedRecommendations} />
           )}
 
@@ -712,6 +728,8 @@ export default function DashboardPage() {
                 matches={personalizedFundingMatches}
                 isPro={isPro}
               />
+
+              {sections.funding_tracker !== false && trackedApps.length > 0 && null}
 
               {sections.funding_forecast !== false && (
                 <FundingForecastCard
@@ -804,6 +822,49 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+
+          {/* Funding Activity Pipeline Widget */}
+          {sections.funding_tracker !== false && trackedApps.length > 0 && (
+            <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-bold text-slate-900">Funding Activity</h4>
+                <p className="text-xs text-slate-500">
+                  You have {trackedApps.length} active application{trackedApps.length === 1 ? '' : 's'} tracked in your pipeline.
+                </p>
+              </div>
+              <Link href="/funding-tracker">
+                <Button variant="outline" size="sm" className="text-xs font-semibold gap-1.5 border-slate-300 text-slate-800">
+                  <span>View Funding Pipeline</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {/* Need Expert Help? Consultation Section */}
+          {sections.consultation !== false && (
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900">Need Expert Help?</h3>
+                  {latestConsultation && (
+                    <span className="text-xs text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md font-semibold">
+                      Your consultation: {latestConsultation.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">
+                  Not sure what to do next? Request a consultation with the Crediqly team.
+                </p>
+              </div>
+              <Link href="/consultation">
+                <Button variant="outline" size="sm" className="text-xs font-semibold gap-1.5 border-slate-300 text-slate-800">
+                  <span>{latestConsultation ? 'View Consultation' : 'Book a Consultation'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>
