@@ -387,68 +387,69 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
   const isActionProLocked = !isProUser && primaryAction?.id === 'task_pro_gated';
 
   return (
-    <Card className={`border-slate-200/90 bg-white shadow-xs overflow-hidden rounded-2xl ${className}`}>
-      {/* ===================================================================== */}
-      {/* TOP HERO: YOUR CREDIQLY JOURNEY & CURRENT POSITION                   */}
-      {/* ===================================================================== */}
-      <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-indigo-950 text-white p-6 sm:p-7 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+    <Card className={`border-slate-200/90 bg-white shadow-xs overflow-hidden rounded-3xl ${className}`}>
+      {/* Sleek Gradient Accent Line */}
+      <div className="h-1 bg-gradient-to-r from-brand-600 via-teal-500 to-indigo-600" />
 
-        <div className="relative z-10 space-y-5">
+      {/* ===================================================================== */}
+      {/* TOP HERO: YOUR CREDIQLY JOURNEY & CURRENT POSITION (Executive White)  */}
+      {/* ===================================================================== */}
+      <div className="bg-white p-6 sm:p-8 border-b border-slate-100 relative overflow-hidden">
+        <div className="relative z-10 space-y-6">
           {/* Section Subtitle & Milestones Tag */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-200 border border-brand-400/30 text-xs font-black uppercase tracking-wider">
-                <Compass className="w-3.5 h-3.5 text-brand-300" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 text-xs font-black uppercase tracking-wider">
+                <Compass className="w-3.5 h-3.5 text-brand-600" />
                 <span>{business?.businessName ? `${business.businessName.toUpperCase()}'S FUNDING JOURNEY` : 'YOUR CREDIQLY JOURNEY'}</span>
               </span>
-              <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                 Milestone {activeMilestone?.stepOrder || (milestoneResult.isJourneyComplete ? milestoneResult.totalMilestonesCount : 1)} of {milestoneResult.totalMilestonesCount}
               </span>
             </div>
 
             {/* High Funding Readiness Indicator */}
             {milestoneResult.isJourneyComplete ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-black tracking-wide">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black tracking-wide">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                 <span>🎯 100/100 READINESS JOURNEY COMPLETE</span>
               </span>
             ) : progression.hasImproved ? (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1 rounded-full">
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                 <span>+{progression.netDelta} pts since starting</span>
               </span>
             ) : null}
           </div>
 
           {/* Current Position Highlights Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. Funding Readiness with Progression */}
-            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex flex-col justify-between space-y-2">
+            <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   Funding Readiness Score
                 </span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/10">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-white text-slate-800 border border-slate-200 shadow-2xs">
                   {milestoneResult.currentStage}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-white font-mono">
+                  <span className="text-3xl sm:text-4xl font-black text-slate-900 font-mono tracking-tight">
                     {milestoneResult.score}
                   </span>
-                  <span className="text-xs text-slate-300 font-bold">/ 100</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase">/ 100</span>
                 </div>
 
                 {/* Score Trail (e.g. 0 → 10 → 35) */}
                 {progression.historyTrail.length > 1 && (
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-slate-300 block">
-                      Readiness Progress
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                      Readiness Trail
                     </span>
-                    <span className="text-xs font-mono font-bold text-teal-300">
+                    <span className="text-xs font-mono font-bold text-brand-600">
                       {progression.historyTrail.slice(-3).join(' → ')}
                     </span>
                   </div>
@@ -457,42 +458,42 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
             </div>
 
             {/* 2. Current Stage */}
-            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between gap-3 min-w-0">
+            <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-3 min-w-0">
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   Current Program Stage
                 </span>
-                <span className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5 block truncate" title={milestoneResult.currentStage}>
+                <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight mt-0.5 block truncate" title={milestoneResult.currentStage}>
                   {milestoneResult.currentStage}
                 </span>
               </div>
-              <span className="shrink-0 text-xs font-bold text-teal-300 bg-teal-900/40 border border-teal-500/30 px-2.5 py-1 rounded-lg whitespace-nowrap">
+              <span className="shrink-0 text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-xl whitespace-nowrap shadow-2xs">
                 Stage {milestoneResult.currentStageNumber} of 4
               </span>
             </div>
 
             {/* 3. Milestones Completed */}
-            <div className="p-4 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center justify-between gap-3 min-w-0">
+            <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-3 min-w-0">
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200 block">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
                   Milestones Completed
                 </span>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
                     {milestoneResult.completedMilestonesCount} of {milestoneResult.totalMilestonesCount}
                   </span>
-                  <span className="text-xs text-slate-300 font-bold">milestones</span>
+                  <span className="text-xs text-slate-500 font-semibold">done</span>
                 </div>
               </div>
-              <span className="shrink-0 text-xs font-black text-emerald-300 bg-emerald-900/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-mono">
+              <span className="shrink-0 text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl font-mono shadow-2xs">
                 {milestoneResult.percentage}%
               </span>
             </div>
           </div>
 
           {/* Legal Transparency & Integrity Disclaimer */}
-          <div className="pt-2 border-t border-white/15 text-[11px] text-slate-300/90 leading-relaxed flex items-start gap-2">
-            <Info className="w-4 h-4 text-brand-300 shrink-0 mt-0.5" />
+          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 leading-relaxed flex items-start gap-2">
+            <Info className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
             <span>
               <strong>Crediqly Readiness Program:</strong> {milestoneResult.scoreExplanation} {milestoneResult.legalDisclaimer}
             </span>

@@ -48,19 +48,21 @@ export const FundingReadinessScoreCard: React.FC<FundingReadinessScoreCardProps>
   // --------------------------------------------------------------------------
   if (!hasData) {
     return (
-      <Card className={`border-slate-200/90 bg-white shadow-sm overflow-hidden ${className}`}>
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-brand-950 p-6 sm:p-7 text-white">
+      <Card className={`border-slate-200/90 bg-white shadow-xs overflow-hidden rounded-3xl ${className}`}>
+        {/* Sleek Gradient Accent Line */}
+        <div className="h-1 bg-gradient-to-r from-amber-500 via-brand-500 to-teal-500" />
+        <div className="bg-white p-6 sm:p-7 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-brand-200 text-xs font-black uppercase tracking-wider border border-white/15">
-                <Sparkles className="w-3.5 h-3.5 text-brand-300" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-black uppercase tracking-wider border border-amber-200">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 <span>Crediqly Funding Readiness Score</span>
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Funding Readiness Assessment
               </h2>
             </div>
-            <span className="text-xs font-semibold text-slate-300 bg-white/10 px-3 py-1 rounded-full w-fit">
+            <span className="text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full w-fit">
               Awaiting Profile Data
             </span>
           </div>
@@ -159,27 +161,30 @@ export const FundingReadinessScoreCard: React.FC<FundingReadinessScoreCardProps>
   };
 
   return (
-    <Card className={`border-brand-200/90 bg-white shadow-sm overflow-hidden ${className}`}>
-      {/* Top Header Bar */}
-      <div className="bg-gradient-to-r from-brand-950 via-brand-900 to-indigo-950 text-white p-6 sm:p-7">
+    <Card className={`border-slate-200/90 bg-white shadow-xs overflow-hidden rounded-3xl ${className}`}>
+      {/* Sleek Gradient Accent Line */}
+      <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-brand-600" />
+
+      {/* Top Header Bar (Executive White) */}
+      <div className="bg-white p-6 sm:p-7 border-b border-slate-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-200 border border-brand-400/30 text-xs font-black uppercase tracking-wider">
-                <Award className="w-3.5 h-3.5 text-brand-300" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 text-xs font-black uppercase tracking-wider">
+                <Award className="w-3.5 h-3.5 text-brand-600" />
                 <span>Crediqly Funding Readiness Score</span>
               </span>
-              <span className="text-xs font-semibold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                 Live Dynamic Calculation
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Commercial Capital &amp; Lender Preparedness
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-brand-200 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl font-medium">
+            <span className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
               Zero Bureau Inquiries
             </span>
           </div>
@@ -190,10 +195,10 @@ export const FundingReadinessScoreCard: React.FC<FundingReadinessScoreCardProps>
         {/* Main Stat & Major Areas Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Left Column: Big Score Card (5 cols) */}
-          <div className="lg:col-span-5 p-6 rounded-2xl bg-gradient-to-b from-brand-50/70 via-white to-slate-50 border border-brand-100 flex flex-col justify-between space-y-5">
+          <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-5">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
                   Funding Readiness
                 </span>
                 <Badge variant={getLevelBadgeVariant(level)}>
