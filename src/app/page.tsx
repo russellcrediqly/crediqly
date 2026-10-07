@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroTerminal } from '@/components/landing/HeroTerminal';
 import { TrustBar } from '@/components/landing/TrustBar';
+import { FounderVideoSection } from '@/components/landing/FounderVideoSection';
 import { BentoFeatures } from '@/components/landing/BentoFeatures';
 import { CapitalMatcher } from '@/components/landing/CapitalMatcher';
 import { TradelineRoadmap } from '@/components/landing/TradelineRoadmap';
@@ -21,6 +22,7 @@ export default function LandingPage() {
       <main className="flex-1">
         <HeroTerminal />
         <TrustBar />
+        <FounderVideoSection />
         <BentoFeatures />
         <CapitalMatcher />
         <TradelineRoadmap />
