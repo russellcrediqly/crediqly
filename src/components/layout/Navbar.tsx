@@ -7,38 +7,72 @@ import { Button } from '@/components/ui/Button';
 import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import { Menu, X, ShieldCheck } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+export interface NavbarProps {
+  variant?: 'light' | 'dark';
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isDark = variant === 'dark';
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+    <nav
+      className={`sticky top-0 z-40 backdrop-blur-md transition-colors ${
+        isDark
+          ? 'bg-slate-950/95 border-b border-slate-800 text-slate-100'
+          : 'bg-white/95 border-b border-slate-200/80 text-slate-900'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <CrediqlyLogo size="md" subtitle="Business Credit & Funding" />
+            <CrediqlyLogo size="md" variant={isDark ? 'dark' : 'light'} subtitle="Business Credit & Funding" />
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-600">
-            <Link href="/#how-it-works" className="hover:text-slate-900 transition-colors">
-              How It Works
+          <div
+            className={`hidden lg:flex items-center gap-7 text-sm font-semibold ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}
+          >
+            <Link
+              href="/#features"
+              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
+            >
+              Capabilities
             </Link>
-            <Link href="/#features" className="hover:text-slate-900 transition-colors">
-              Features
+            <Link
+              href="/#route-map"
+              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
+            >
+              4-Tier Roadmap
             </Link>
-            <Link href="/#route-map" className="hover:text-slate-900 transition-colors">
-              Readiness Journey
+            <Link
+              href="/#funding"
+              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
+            >
+              Matched Capital
             </Link>
-            <Link href="/#funding" className="hover:text-slate-900 transition-colors">
-              Funding Marketplace
+            <Link
+              href="/pricing"
+              className={
+                isDark
+                  ? 'text-brand-300 hover:text-white font-bold transition-colors'
+                  : 'text-slate-800 hover:text-brand-600 font-bold transition-colors'
+              }
+            >
+              Pricing &amp; Plans
             </Link>
-            <Link href="/pricing" className="text-slate-800 hover:text-brand-600 font-bold transition-colors">
-              Pricing
-            </Link>
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 rounded-full">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <div
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
+                isDark
+                  ? 'text-slate-300 bg-slate-900/90 border-slate-700/80'
+                  : 'text-slate-600 bg-slate-100/90 border-slate-200/80'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Zero Sensitive Data</span>
             </div>
           </div>
@@ -54,12 +88,16 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link href="/signin">
-                  <Button variant="ghost" size="sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={isDark ? 'text-slate-300 hover:text-white hover:bg-slate-800' : ''}
+                  >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="sm" className="bg-brand-600 hover:bg-brand-500 text-white font-bold">
                     Get Started Free
                   </Button>
                 </Link>
@@ -71,7 +109,9 @@ export const Navbar: React.FC = () => {
           <div className="flex md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              className={`p-2 rounded-lg ${
+                isDark ? 'text-slate-300 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -82,7 +122,11 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-6 space-y-3">
+        <div
+          className={`md:hidden border-b px-4 pt-2 pb-6 space-y-3 ${
+            isDark ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+          }`}
+        >
           <div className="flex flex-col space-y-1.5 text-sm font-semibold text-slate-700">
             <Link
               href="/#how-it-works"
