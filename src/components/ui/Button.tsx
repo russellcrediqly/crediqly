@@ -31,11 +31,13 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variants = {
     primary:
-      'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus-visible:ring-brand-500 shadow-xs font-bold',
+      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus-visible:ring-slate-900 shadow-xs font-semibold',
+    brand:
+      'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus-visible:ring-brand-500 shadow-xs font-semibold',
     secondary:
-      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus-visible:ring-slate-700 shadow-xs font-bold',
+      'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 active:bg-slate-100 focus-visible:ring-slate-400 shadow-2xs font-semibold',
     outline:
-      'border border-slate-300 bg-white text-slate-800 hover:text-slate-950 hover:bg-slate-50 hover:border-slate-400 active:bg-slate-100 focus-visible:ring-brand-500 shadow-2xs font-semibold',
+      'border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-400 active:bg-slate-100 focus-visible:ring-slate-400 shadow-2xs font-semibold',
     'outline-white':
       'border border-white/60 bg-white/20 text-white hover:bg-white/30 hover:border-white/80 active:bg-white/35 focus-visible:ring-white shadow-2xs font-semibold backdrop-blur-xs',
     'outline-inverted':
@@ -47,13 +49,13 @@ export const Button: React.FC<ButtonProps> = ({
     'ghost-inverted':
       'text-white hover:text-white hover:bg-white/20 active:bg-white/30 focus-visible:ring-white font-semibold',
     danger:
-      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus-visible:ring-rose-500 shadow-xs font-bold',
+      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus-visible:ring-rose-500 shadow-xs font-semibold',
   };
 
   const sizes = {
-    sm: 'px-3.5 py-2 text-xs font-semibold min-h-[36px]',
-    md: 'px-4 py-2.5 text-sm font-semibold min-h-[42px]',
-    lg: 'px-6 py-3.5 text-base font-bold min-h-[48px]',
+    sm: 'px-3 py-1.5 text-xs font-semibold min-h-[34px]',
+    md: 'px-4 py-2 text-sm font-semibold min-h-[40px]',
+    lg: 'px-5 py-2.5 text-base font-semibold min-h-[46px]',
   };
 
   return (

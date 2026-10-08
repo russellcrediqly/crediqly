@@ -6,6 +6,7 @@ import { CustomerJourneyResult, JourneyStage } from '@/lib/roadmap/customerJourn
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import {
   CheckCircle2,
   ArrowRight,
@@ -61,27 +62,12 @@ export const CustomerJourneyCard: React.FC<CustomerJourneyCardProps> = ({
   const renderStatusBadge = (status: JourneyStage['status']) => {
     switch (status) {
       case 'completed':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            <span>Completed</span>
-          </span>
-        );
+        return <StatusBadge status="Complete" size="sm" />;
       case 'in_progress':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-brand-100 text-brand-800 border border-brand-300 animate-pulse">
-            <ArrowRight className="w-3 h-3 text-brand-600" />
-            <span>Current Stage</span>
-          </span>
-        );
+        return <StatusBadge status="In Progress" size="sm" />;
       case 'upcoming':
       default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-            <Circle className="w-2.5 h-2.5 text-slate-400" />
-            <span>Upcoming</span>
-          </span>
-        );
+        return <StatusBadge status="Next" size="sm" />;
     }
   };
 
@@ -228,26 +214,27 @@ export const CustomerJourneyCard: React.FC<CustomerJourneyCardProps> = ({
               })}
             </div>
 
-            {/* Mobile / Tablet Scrollable Pills */}
-            <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs font-bold">
-              {stages.map((stg, idx) => {
+            {/* Mobile / Tablet Vertical Progression Stepper (Zero Horizontal Overflow) */}
+            <div className="lg:hidden space-y-2 pt-1">
+              {stages.map((stg) => {
                 const isComp = stg.status === 'completed';
                 const isCurr = stg.status === 'in_progress';
 
                 return (
-                  <React.Fragment key={stg.id}>
-                    <Link
-                      href={stg.actionHref}
-                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl shrink-0 transition-all ${
-                        isCurr
-                          ? 'bg-white text-brand-950 font-black shadow-md ring-2 ring-teal-300'
-                          : isComp
-                          ? 'text-emerald-200 bg-emerald-900/40 border border-emerald-500/40'
-                          : 'text-white/70 bg-white/10 border border-white/10'
-                      }`}
-                    >
+                  <Link
+                    key={stg.id}
+                    href={stg.actionHref}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                      isCurr
+                        ? 'bg-white text-brand-950 font-black shadow-md ring-2 ring-teal-300'
+                        : isComp
+                        ? 'text-emerald-100 bg-white/10 border border-emerald-400/30'
+                        : 'text-white/70 bg-white/5 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
                           isCurr
                             ? 'bg-brand-600 text-white'
                             : isComp
@@ -257,12 +244,21 @@ export const CustomerJourneyCard: React.FC<CustomerJourneyCardProps> = ({
                       >
                         {isComp ? '✓' : isCurr ? '→' : stg.numberPrefix}
                       </span>
-                      <span>{stg.title}</span>
-                    </Link>
-                    {idx < stages.length - 1 && (
-                      <span className="text-white/30 font-bold shrink-0">→</span>
-                    )}
-                  </React.Fragment>
+                      <span className="text-xs font-bold">{stg.title}</span>
+                    </div>
+
+                    <span
+                      className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full ${
+                        isCurr
+                          ? 'bg-brand-100 text-brand-900 font-black'
+                          : isComp
+                          ? 'bg-emerald-900/60 text-emerald-300'
+                          : 'bg-white/10 text-white/60'
+                      }`}
+                    >
+                      {isComp ? 'Completed' : isCurr ? 'In Progress' : 'Upcoming'}
+                    </span>
+                  </Link>
                 );
               })}
             </div>

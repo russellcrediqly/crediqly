@@ -10,9 +10,11 @@ export type ProductCategory =
 export type ProductStatus = 'active' | 'inactive' | 'pending';
 
 export type MatchLabel =
-  | 'Strong Potential Match'
   | 'Strong Match'
   | 'Potential Match'
+  | 'Preliminary Match'
+  | 'Not Recommended Yet'
+  | 'Strong Potential Match'
   | 'Possible Match'
   | 'Improve Readiness First'
   | 'Explore';
@@ -20,6 +22,13 @@ export type MatchLabel =
 export type MatchIndicator = 'strong' | 'possible' | 'improve_readiness';
 
 export type PersonalGuaranteeType = 'no' | 'yes' | 'soft_pull_only' | 'check_provider';
+
+export interface BankingFitInfo {
+  whyFits: string;
+  suitableStage: string;
+  foundationSupport: string;
+  fundingPrepSupport: string;
+}
 
 export interface Product {
   id: string;
@@ -60,6 +69,14 @@ export interface RecommendedProduct extends Product {
   matchIndicator: MatchIndicator;
   matchScore: number;
   recommendationReason: string;
+  // Standardized intelligent recommendation fields
+  recommendedForYou?: string;
+  whyThisMatches?: string;
+  whatYouMayNeed?: string[];
+  whatToConsider?: string;
+  bankingFit?: BankingFitInfo;
+  nextStepsToImprove?: string[];
+  relevantMilestoneId?: string;
 }
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {

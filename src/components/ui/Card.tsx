@@ -4,18 +4,33 @@ import { cn } from '@/lib/utils';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
+  variant?: 'default' | 'elevated' | 'quiet' | 'interactive';
 }
 
-export const Card: React.FC<CardProps> = ({ children, className = '', ...props }) => {
+export const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
+  variant = 'default',
+  ...props
+}) => {
   const hasCustomBg = /\bbg-/.test(className);
   const hasCustomBorder = /\bborder-[a-z]/.test(className);
+
+  const variantStyles = {
+    default: 'bg-white border border-slate-200/80 shadow-xs',
+    elevated: 'bg-white border border-slate-200/90 shadow-sm ring-1 ring-slate-900/[0.03]',
+    quiet: 'bg-slate-50/70 border border-slate-200/60 shadow-none',
+    interactive:
+      'bg-white border border-slate-200/80 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-150 cursor-pointer',
+  };
 
   return (
     <div
       className={cn(
-        !hasCustomBg && 'bg-white',
-        !hasCustomBorder && 'border border-slate-200/80',
-        'rounded-xl shadow-sm transition-shadow hover:shadow-md',
+        'rounded-xl transition-all duration-150',
+        !hasCustomBg && !variantStyles[variant].includes('bg-') && 'bg-white',
+        !hasCustomBorder && !variantStyles[variant].includes('border-') && 'border border-slate-200/80',
+        variantStyles[variant],
         className
       )}
       {...props}

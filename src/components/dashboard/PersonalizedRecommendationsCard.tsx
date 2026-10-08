@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import type {
   UnifiedDashboardRecommendations,
   UnifiedRecommendationItem,
@@ -32,33 +33,6 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
   className = '',
 }) => {
   const { readinessScore, items, recommendedHighlights, improveFirstHighlights, disclaimer } = data;
-
-  const renderIndicatorBadge = (indicator: 'strong' | 'possible' | 'improve_readiness', label: string) => {
-    switch (indicator) {
-      case 'strong':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>🟢 {label}</span>
-          </span>
-        );
-      case 'possible':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>🟡 {label}</span>
-          </span>
-        );
-      case 'improve_readiness':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span>🔴 {label}</span>
-          </span>
-        );
-    }
-  };
 
   const getScoreColorClass = (score: number) => {
     if (score >= 70) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
@@ -142,10 +116,10 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
               <div className="space-y-3">
                 {/* Category & Match Status */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                     {item.categoryLabel}
                   </span>
-                  {renderIndicatorBadge(item.matchIndicator, item.matchLabel)}
+                  <StatusBadge status={item.matchLabel} size="sm" />
                 </div>
 
                 {/* Name & Terms */}
@@ -160,7 +134,7 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
 
                 {/* Why it is relevant */}
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-800 block">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                     Why:
                   </span>
                   <p className="text-slate-600 leading-relaxed line-clamp-3">
@@ -176,12 +150,12 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
                   className="flex-1"
                 >
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
-                    className="w-full text-xs font-bold border-brand-200 text-brand-700 hover:bg-brand-50 flex items-center justify-center gap-1.5 h-8 shadow-2xs"
+                    className="w-full text-xs font-semibold flex items-center justify-center gap-1.5 h-8 shadow-2xs"
                   >
-                    <span>View Details</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-brand-600" />
+                    <span>Review Option</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
                 </Link>
 

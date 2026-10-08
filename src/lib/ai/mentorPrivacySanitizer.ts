@@ -10,7 +10,7 @@ const SENSITIVE_PATTERNS = [
   // 15-16 digit payment card patterns
   /\b(?:\d{4}[ -]?){3}\d{4}\b/g,
   // API Keys / Secrets / Tokens (sk_live, sb_secret, bearer tokens)
-  /(?:sk_live|sk_test|sb_secret|ghp_|eyJh)[a-zA-Z0-9_\-]{16,}/gi,
+  /(?:sk_live|sk_test|sb_secret|ghp_|eyJh)[a-zA-Z0-9_\-]+/gi,
   // Password / credential strings in prompts
   /(?:password|pwd|secret|passphrase)\s*[:=]\s*\S+/gi,
   // Bank Account & Routing Number patterns

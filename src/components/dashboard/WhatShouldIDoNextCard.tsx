@@ -81,26 +81,25 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
   return (
     <Card className={`border-brand-200 bg-white shadow-sm overflow-hidden rounded-2xl ${className}`}>
       {/* Top Header */}
-      <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-indigo-950 text-white p-6 sm:p-7 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-slate-900 text-white p-6 sm:p-7 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-200 border border-brand-400/30 text-xs font-black uppercase tracking-wider backdrop-blur-xs">
-                <Zap className="w-3.5 h-3.5 text-brand-300" />
-                <span>Intelligent Recommendation Engine</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-200 border border-white/15 text-xs font-semibold">
+                <Zap className="w-3.5 h-3.5 text-teal-400" />
+                <span>Recommendation Engine</span>
               </span>
-              <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+              <span className="text-xs font-medium text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
                 {actions.length} Prioritized {actions.length === 1 ? 'Action' : 'Actions'}
               </span>
-              <span className="text-xs font-black uppercase tracking-wider text-teal-300 bg-teal-900/60 border border-teal-400/40 px-2.5 py-0.5 rounded-full">
-                YOUR NEXT STEP
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-300 bg-teal-950/80 border border-teal-500/40 px-2.5 py-0.5 rounded-full">
+                Your Next Step
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              WHAT SHOULD I DO NEXT?
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              What Should I Do Next?
             </h2>
-            <p className="text-xs sm:text-sm text-brand-100/90 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Dynamically prioritized guidance based on your profile completion, credit depth, cash-flow stability, and funding requirements.
             </p>
           </div>
@@ -110,7 +109,7 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
               <Button
                 variant="outline-white"
                 size="sm"
-                className="text-xs font-bold gap-1.5 shadow-sm"
+                className="text-xs font-semibold gap-1.5 shadow-2xs"
               >
                 <span>View Full Roadmap</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -254,14 +253,14 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                     {onToggleComplete && topAction.roadmapTaskKey && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() => handleToggle(topAction.roadmapTaskKey!)}
                         disabled={completingKey === topAction.roadmapTaskKey}
-                        className="text-xs font-bold text-slate-800 hover:text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
+                        className="text-xs font-semibold shadow-2xs"
                       >
                         <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
-                        <span>{completingKey === topAction.roadmapTaskKey ? 'Updating...' : 'Mark Complete'}</span>
+                        <span>{completingKey === topAction.roadmapTaskKey ? 'Updating...' : 'Complete This Step'}</span>
                       </Button>
                     )}
 
@@ -269,7 +268,7 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                       <Button
                         variant="primary"
                         size="md"
-                        className="text-xs font-black gap-2 shadow-sm bg-brand-600 hover:bg-brand-500 text-white whitespace-nowrap"
+                        className="text-xs font-semibold gap-2 shadow-xs whitespace-nowrap"
                       >
                         <span>{topAction.actionLabel || 'View Recommended Options'}</span>
                         <ArrowRight className="w-4 h-4" />

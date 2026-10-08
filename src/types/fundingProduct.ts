@@ -57,8 +57,10 @@ export interface FundingProduct {
 
 export type FundingMatchLevel =
   | 'Strong Match'
-  | 'Possible Match'
   | 'Potential Match'
+  | 'Preliminary Match'
+  | 'Not Recommended Yet'
+  | 'Possible Match'
   | 'Not Ready Yet'
   | 'Explore';
 
@@ -67,6 +69,10 @@ export interface FundingMatchResult {
   matchLevel: FundingMatchLevel;
   score: number;
   whyThisFits: string;
+  recommendedForYou?: string;
+  whyThisMatches?: string;
+  whatYouMayNeed?: string[];
+  whatToConsider?: string;
   verificationNotes: string[];
   requirementSummary: {
     minAge: string;

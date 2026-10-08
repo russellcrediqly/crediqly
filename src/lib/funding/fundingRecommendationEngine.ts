@@ -1,9 +1,9 @@
-import type { BusinessProfile } from '../../types/business';
+import type { BusinessProfile } from '../../types/business.ts';
 import type {
   FundingProduct,
   FundingMatchResult,
   FundingMatchLevel,
-} from '../../types/fundingProduct';
+} from '../../types/fundingProduct.ts';
 
 function parseBusinessAgeMonths(age?: string | number): number | null {
   if (typeof age === 'number') return age;
@@ -34,7 +34,7 @@ function parseRevenueNumber(rev?: string | number): number | null {
   return isNaN(num) ? null : num;
 }
 
-function parseMinRevenueRequirement(revStr?: string): number {
+export function parseMinRevenueRequirement(revStr?: string): number {
   if (!revStr || revStr === '$0' || revStr.toLowerCase() === 'none') return 0;
   if (revStr.includes('250,000')) return 250000;
   if (revStr.includes('100,000')) return 100000;
@@ -44,7 +44,7 @@ function parseMinRevenueRequirement(revStr?: string): number {
   return isNaN(num) ? 0 : num;
 }
 
-function parsePersonalCreditScore(tier?: string | number): number | null {
+export function parsePersonalCreditScore(tier?: string | number): number | null {
   if (typeof tier === 'number') return tier;
   if (!tier || tier === 'not_sure' || tier === 'Not sure') return null;
   const clean = String(tier).replace(/[–—]/g, '-').trim();
@@ -57,7 +57,7 @@ function parsePersonalCreditScore(tier?: string | number): number | null {
   return isNaN(num) ? null : num;
 }
 
-function parseMinPersonalCreditRequirement(creditStr?: string): number {
+export function parseMinPersonalCreditRequirement(creditStr?: string): number {
   if (!creditStr || creditStr.toLowerCase() === 'none' || creditStr === 'No minimum') return 0;
   const num = parseInt(creditStr.replace(/[^0-9]/g, ''), 10);
   return isNaN(num) ? 0 : num;
@@ -229,44 +229,81 @@ export function matchFundingProducts(
     // =========================================================================
     // 8. Match Level Classification (Never fake approval)
     // =========================================================================
-    let matchLevel: FundingMatchLevel = 'Possible Match';
+    let matchLevel: FundingMatchLevel = 'Potential Match';
 
     if (isGrant) {
-      matchLevel = score >= 50 ? 'Strong Match' : 'Possible Match';
+      matchLevel = score >= 50 ? 'Strong Match' : 'Potential Match';
     } else if (hasDisqualification) {
-      matchLevel = (product.category === 'SBA-related Financing' || product.minBusinessAgeMonths >= 24)
-        ? 'Explore'
-        : 'Not Ready Yet';
+      matchLevel = 'Not Recommended Yet';
     } else if (hasUnverifiedKeyField) {
-      matchLevel = 'Potential Match';
+      matchLevel = 'Preliminary Match';
     } else if (score >= 70) {
       matchLevel = 'Strong Match';
     } else {
-      matchLevel = 'Possible Match';
+      matchLevel = 'Potential Match';
     }
 
     // =========================================================================
-    // 9. Deterministic "Why this fits" narrative
+    // 9. Standardized Recommendation Fields
     // =========================================================================
+    let recommendedForYou = isGrant
+      ? 'Non-Dilutive Grant Opportunity'
+      : `${product.category} for your operating stage`;
+
     let whyThisFits = '';
     if (matchLevel === 'Strong Match') {
       if (isGrant) {
-        whyThisFits = 'Your business profile is eligible to apply for this non-dilutive grant opportunity. Zero repayment required.';
+        whyThisFits = 'Your business profile is eligible to apply for this non-dilutive grant opportunity. Zero equity and zero repayment required.';
       } else if (matchedStrengths.length >= 2) {
-        whyThisFits = `Your reported business profile (${matchedStrengths.slice(0, 2).join(', ').toLowerCase()}) aligns strongly with the baseline parameters for this option.`;
+        whyThisFits = `Your reported business profile (${matchedStrengths.slice(0, 2).join(', ').toLowerCase()}) aligns strongly with the underwriting parameters for this option.`;
       } else {
-        whyThisFits = 'Your profile appears consistent with provider underwriting baselines based on reported information.';
+        whyThisFits = 'Your profile appears consistent with provider underwriting baselines based on reported operating information.';
       }
-    } else if (matchLevel === 'Possible Match' || matchLevel === 'Potential Match') {
+    } else if (matchLevel === 'Potential Match' || matchLevel === 'Preliminary Match') {
       if (hasUnverifiedKeyField) {
-        whyThisFits = 'You may fit the basic profile for this option, but additional documentation (such as banking activity or operating history) may be required.';
+        whyThisFits = 'Preliminary fit based on available data. Final qualification requires verifying commercial banking activity and operating history with the provider.';
       } else {
         whyThisFits = 'Potential preliminary fit. Review provider criteria and terms to confirm your specific business eligibility.';
       }
-    } else if (matchLevel === 'Explore') {
-      whyThisFits = 'Explore long-term commercial capital options as you build foundational operating seasoning.';
     } else {
-      whyThisFits = 'Your current readiness profile suggests completing additional foundational or credit-building steps before pursuing this financing option.';
+      whyThisFits = 'Not recommended yet. Your current profile suggests completing foundational credit-building and operating milestones before applying to avoid inquiries.';
+    }
+
+    // What You May Need checklist
+    const whatYouMayNeed: string[] = [];
+    if (product.minBusinessAgeMonths > 0) {
+      whatYouMayNeed.push(`${product.minBusinessAgeMonths}+ months registered time in business`);
+    } else {
+      whatYouMayNeed.push('Open to newer and early-stage entities');
+    }
+
+    if (product.minAnnualRevenue && product.minAnnualRevenue !== '$0') {
+      whatYouMayNeed.push(`Minimum ${product.minAnnualRevenue}/year documented annual revenue`);
+    }
+
+    if (!isGrant && product.minPersonalCredit && product.minPersonalCredit !== 'None') {
+      whatYouMayNeed.push(`Personal credit score tier: ${product.minPersonalCredit}`);
+    }
+
+    if (product.businessCreditRequired === 'yes') {
+      whatYouMayNeed.push('Active commercial credit bureau profile & reporting accounts');
+    }
+
+    if (whatYouMayNeed.length === 0) {
+      whatYouMayNeed.push('Commercial business checking account in good standing');
+      whatYouMayNeed.push('Active state legal entity registration (LLC or Corporation)');
+    }
+
+    // What to consider
+    const whatToConsider = isGrant
+      ? `Deadline: ${product.grantDeadline || 'Rolling application'}. Non-repayable award. Competitive evaluation based on business mission.`
+      : `Rate/Terms: ${product.rateTermsInfo || 'Determined by provider'}. Typical repayment: ${product.typicalTermRange || product.repaymentType || 'Fixed term'}. No hard credit check to review preliminary criteria.`;
+
+    // Ensure fallback next steps for Not Recommended Yet
+    if (matchLevel === 'Not Recommended Yet' && nextStepsToImprove.length === 0) {
+      nextStepsToImprove.push('Milestone #06: Register your commercial bureau profile with Dun & Bradstreet');
+      nextStepsToImprove.push('Milestone #07: Establish 3+ reporting Tier-1 Net-30 vendor tradelines');
+      nextStepsToImprove.push('Milestone #13: Reach 6+ months operational seasoning and establish regular revenue deposits');
     }
 
     // =========================================================================
@@ -292,6 +329,10 @@ export function matchFundingProducts(
       matchLevel,
       score,
       whyThisFits,
+      recommendedForYou,
+      whyThisMatches: whyThisFits,
+      whatYouMayNeed,
+      whatToConsider,
       verificationNotes,
       requirementSummary,
       checklistMet,
@@ -301,12 +342,14 @@ export function matchFundingProducts(
     };
   });
 
-  // Sort: Strong Match first, then Possible Match, then Not Ready Yet; then score descending
+  // Sort: Strong Match first, then Potential / Preliminary Match, then Not Recommended Yet; then score descending
   const levelWeights: Record<FundingMatchLevel, number> = {
     'Strong Match': 300,
+    'Potential Match': 220,
+    'Preliminary Match': 210,
     'Possible Match': 200,
-    'Potential Match': 200,
     'Explore': 150,
+    'Not Recommended Yet': 100,
     'Not Ready Yet': 100,
   };
 

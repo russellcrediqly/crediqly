@@ -21,6 +21,7 @@ import {
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import type {
   PersonalizedFundingMatchesResult,
   PersonalizedFundingTier,
@@ -55,32 +56,6 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
     }
     if (item.isExternal && item.ctaUrl) {
       window.open(item.ctaUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const renderBadge = (tier: 'strong' | 'possible' | 'improve_readiness', label: string) => {
-    switch (tier) {
-      case 'strong':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>🟢 {label}</span>
-          </span>
-        );
-      case 'possible':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>🟡 {label}</span>
-          </span>
-        );
-      case 'improve_readiness':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-50 text-rose-900 border border-rose-300 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span>🔴 {label}</span>
-          </span>
-        );
     }
   };
 
@@ -198,7 +173,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
               <div className="space-y-3.5">
                 {/* Badge */}
                 <div className="flex items-center justify-between gap-2">
-                  {renderBadge(strongMatch.tier, strongMatch.badgeLabel)}
+                  <StatusBadge status={strongMatch.badgeLabel} size="sm" />
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     {strongMatch.providerName}
                   </span>
@@ -283,7 +258,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
               <div className="space-y-3.5">
                 {/* Badge */}
                 <div className="flex items-center justify-between gap-2">
-                  {renderBadge(possibleMatch.tier, possibleMatch.badgeLabel)}
+                  <StatusBadge status={possibleMatch.badgeLabel} size="sm" />
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     {possibleMatch.providerName}
                   </span>
@@ -373,7 +348,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
               <div className="space-y-3.5">
                 {/* Badge */}
                 <div className="flex items-center justify-between gap-2">
-                  {renderBadge(improveReadinessMatch.tier, improveReadinessMatch.badgeLabel)}
+                  <StatusBadge status={improveReadinessMatch.badgeLabel} size="sm" />
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     {improveReadinessMatch.providerName}
                   </span>

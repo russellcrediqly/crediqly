@@ -51,7 +51,11 @@ import {
   getUserFundingApplications,
   createFundingApplication,
 } from '@/lib/supabase/fundingApplicationService';
-import { matchFundingProducts } from '@/lib/funding/fundingRecommendationEngine';
+import {
+  matchFundingProducts,
+  parseMinRevenueRequirement,
+  parseMinPersonalCreditRequirement,
+} from '@/lib/funding/fundingRecommendationEngine';
 import {
   FundingProduct,
   FundingCategory,
@@ -80,11 +84,16 @@ export default function FundingPage() {
 
   // View state & filters
   const [activeTab, setActiveTab] = useState<'marketplace' | 'top_matches' | 'grants' | 'tracked'>('marketplace');
+  const [marketplaceViewMode, setMarketplaceViewMode] = useState<'curated' | 'all'>('curated');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedAmount, setSelectedAmount] = useState<string>('all');
   const [selectedRepayment, setSelectedRepayment] = useState<string>('all');
   const [selectedMatchLevel, setSelectedMatchLevel] = useState<string>('all');
+  const [selectedAge, setSelectedAge] = useState<string>('all');
+  const [selectedRevenue, setSelectedRevenue] = useState<string>('all');
+  const [selectedCredit, setSelectedCredit] = useState<string>('all');
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('all');
 
   // Modal states
   const [selectedModalMatch, setSelectedModalMatch] = useState<FundingMatchResult | null>(null);
@@ -251,9 +260,58 @@ export default function FundingPage() {
         }
       }
 
+      // 6. Business Age Filter
+      if (selectedAge !== 'all') {
+        const ageMonths = p.minBusinessAgeMonths || 0;
+        if (selectedAge === 'under_6_months' && ageMonths > 6) return false;
+        if (selectedAge === '6_to_12_months' && (ageMonths < 6 || ageMonths > 12)) return false;
+        if (selectedAge === '1_to_2_years' && (ageMonths < 12 || ageMonths > 24)) return false;
+        if (selectedAge === '2_years_plus' && ageMonths < 24) return false;
+      }
+
+      // 7. Revenue Filter
+      if (selectedRevenue !== 'all') {
+        const reqRev = parseMinRevenueRequirement(p.minAnnualRevenue);
+        if (selectedRevenue === 'zero' && reqRev > 0) return false;
+        if (selectedRevenue === '25k_plus' && reqRev > 25000) return false;
+        if (selectedRevenue === '50k_plus' && reqRev > 50000) return false;
+        if (selectedRevenue === '100k_plus' && reqRev > 100000) return false;
+        if (selectedRevenue === '250k_plus' && reqRev > 250000) return false;
+      }
+
+      // 8. Credit Filter
+      if (selectedCredit !== 'all') {
+        const reqCredit = parseMinPersonalCreditRequirement(p.minPersonalCredit);
+        if (selectedCredit === 'none' && reqCredit > 0) return false;
+        if (selectedCredit === '600_plus' && reqCredit > 620) return false;
+        if (selectedCredit === '650_plus' && reqCredit > 660) return false;
+        if (selectedCredit === '680_plus' && reqCredit > 680) return false;
+        if (selectedCredit === '700_plus' && reqCredit > 700) return false;
+      }
+
+      // 9. Industry Filter
+      if (selectedIndustry !== 'all') {
+        const ind = selectedIndustry.toLowerCase();
+        const textBlob = `${p.name} ${p.category} ${p.description} ${(p.fundingPurposes || []).join(' ')} ${p.eligibilityNotes || ''}`.toLowerCase();
+        if (selectedIndustry === 'tech' && !textBlob.includes('tech') && !textBlob.includes('software') && !textBlob.includes('saas') && !textBlob.includes('digital') && !textBlob.includes('working capital')) {
+          // General working capital is open to all
+        }
+      }
+
       return true;
     });
-  }, [matchedResults, searchQuery, selectedCategory, selectedRepayment, selectedMatchLevel, selectedAmount]);
+  }, [
+    matchedResults,
+    searchQuery,
+    selectedCategory,
+    selectedRepayment,
+    selectedMatchLevel,
+    selectedAmount,
+    selectedAge,
+    selectedRevenue,
+    selectedCredit,
+    selectedIndustry,
+  ]);
 
   if (sections.funding === false) {
     return (
@@ -658,147 +716,56 @@ export default function FundingPage() {
           </div>
 
           {/* ================================================================= */}
-          {/* TAB 1: ALL MARKETPLACE OPPORTUNITIES + SIMPLE FILTERS             */}
+          {/* TAB 1: MARKETPLACE WITH CURATED TOP 3 & INTUITIVE FILTERS         */}
           {/* ================================================================= */}
           {activeTab === 'marketplace' && (
             <div className="space-y-6">
-              {/* Filter Bar */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      placeholder="Search provider or loan..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full text-xs font-semibold pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
-                    />
+              {/* TOP 3 CURATED SHOWCASE HERO */}
+              <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900 via-brand-950 to-slate-950 text-white space-y-6 shadow-md border border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-500/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>CURATED PRELIMINARY MATCHES</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                      Here are the 3 options that make the most sense for you right now
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+                      Matched to your reported annual revenue, operational seasoning, and funding readiness score ({readiness?.score ?? 0}/100).
+                    </p>
                   </div>
 
-                  {/* Funding Amount */}
-                  <div>
-                    <select
-                      value={selectedAmount}
-                      onChange={(e) => setSelectedAmount(e.target.value)}
-                      className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center bg-white/10 p-1 rounded-xl border border-white/10 shrink-0 self-start sm:self-center text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setMarketplaceViewMode('curated')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        marketplaceViewMode === 'curated'
+                          ? 'bg-white text-slate-950 shadow-xs'
+                          : 'text-white/80 hover:text-white'
+                      }`}
                     >
-                      <option value="all">All Funding Amounts</option>
-                      <option value="under_10k">Under $10,000</option>
-                      <option value="10k_25k">$10,000 – $25,000</option>
-                      <option value="25k_50k">$25,000 – $50,000</option>
-                      <option value="50k_100k">$50,000 – $100,000</option>
-                      <option value="100k_plus">$100,000+</option>
-                    </select>
-                  </div>
-
-                  {/* Funding Type */}
-                  <div>
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                      Top 3 Only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMarketplaceViewMode('all')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        marketplaceViewMode === 'all'
+                          ? 'bg-white text-slate-950 shadow-xs'
+                          : 'text-white/80 hover:text-white'
+                      }`}
                     >
-                      <option value="all">All Funding Types</option>
-                      <option value="Business Line of Credit">Business Line of Credit</option>
-                      <option value="Term Loan">Business Term Loan</option>
-                      <option value="Business Credit Card">Business Credit Card</option>
-                      <option value="Equipment Financing">Equipment Financing</option>
-                      <option value="Working Capital">Working Capital Advance</option>
-                      <option value="SBA-related Financing">SBA 7(a) / Express</option>
-                      <option value="Revenue-based Financing">Revenue-Based Financing</option>
-                      <option value="Invoice Financing">Invoice Factoring</option>
-                      <option value="Grant">Grants (Non-dilutive)</option>
-                    </select>
-                  </div>
-
-                  {/* Repayment Type */}
-                  <div>
-                    <select
-                      value={selectedRepayment}
-                      onChange={(e) => setSelectedRepayment(e.target.value)}
-                      className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="all">All Repayment Terms</option>
-                      <option value="Revolving">Revolving Line</option>
-                      <option value="Short Term">Short Term (&lt;12 mos)</option>
-                      <option value="Medium Term">Medium Term (12–36 mos)</option>
-                      <option value="Long Term">Long Term (36+ mos)</option>
-                      <option value="Grant">Grant ($0 Repayment)</option>
-                    </select>
-                  </div>
-
-                  {/* Match Status */}
-                  <div>
-                    <select
-                      value={selectedMatchLevel}
-                      onChange={(e) => setSelectedMatchLevel(e.target.value)}
-                      className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="all">All Match Levels</option>
-                      <option value="Strong Match">🟢 Strong Match</option>
-                      <option value="Possible Match">🟡 Possible Match</option>
-                      <option value="Not Ready Yet">🔴 Not Ready Yet</option>
-                    </select>
+                      View All Options ({matchedResults.length})
+                    </button>
                   </div>
                 </div>
 
-                {/* Active Filter Clear */}
-                {(selectedCategory !== 'all' ||
-                  selectedAmount !== 'all' ||
-                  selectedRepayment !== 'all' ||
-                  selectedMatchLevel !== 'all' ||
-                  searchQuery.trim() !== '') && (
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
-                    <span>Showing {filteredMarketplaceResults.length} of {matchedResults.length} opportunities</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory('all');
-                        setSelectedAmount('all');
-                        setSelectedRepayment('all');
-                        setSelectedMatchLevel('all');
-                        setSearchQuery('');
-                      }}
-                      className="text-xs font-bold text-brand-600 hover:text-brand-700 underline"
-                    >
-                      Reset All Filters
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Marketplace Cards Grid */}
-              {filteredMarketplaceResults.length === 0 ? (
-                <Card className="border-slate-200 bg-white p-12 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                    <Filter className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-base font-bold text-slate-900">
-                    No matching funding opportunities found
-                  </h4>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Try relaxing your filters, changing your requested funding amount, or clearing your search criteria.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedCategory('all');
-                      setSelectedAmount('all');
-                      setSelectedRepayment('all');
-                      setSelectedMatchLevel('all');
-                      setSearchQuery('');
-                    }}
-                    className="text-xs font-bold"
-                  >
-                    Reset Filters
-                  </Button>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredMarketplaceResults.map((match) => (
+                {/* Top 3 Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {topMatches.map((match) => (
                     <FundingOpportunityCard
                       key={match.product.id}
                       matchResult={match}
@@ -808,6 +775,245 @@ export default function FundingPage() {
                       onOutboundClick={handleOutboundClick}
                     />
                   ))}
+                </div>
+
+                {marketplaceViewMode === 'curated' && (
+                  <div className="pt-2 text-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMarketplaceViewMode('all')}
+                      className="text-xs text-white border-white/20 hover:bg-white/10 bg-transparent font-bold gap-1.5 px-4"
+                    >
+                      <span>Explore All {matchedResults.length} Funding Opportunities with Custom Filters</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* FULL MARKETPLACE FILTER BAR (Shown when in 'all' view mode) */}
+              {marketplaceViewMode === 'all' && (
+                <div className="space-y-6 pt-2">
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="w-4 h-4 text-brand-600" />
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                          Intuitive Marketplace Filters
+                        </h3>
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium">
+                        Showing {filteredMarketplaceResults.length} of {matchedResults.length} opportunities
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {/* 1. Search */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Search provider, loan..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full text-xs font-semibold pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        />
+                      </div>
+
+                      {/* 2. Funding Type */}
+                      <div>
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Funding Types</option>
+                          <option value="Business Line of Credit">Business Line of Credit</option>
+                          <option value="Term Loan">Business Term Loan</option>
+                          <option value="Business Credit Card">Business Credit Card</option>
+                          <option value="Equipment Financing">Equipment Financing</option>
+                          <option value="Working Capital">Working Capital Advance</option>
+                          <option value="SBA-related Financing">SBA 7(a) / Express</option>
+                          <option value="Revenue-based Financing">Revenue-Based Financing</option>
+                          <option value="Invoice Financing">Invoice Factoring</option>
+                          <option value="Grant">Small Business Grants</option>
+                        </select>
+                      </div>
+
+                      {/* 3. Funding Amount */}
+                      <div>
+                        <select
+                          value={selectedAmount}
+                          onChange={(e) => setSelectedAmount(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Funding Amounts</option>
+                          <option value="under_10k">Under $10,000</option>
+                          <option value="10k_25k">$10,000 – $25,000</option>
+                          <option value="25k_50k">$25,000 – $50,000</option>
+                          <option value="50k_100k">$50,000 – $100,000</option>
+                          <option value="100k_plus">$100,000+</option>
+                        </select>
+                      </div>
+
+                      {/* 4. Business Age */}
+                      <div>
+                        <select
+                          value={selectedAge}
+                          onChange={(e) => setSelectedAge(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Operating Ages</option>
+                          <option value="under_6_months">Startups (&lt; 6 months)</option>
+                          <option value="6_to_12_months">6 to 12 months</option>
+                          <option value="1_to_2_years">1 to 2 years</option>
+                          <option value="2_years_plus">2+ years established</option>
+                        </select>
+                      </div>
+
+                      {/* 5. Revenue */}
+                      <div>
+                        <select
+                          value={selectedRevenue}
+                          onChange={(e) => setSelectedRevenue(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Revenue Levels</option>
+                          <option value="zero">$0 / Pre-Revenue</option>
+                          <option value="25k_plus">$25,000+/year</option>
+                          <option value="50k_plus">$50,000+/year</option>
+                          <option value="100k_plus">$100,000+/year</option>
+                          <option value="250k_plus">$250,000+/year</option>
+                        </select>
+                      </div>
+
+                      {/* 6. Credit Profile */}
+                      <div>
+                        <select
+                          value={selectedCredit}
+                          onChange={(e) => setSelectedCredit(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Credit Tiers</option>
+                          <option value="none">No Credit Check / Grants</option>
+                          <option value="600_plus">600+ Personal Score</option>
+                          <option value="650_plus">650+ Personal Score</option>
+                          <option value="680_plus">680+ Personal Score</option>
+                          <option value="700_plus">700+ Excellent Score</option>
+                        </select>
+                      </div>
+
+                      {/* 7. Repayment Structure */}
+                      <div>
+                        <select
+                          value={selectedRepayment}
+                          onChange={(e) => setSelectedRepayment(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Repayment Terms</option>
+                          <option value="Revolving">Revolving Line</option>
+                          <option value="Short Term">Short Term (&lt;12 mos)</option>
+                          <option value="Medium Term">Medium Term (12–36 mos)</option>
+                          <option value="Long Term">Long Term (36+ mos)</option>
+                          <option value="Grant">Grant ($0 Repayment)</option>
+                        </select>
+                      </div>
+
+                      {/* 8. Match Status */}
+                      <div>
+                        <select
+                          value={selectedMatchLevel}
+                          onChange={(e) => setSelectedMatchLevel(e.target.value)}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+                        >
+                          <option value="all">All Match Levels</option>
+                          <option value="Strong Match">🟢 Strong Match</option>
+                          <option value="Preliminary Match">🔵 Preliminary Match</option>
+                          <option value="Potential Match">🟡 Potential Match</option>
+                          <option value="Not Recommended Yet">🔴 Not Recommended Yet</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Active Filter Clear */}
+                    {(selectedCategory !== 'all' ||
+                      selectedAmount !== 'all' ||
+                      selectedRepayment !== 'all' ||
+                      selectedMatchLevel !== 'all' ||
+                      selectedAge !== 'all' ||
+                      selectedRevenue !== 'all' ||
+                      selectedCredit !== 'all' ||
+                      selectedIndustry !== 'all' ||
+                      searchQuery.trim() !== '') && (
+                      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+                        <span>Active filters applied</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory('all');
+                            setSelectedAmount('all');
+                            setSelectedRepayment('all');
+                            setSelectedMatchLevel('all');
+                            setSelectedAge('all');
+                            setSelectedRevenue('all');
+                            setSelectedCredit('all');
+                            setSelectedIndustry('all');
+                            setSearchQuery('');
+                          }}
+                          className="text-xs font-bold text-brand-600 hover:text-brand-700 underline"
+                        >
+                          Reset All Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Marketplace Cards Grid */}
+                  {filteredMarketplaceResults.length === 0 ? (
+                    <Card className="border-slate-200 bg-white p-12 text-center space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <Filter className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-base font-bold text-slate-900">
+                        No matching funding opportunities found
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Try relaxing your filters, changing your requested funding amount, or clearing your search criteria.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCategory('all');
+                          setSelectedAmount('all');
+                          setSelectedRepayment('all');
+                          setSelectedMatchLevel('all');
+                          setSelectedAge('all');
+                          setSelectedRevenue('all');
+                          setSelectedCredit('all');
+                          setSelectedIndustry('all');
+                          setSearchQuery('');
+                        }}
+                        className="text-xs font-bold"
+                      >
+                        Reset Filters
+                      </Button>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {filteredMarketplaceResults.map((match) => (
+                        <FundingOpportunityCard
+                          key={match.product.id}
+                          matchResult={match}
+                          isTracked={trackedProductIds.has(match.product.id)}
+                          onTrack={handleTrackProduct}
+                          onSelectDetails={(res) => setSelectedModalMatch(res)}
+                          onOutboundClick={handleOutboundClick}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
