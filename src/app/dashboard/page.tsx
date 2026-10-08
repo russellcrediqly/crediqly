@@ -18,13 +18,11 @@ import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
 import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import { calculateCustomerJourney } from '@/lib/roadmap/customerJourney';
 import { CustomerJourneyCard } from '@/components/dashboard/CustomerJourneyCard';
-import { FundingReadinessScoreCard } from '@/components/dashboard/FundingReadinessScoreCard';
 import { WhatShouldIDoNextCard } from '@/components/dashboard/WhatShouldIDoNextCard';
 import { getTopRecommendedActions } from '@/lib/recommendations/nextActionsEngine';
 import { getPersonalizedFundingMatches } from '@/lib/funding/personalizedMatchesEngine';
 import { FundingMatchesForYouCard } from '@/components/funding/FundingMatchesForYouCard';
 import { calculateFundingForecast } from '@/lib/forecast/fundingForecastEngine';
-import { FundingForecastCard } from '@/components/dashboard/FundingForecastCard';
 import { CrediqlyAIMentorCard } from '@/components/dashboard/CrediqlyAIMentorCard';
 import { PersonalizedRecommendationsCard } from '@/components/dashboard/PersonalizedRecommendationsCard';
 import {
@@ -33,7 +31,6 @@ import {
 } from '@/lib/recommendations/unifiedRecommendationService';
 import type { SafeCustomerAIContext } from '@/types/aiMentor';
 import { buildSafeCustomerAIContext } from '@/lib/ai/aiContextBuilder';
-import { evaluateMajorReadinessAreas } from '@/lib/readiness/fundingFactors';
 import { getFundingProducts } from '@/lib/supabase/fundingProductService';
 import { FundingProduct } from '@/types/fundingProduct';
 import { usePlatformSections } from '@/lib/usePlatformSections';
@@ -63,13 +60,19 @@ import {
   DollarSign,
   Activity,
   Layers,
+  ChevronRight,
+  Target,
+  Zap,
+  Info,
+  Clock,
+  Briefcase,
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { business, refreshBusiness } = useBusiness();
-  const { roadmap, completedTasks, toggleTaskCompletion, markActionCompleted, undoActionCompletion } = useRoadmap();
+  const { business } = useBusiness();
+  const { roadmap, completedTasks, toggleTaskCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
   const { isPro, isAdvisory, upgradeToPro, openCustomerPortal, refreshSubscription, verifyCheckoutSession } = useSubscription();
   const [upgradedNotice, setUpgradedNotice] = useState(false);
@@ -136,7 +139,7 @@ export default function DashboardPage() {
     return calculateMilestoneReadiness(business, completedTasks);
   }, [business, completedTasks]);
 
-  // Dynamic time-of-day greeting (Good morning / Good afternoon / Good evening)
+  // Dynamic time-of-day greeting
   const [timeOfDayGreeting, setTimeOfDayGreeting] = useState('Good morning');
   useEffect(() => {
     const hour = new Date().getHours();
@@ -145,41 +148,17 @@ export default function DashboardPage() {
     else setTimeOfDayGreeting('Good evening');
   }, []);
 
-  // Compute previous funding score from progress history for monthly delta
-  const previousFundingScore = useMemo(() => {
-    if (!history || history.length < 2) return undefined;
-    for (let i = 1; i < history.length; i++) {
-      if (typeof history[i].fundingReadinessScore === 'number') {
-        return history[i].fundingReadinessScore;
-      }
-    }
-    return undefined;
-  }, [history]);
-
-  // Compute top 3 recommended next actions (Phase B)
+  // Compute top recommended next actions
   const topRecommendedActions = useMemo(() => {
     return getTopRecommendedActions(business, roadmap, fundingReadiness);
   }, [business, roadmap, fundingReadiness]);
 
-  // Compute personalized funding matches (Phase D)
+  // Compute personalized funding matches
   const personalizedFundingMatches = useMemo(() => {
     return getPersonalizedFundingMatches(business, fundingReadiness.score, fundingProducts);
   }, [business, fundingReadiness.score, fundingProducts]);
 
-  // Compute 90-day funding forecast & cash-flow profile (Phase F)
-  const fundingForecast = useMemo(() => {
-    return calculateFundingForecast(business, fundingReadiness.score, latestCheckIn);
-  }, [business, fundingReadiness.score, latestCheckIn]);
-
-  // Dynamic Borrowing Power Estimate based on deterministic readiness score
-  const estimatedBorrowingCapacity = useMemo(() => {
-    if (fundingReadiness.score >= 75) return '$75,000 – $150,000+';
-    if (fundingReadiness.score >= 50) return '$35,000 – $75,000';
-    if (fundingReadiness.score >= 25) return '$15,000 – $35,000';
-    return '$5,000 – $15,000';
-  }, [fundingReadiness.score]);
-
-  // Construct safe customer context for Crediqly AI Advisor (Intelligent Guidance Layer)
+  // Construct safe customer context for Crediqly AI Advisor
   const aiMentorContext: SafeCustomerAIContext = useMemo(() => {
     return buildSafeCustomerAIContext({
       business,
@@ -229,7 +208,6 @@ export default function DashboardPage() {
           setLatestCheckIn(latestCheck);
         }
 
-        // Record initial snapshot if profile is complete
         if (business && business.profileCompleted) {
           await recordProgressSnapshot(user!.id, {
             businessId: business.businessId,
@@ -251,7 +229,7 @@ export default function DashboardPage() {
     };
   }, [user?.id, business?.profileCompleted, readiness.businessReadiness.score, readiness.creditReadiness.score, fundingReadiness.score, roadmap.percentage]);
 
-  // Load unified recommendations (Net-30, Credit Cards, Loans)
+  // Load unified recommendations
   useEffect(() => {
     let isMounted = true;
     async function loadUnified() {
@@ -270,6 +248,14 @@ export default function DashboardPage() {
     };
   }, [business, roadmap, fundingReadiness.score]);
 
+  // Determine stage readiness status label
+  const readinessLabel = useMemo(() => {
+    if (fundingReadiness.score >= 75) return 'Funding Ready';
+    if (fundingReadiness.score >= 50) return 'Building Readiness';
+    if (fundingReadiness.score >= 25) return 'Developing Foundation';
+    return 'Initial Setup';
+  }, [fundingReadiness.score]);
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -280,7 +266,7 @@ export default function DashboardPage() {
           userName={user?.name}
         />
 
-        <div className="space-y-7 max-w-5xl mx-auto">
+        <div className="space-y-6 max-w-5xl mx-auto pb-12">
           {/* Admin Platform Announcement Banner */}
           {settings?.messaging?.announcementEnabled && settings?.messaging?.dashboardAnnouncement && (
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-800 text-white shadow-xs flex items-start gap-3.5 border border-brand-500/30">
@@ -324,15 +310,15 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 1. WELCOME / BUSINESS OVERVIEW HEADER (Fintech Caliber)          */}
+          {/* 1. WELCOME & STAGE COMMAND CENTER HEADER                         */}
           {/* ================================================================= */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
             <div className="p-6 sm:p-7 space-y-5">
-              {/* Calm, Institutional Header Status Row */}
+              {/* Header Status Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
-                    Command Center
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-800 bg-brand-50 border border-brand-200/80 px-2.5 py-0.5 rounded-full">
+                    Stage {customerJourney.activeStepNumber}: {customerJourney.currentStageLabel}
                   </span>
                   <StatusBadge
                     status={isProfileComplete ? 'Verified' : 'Needs Attention'}
@@ -344,27 +330,33 @@ export default function DashboardPage() {
                       <span>Premium Advisory</span>
                     </span>
                   ) : isPro ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 text-brand-800 text-xs font-semibold">
-                      <Sparkles className="w-3 h-3 text-brand-600" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                      <Sparkles className="w-3 h-3 text-emerald-600" />
                       <span>Pro Active</span>
                     </span>
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Institutional Engine Active</span>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/readiness"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                  >
+                    <Award className="w-3.5 h-3.5 text-brand-600" />
+                    <span>Readiness Index: <strong className="font-mono">{fundingReadiness.score}</strong>/100</span>
+                    <ChevronRight className="w-3 h-3 text-slate-400" />
+                  </Link>
                 </div>
               </div>
 
-              {/* Welcome text & Quick Actions */}
+              {/* Title & Primary Action Header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="space-y-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                     {timeOfDayGreeting}, {business?.businessName || firstName}
                   </h1>
-                  <p className="text-sm font-normal text-slate-600 max-w-2xl leading-relaxed">
-                    Let&apos;s get your business ready for stronger credit and funding.
+                  <p className="text-sm text-slate-600 max-w-2xl leading-relaxed font-normal">
+                    Let&apos;s build your business toward stronger credit and funding. Follow your guided next step below.
                   </p>
                 </div>
 
@@ -374,7 +366,7 @@ export default function DashboardPage() {
                       variant="primary"
                       size="sm"
                       onClick={upgradeToPro}
-                      className="text-xs font-semibold gap-1.5 shadow-xs"
+                      className="text-xs font-bold gap-1.5 shadow-xs bg-brand-600 hover:bg-brand-500 text-white"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Upgrade to Pro ($39/mo)</span>
@@ -386,7 +378,7 @@ export default function DashboardPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="gap-1.5 text-xs font-semibold shadow-2xs"
+                        className="gap-1.5 text-xs font-semibold shadow-2xs text-slate-800"
                       >
                         <CalendarCheck className="w-3.5 h-3.5 text-slate-500" />
                         <span>
@@ -394,7 +386,7 @@ export default function DashboardPage() {
                           ['Requested', 'Confirmed', 'Rescheduled'].includes(latestConsultation.status)
                             ? 'View Advisory Session'
                             : isAdvisory
-                            ? 'Book Monthly Meeting ($0)'
+                            ? 'Book Monthly Session'
                             : 'Explore Advisory'}
                         </span>
                       </Button>
@@ -403,85 +395,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Concise Current Status & Progress */}
-              <div className="p-4 sm:p-5 rounded-xl bg-slate-50/70 border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  {/* Score & Level */}
-                  <div className="flex items-center gap-3">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                        Funding Readiness
-                      </span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-slate-900 font-mono">
-                          {fundingReadiness.score}
-                        </span>
-                        <span className="text-xs text-slate-400 font-bold">/100</span>
-                      </div>
-                    </div>
-                    <StatusBadge
-                      status={
-                        fundingReadiness.score >= 70
-                          ? 'Strong Match'
-                          : fundingReadiness.score >= 50
-                          ? 'Potential Match'
-                          : 'Not Recommended Yet'
-                      }
-                      size="sm"
-                    />
-                  </div>
-
-                  <div className="hidden sm:block h-8 w-px bg-slate-200" />
-
-                  {/* Next Milestone */}
-                  <div className="space-y-0.5 max-w-xs">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                      Next milestone
-                    </span>
-                    <a
-                      href="#next-actions"
-                      className="text-xs font-semibold text-slate-800 hover:text-brand-700 truncate block transition-colors"
-                      title={milestoneReadiness.nextMilestone?.title || 'Establish credit baseline'}
-                    >
-                      {milestoneReadiness.nextMilestone?.title || 'Establish a stronger business credit foundation'}
-                    </a>
-                  </div>
-
-                  <div className="hidden sm:block h-8 w-px bg-slate-200" />
-
-                  {/* Milestones count */}
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                      Recommended Milestones
-                    </span>
-                    <p className="text-xs font-semibold text-slate-700">
-                      {milestoneReadiness.completedMilestonesCount} of {milestoneReadiness.totalMilestonesCount} completed
-                    </p>
-                  </div>
-                </div>
-
-                {/* Lightweight Recent Progress Pills */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {milestoneReadiness.items.filter((i) => i.isCompleted).length > 0 ? (
-                    milestoneReadiness.items
-                      .filter((i) => i.isCompleted)
-                      .slice(0, 2)
-                      .map((item) => (
-                        <StatusBadge
-                          key={item.definition.id}
-                          status="Complete"
-                          size="sm"
-                        />
-                      ))
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                      <span>Begin Foundation setup</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Business Metadata Row (when profile is complete) */}
+              {/* Business Profile Metadata Pill (When profile is complete) */}
               {isProfileComplete && business && (
                 <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-slate-600">
@@ -494,12 +408,6 @@ export default function DashboardPage() {
                     <span className="font-medium text-slate-700">{business.state}</span>
                     <span className="text-slate-300">•</span>
                     <span className="font-medium text-slate-700">{business.businessAge}</span>
-                    {business.industry && (
-                      <>
-                        <span className="text-slate-300">•</span>
-                        <span className="font-medium text-slate-700">{business.industry}</span>
-                      </>
-                    )}
                   </div>
 
                   <Link
@@ -514,128 +422,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ================================================================= */}
-          {/* EXECUTIVE TELEMETRY KPI STRIP (Linear / Stripe fintech caliber)   */}
-          {/* ================================================================= */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* KPI 1: Funding Readiness */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Readiness Index
-                </span>
-                <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 group-hover:scale-105 transition-transform">
-                  <Award className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-slate-900 font-mono tracking-tight">
-                    {fundingReadiness.score}
-                  </span>
-                  <span className="text-xs text-slate-400 font-bold uppercase">/ 100</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-brand-600 to-teal-500 transition-all duration-700"
-                    style={{ width: `${Math.max(5, fundingReadiness.score)}%` }}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-                <span className="font-bold text-brand-700">{fundingReadiness.level}</span>
-                <span className="text-slate-400 font-medium">14 Milestones</span>
-              </div>
-            </div>
-
-            {/* KPI 2: Commercial Bureau Status */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Commercial Bureaus
-                </span>
-                <span className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 group-hover:scale-105 transition-transform">
-                  <ShieldCheck className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-slate-900 tracking-tight">
-                    3 File Syncs
-                  </span>
-                </div>
-                <p className="text-[11px] font-semibold text-slate-500">
-                  D&amp;B • Experian • Equifax
-                </p>
-              </div>
-              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-                <span className="inline-flex items-center gap-1 font-bold text-teal-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                  <span>Active Mapping</span>
-                </span>
-                <span className="text-slate-400 font-medium">0 SSN Pulls</span>
-              </div>
-            </div>
-
-            {/* KPI 3: Commercial Borrowing Capacity */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Borrowing Capacity
-                </span>
-                <span className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                  <DollarSign className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                    {estimatedBorrowingCapacity}
-                  </span>
-                </div>
-                <p className="text-[11px] font-semibold text-slate-500">
-                  Tier 1 – 4 Funding Range
-                </p>
-              </div>
-              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-                <span className="font-bold text-emerald-700">Unsecured Lines</span>
-                <span className="text-slate-400 font-medium">Est. Range</span>
-              </div>
-            </div>
-
-            {/* KPI 4: Milestones Cleared */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Roadmap Status
-                </span>
-                <span className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
-                  <Activity className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
-                    Stage {customerJourney.activeStepNumber}
-                  </span>
-                  <span className="text-xs text-slate-400 font-bold">of {customerJourney.totalSteps}</span>
-                </div>
-                <p className="text-[11px] font-semibold text-slate-500 truncate" title={customerJourney.currentStageLabel}>
-                  {customerJourney.currentStageLabel}
-                </p>
-              </div>
-              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-                <span className="font-bold text-indigo-700">{customerJourney.overallProgress}% Complete</span>
-                <Link href="/roadmap" className="text-brand-600 hover:text-brand-700 font-semibold hover:underline">
-                  Roadmap →
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Incomplete Profile Progress Card */}
+          {/* Incomplete Profile Card (Condition B) */}
           {!isProfileComplete && sections.business_profile !== false && (
-            <Card className="border-amber-300 bg-amber-50/60 shadow-xs overflow-hidden">
+            <Card className="border-amber-300 bg-amber-50/60 shadow-xs overflow-hidden rounded-3xl">
               <CardContent className="p-6 sm:p-7 space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                   <div className="flex items-start gap-4">
@@ -652,12 +441,12 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
-                        Answer foundational questions to activate your commercial credit readiness scores and generate your tailored 5-stage funding roadmap.
+                        Answer foundational business details to activate your readiness score and generate your tailored 5-stage funding roadmap.
                       </p>
                     </div>
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-2">
+                  <div className="shrink-0">
                     <Link href="/onboarding">
                       <Button variant="primary" size="md" className="gap-2 shadow-xs font-bold whitespace-nowrap bg-amber-600 hover:bg-amber-500 text-white">
                         <span>Continue Setup</span>
@@ -667,7 +456,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Profile Completion Progress Bar */}
                 <div className="space-y-1.5 pt-3 border-t border-amber-200/70">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
                     <span>Profile Questions Answered</span>
@@ -685,43 +473,10 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 2. DETAILED FUNDING READINESS AUDIT BREAKDOWN                      */}
-          {/* Funding Readiness Card (Step 8) • grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 */}
-          {/* ================================================================= */}
-          {sections.funding_readiness !== false && (
-            <div className="space-y-3">
-              <FundingReadinessScoreCard
-                profile={business}
-                fundingReadiness={fundingReadiness}
-                previousScore={previousFundingScore}
-              />
-              {/* Pillar-level readiness visibility indicators */}
-              {sections.business_readiness !== false && sections.credit_readiness !== false && null}
-              <div className="flex justify-end">
-                <Link
-                  href="/readiness"
-                  className="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline flex items-center gap-1.5"
-                >
-                  <span>View Full Readiness Audit &amp; Gap Breakdown</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* 3. WHAT SHOULD I DO NEXT? (PRIMARY HERO ACTION: YOUR NEXT STEP)   */}
+          {/* 2. YOUR NEXT STEP (NOW) & UP NEXT (NEXT) — COMMAND CENTER HERO   */}
           {/* ================================================================= */}
           {sections.roadmap !== false && (
-            <div id="next-actions" className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-full">
-                  YOUR NEXT STEP
-                </span>
-                <span className="text-xs font-semibold text-slate-400">
-                  • Single Highest-Leverage Priority
-                </span>
-              </div>
+            <div id="next-actions" className="space-y-3">
               <WhatShouldIDoNextCard
                 actions={topRecommendedActions}
                 onToggleComplete={toggleTaskCompletion}
@@ -731,34 +486,112 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 4. BUSINESS CREDIT ROUTE MAP & CUSTOMER JOURNEY                   */}
+          {/* 3. YOUR JOURNEY (COMPACT 5-STAGE ROADMAP INDICATOR)               */}
           {/* ================================================================= */}
           {sections.roadmap !== false && (
             <CustomerJourneyCard journey={customerJourney} />
           )}
 
           {/* ================================================================= */}
-          {/* 5B. EXPANDED PERSONALIZED RECOMMENDATIONS (Net-30, Cards, Loans)  */}
+          {/* 4. COMPACT READINESS SUMMARY (Condition B)                        */}
           {/* ================================================================= */}
-          {sections.products !== false && unifiedRecommendations && (
-            <PersonalizedRecommendationsCard data={unifiedRecommendations} />
+          {sections.funding_readiness !== false && (
+            <Card className="border-slate-200/90 bg-white shadow-2xs overflow-hidden rounded-3xl">
+              <CardContent className="p-6 sm:p-7 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                      <Award className="w-6 h-6 text-brand-600" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                        Funding Readiness Index
+                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
+                          {fundingReadiness.score}
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold">/ 100</span>
+                        <StatusBadge
+                          status={
+                            fundingReadiness.score >= 70
+                              ? 'Strong Match'
+                              : fundingReadiness.score >= 50
+                              ? 'Potential Match'
+                              : 'Not Recommended Yet'
+                          }
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                      <span className="text-xs font-bold text-slate-700 block">{readinessLabel}</span>
+                      <span className="text-[11px] text-slate-500">
+                        {milestoneReadiness.completedMilestonesCount} of {milestoneReadiness.totalMilestonesCount} milestones completed
+                      </span>
+                    </div>
+                    <Link href="/readiness">
+                      <Button variant="outline" size="sm" className="gap-1.5 text-xs font-bold border-slate-300 text-slate-800">
+                        <span>View Full Audit</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 pt-2 border-t border-slate-100 leading-relaxed">
+                  <strong>Readiness Insight:</strong> {fundingReadiness.level}. Completing your current next step will improve your business credit depth and readiness score.
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* ================================================================= */}
-          {/* 6. FUNDING OPPORTUNITIES & FORECAST (Phase D & Phase F)           */}
+          {/* 5. RECOMMENDED FOR YOUR CURRENT STEP (Condition B — Stage-Aware)  */}
+          {/* ================================================================= */}
+          {sections.products !== false && unifiedRecommendations && (
+            <div className="space-y-2">
+              <PersonalizedRecommendationsCard data={unifiedRecommendations} />
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* 6. FUNDING STATUS & PREPARATION (Condition B — Stage-Aware)       */}
           {/* ================================================================= */}
           {sections.funding !== false && (
             <div className="space-y-4">
-              <FundingMatchesForYouCard
-                matches={personalizedFundingMatches}
-                isPro={isPro}
-              />
+              {fundingReadiness.score < 50 ? (
+                <Card className="border-slate-200/90 bg-slate-50/70 shadow-2xs overflow-hidden rounded-3xl p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-200 px-2.5 py-0.5 rounded-full">
+                          Stage 5: Funding
+                        </span>
+                        <span className="text-xs font-medium text-slate-500">• Upcoming Stage</span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900">
+                        Funding is a later step for your current profile.
+                      </h3>
+                      <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+                        Your business is currently in the credit-building stage. Focus on completing your foundation and establishing reporting tradelines first to unlock competitive loan terms.
+                      </p>
+                    </div>
 
-              {sections.funding_tracker !== false && trackedApps.length > 0 && null}
-
-              {sections.funding_forecast !== false && (
-                <FundingForecastCard
-                  forecast={fundingForecast}
+                    <Link href="/funding">
+                      <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 border-slate-300 text-slate-800 shrink-0">
+                        <span>See Funding Preparation</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ) : (
+                <FundingMatchesForYouCard
+                  matches={personalizedFundingMatches}
                   isPro={isPro}
                 />
               )}
@@ -766,14 +599,16 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 7. CREDIQLY AI MENTOR (Phase E)                                  */}
+          {/* 7. CREDIQLY AI ADVISOR SUPPORT                                    */}
           {/* ================================================================= */}
           {sections.ai_mentor !== false && (
-            <CrediqlyAIMentorCard context={aiMentorContext} />
+            <div id="ai-mentor">
+              <CrediqlyAIMentorCard context={aiMentorContext} />
+            </div>
           )}
 
           {/* ================================================================= */}
-          {/* 8. CURRENT PLAN / UPGRADE SUMMARY (Compact)                       */}
+          {/* 8. SUBSCRIPTION TIER & PLAN SUMMARY (Compact Contextual)          */}
           {/* ================================================================= */}
           <div className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div className="flex items-start sm:items-center gap-4">
@@ -782,7 +617,7 @@ export default function DashboardPage() {
                   isAdvisory
                     ? 'bg-gradient-to-br from-indigo-600 to-indigo-700'
                     : isPro
-                    ? 'bg-gradient-to-br from-brand-600 to-teal-600'
+                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600'
                     : 'bg-slate-800'
                 }`}
               >
@@ -797,7 +632,7 @@ export default function DashboardPage() {
                     isAdvisory
                       ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
                       : isPro
-                      ? 'bg-brand-50 text-brand-800 border-brand-200'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                       : 'bg-slate-100 text-slate-800 border-slate-200'
                   }`}>
                     {isAdvisory ? 'Premium Advisory' : isPro ? 'Crediqly Pro — $39/mo' : 'Free Member'}
@@ -805,10 +640,10 @@ export default function DashboardPage() {
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
                   {isAdvisory
-                    ? 'Full access to all 6 roadmap tiers, dedicated 1-on-1 advisor sessions, priority tradeline reviews, and funding concierge.'
+                    ? 'Full access to all 5 roadmap stages, 1-on-1 advisor sessions, priority tradeline reviews, and funding concierge.'
                     : isPro
                     ? 'Complete access to reporting tradeline directories, Tier 2-4 milestones, and advanced funding readiness guides.'
-                    : 'Free tier includes Foundation setup and starter Net-30 vendor accounts. Upgrade to unlock all 4 roadmap stages, revolving credit lines, and direct commercial funding.'}
+                    : 'Free tier includes Foundation setup and starter Net-30 accounts. Upgrade to unlock all 5 roadmap stages and revolving credit lines.'}
                 </p>
               </div>
             </div>
@@ -848,25 +683,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Funding Activity Pipeline Widget */}
-          {sections.funding_tracker !== false && trackedApps.length > 0 && (
-            <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <h4 className="text-sm font-bold text-slate-900">Funding Activity</h4>
-                <p className="text-xs text-slate-500">
-                  You have {trackedApps.length} active application{trackedApps.length === 1 ? '' : 's'} tracked in your pipeline.
-                </p>
-              </div>
-              <Link href="/funding-tracker">
-                <Button variant="outline" size="sm" className="text-xs font-semibold gap-1.5 border-slate-300 text-slate-800">
-                  <span>View Funding Pipeline</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          {/* Need Expert Help? Consultation Section */}
+          {/* Need Expert Help? Consultation Bar */}
           {sections.consultation !== false && (
             <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -874,12 +691,12 @@ export default function DashboardPage() {
                   <h3 className="text-base font-bold text-slate-900">Need Expert Help?</h3>
                   {latestConsultation && (
                     <span className="text-xs text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md font-semibold">
-                      Your consultation: {latestConsultation.status}
+                      Status: {latestConsultation.status}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Not sure what to do next? Request a consultation with the Crediqly team.
+                  Speak 1-on-1 with a Crediqly business credit specialist.
                 </p>
               </div>
               <Link href="/consultation">
