@@ -249,6 +249,44 @@ export const FundingReadinessScoreCard: React.FC<FundingReadinessScoreCardProps>
                 <span>100</span>
               </div>
             </div>
+
+            {/* Supporting Dimensions (Business Foundation, Business Credit, Financial Readiness, Funding Profile) */}
+            <div className="pt-3 border-t border-slate-200/80 space-y-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                Supporting Dimensions
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 truncate">Business Foundation</div>
+                  <div className="font-mono font-black text-slate-900">
+                    {fundingReadiness.categories.foundation.score} <span className="text-[10px] text-slate-400 font-bold">/ {fundingReadiness.categories.foundation.maxScore}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 truncate">Business Credit</div>
+                  <div className="font-mono font-black text-slate-900">
+                    {fundingReadiness.categories.businessCredit.score} <span className="text-[10px] text-slate-400 font-bold">/ {fundingReadiness.categories.businessCredit.maxScore}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 truncate">Financial Readiness</div>
+                  <div className="font-mono font-black text-slate-900">
+                    {fundingReadiness.categories.financialReadiness.score} <span className="text-[10px] text-slate-400 font-bold">/ {fundingReadiness.categories.financialReadiness.maxScore}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 truncate">Funding Profile</div>
+                  <div className="font-mono font-black text-slate-900">
+                    {fundingReadiness.categories.fundingProfile.score} <span className="text-[10px] text-slate-400 font-bold">/ {fundingReadiness.categories.fundingProfile.maxScore}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Simple Readiness Explanation */}
+            <p className="text-[11px] text-slate-500 leading-relaxed italic pt-1">
+              Your readiness reflects the information and milestones currently completed in Crediqly. It is not an official credit score or lender decision.
+            </p>
           </div>
 
           {/* Right Column: 5 Major Readiness Areas (7 cols) */}
@@ -346,28 +384,65 @@ export const FundingReadinessScoreCard: React.FC<FundingReadinessScoreCardProps>
           </div>
         </div>
 
-        {/* Highlight: Biggest Opportunity Card */}
-        <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-700 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center gap-1.5 text-brand-200 text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Biggest Opportunity</span>
+        {/* Highlight: Your Biggest Opportunity (Dynamic based on real customer data) */}
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-900 via-indigo-950 to-slate-950 text-white shadow-md border border-brand-500/20 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-amber-400/20 border border-amber-300/30 flex items-center justify-center text-amber-300">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-black uppercase tracking-widest text-amber-300">
+                Your Biggest Opportunity
+              </span>
             </div>
-            <p className="text-base sm:text-lg font-bold text-white leading-snug">
+            <span className="text-[11px] font-bold text-brand-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+              High Leverage
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
               &ldquo;{biggestOpportunity.quote}&rdquo;
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Addressing this single factor will deliver the highest immediate improvement to your commercial credit depth and lender underwriting profile.
             </p>
           </div>
 
-          <Link href={biggestOpportunity.ctaHref} className="shrink-0">
-            <Button
-              variant="secondary"
-              size="md"
-              className="gap-2 bg-white hover:bg-slate-100 text-brand-900 font-bold shadow-xs whitespace-nowrap w-full sm:w-auto border-0"
-            >
-              <span>{biggestOpportunity.ctaLabel}</span>
-              <ChevronRight className="w-4 h-4 text-brand-700" />
-            </Button>
-          </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-white/10 text-xs">
+            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-200 block">
+                Why this matters
+              </span>
+              <p className="text-slate-300 leading-relaxed">
+                Commercial underwriting algorithms heavily penalize gaps in credit depth or unseparated banking accounts before reviewing revenue.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300 block">
+                What you can do
+              </span>
+              <p className="text-slate-300 leading-relaxed">
+                Complete the recommended action below to add this qualification factor to your commercial profile.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <span className="text-[11px] text-slate-400 font-medium">
+              Calculated dynamically from your actual business profile
+            </span>
+            <Link href={biggestOpportunity.ctaHref} className="shrink-0">
+              <Button
+                variant="secondary"
+                size="md"
+                className="gap-2 bg-white hover:bg-slate-100 text-slate-900 font-extrabold shadow-sm whitespace-nowrap w-full sm:w-auto border-0"
+              >
+                <span>View action</span>
+                <ChevronRight className="w-4 h-4 text-brand-700" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Educational Disclaimer Footer */}

@@ -146,6 +146,22 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
         </div>
       )}
 
+      {/* Threshold preparation notice when readiness score or profile is still developing */}
+      {(!strongMatch || (improveReadinessMatch && !possibleMatch)) && (
+        <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Funding Readiness below threshold: </strong>
+              Complete business bank account and tradeline milestones to unlock matched lender options.
+            </span>
+          </div>
+          <Link href="/roadmap" className="text-amber-900 font-bold hover:underline shrink-0">
+            View Roadmap Milestones →
+          </Link>
+        </div>
+      )}
+
       {/* 3-Column Card Layout or Informative Empty State */}
       {!strongMatch && !possibleMatch && !improveReadinessMatch ? (
         <div className="p-6 sm:p-7 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xs">

@@ -132,23 +132,23 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
           </div>
         </div>
 
-        {/* 3 Simple Recommendation Cards */}
+        {/* 1–3 Curated Recommendation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {items.map((item) => (
+          {items.slice(0, 3).map((item) => (
             <div
               key={item.id}
-              className="p-4 sm:p-5 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4"
+              className="p-5 rounded-2xl border border-slate-200/90 bg-white hover:border-brand-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4"
             >
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {/* Category & Match Status */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                     {item.categoryLabel}
                   </span>
                   {renderIndicatorBadge(item.matchIndicator, item.matchLabel)}
                 </div>
 
-                {/* Name */}
+                {/* Name & Terms */}
                 <div>
                   <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-1">
                     {item.name}
@@ -158,35 +158,32 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
                   </p>
                 </div>
 
-                {/* Best For */}
-                <div className="text-xs text-slate-600 leading-relaxed">
-                  <span className="font-semibold text-slate-800">Best for: </span>
-                  <span className="line-clamp-2">{item.bestFor}</span>
+                {/* Why it is relevant */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-800 block">
+                    Why:
+                  </span>
+                  <p className="text-slate-600 leading-relaxed line-clamp-3">
+                    {item.reason}
+                  </p>
                 </div>
-
-                {/* Rationale snippet */}
-                <p className="text-[11px] text-slate-500 line-clamp-2 leading-normal">
-                  {item.reason}
-                </p>
               </div>
 
-              {/* Action Button */}
+              {/* Action Button: Links to Products / Funding Details */}
               <div className="pt-3 border-t border-slate-100">
-                <a
-                  href={item.ctaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/products"
                   className="w-full block"
                 >
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs font-semibold border-brand-200 text-brand-700 hover:bg-brand-50 flex items-center justify-center gap-1.5 h-8"
+                    className="w-full text-xs font-bold border-brand-200 text-brand-700 hover:bg-brand-50 flex items-center justify-center gap-1.5 h-8 shadow-2xs"
                   >
-                    <span>{item.ctaText}</span>
-                    <ExternalLink className="w-3 h-3 text-brand-600" />
+                    <span>View Details</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-brand-600" />
                   </Button>
-                </a>
+                </Link>
               </div>
             </div>
           ))}

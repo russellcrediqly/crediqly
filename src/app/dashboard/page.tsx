@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ConsultationModal } from '@/components/ui/ConsultationModal';
 import { calculateReadiness, calculateProfileCompletion } from '@/lib/scoring';
 import { calculateFundingReadiness } from '@/lib/readiness/fundingEngine';
+import { calculateMilestoneReadiness } from '@/lib/readiness/readinessMilestoneEngine';
 import { calculateCustomerJourney } from '@/lib/roadmap/customerJourney';
 import { CustomerJourneyCard } from '@/components/dashboard/CustomerJourneyCard';
 import { GuidedJourneyCard } from '@/components/dashboard/GuidedJourneyCard';
@@ -128,6 +129,20 @@ export default function DashboardPage() {
       trackedApps.length
     );
   }, [business, readiness.businessReadiness, readiness.creditReadiness, fundingReadiness, trackedApps.length]);
+
+  // Compute 14 authoritative milestone readiness status
+  const milestoneReadiness = useMemo(() => {
+    return calculateMilestoneReadiness(business, completedTasks);
+  }, [business, completedTasks]);
+
+  // Dynamic time-of-day greeting (Good morning / Good afternoon / Good evening)
+  const [timeOfDayGreeting, setTimeOfDayGreeting] = useState('Good morning');
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setTimeOfDayGreeting('Good morning');
+    else if (hour < 17) setTimeOfDayGreeting('Good afternoon');
+    else setTimeOfDayGreeting('Good evening');
+  }, []);
 
   // Compute previous funding score from progress history for monthly delta
   const previousFundingScore = useMemo(() => {
@@ -411,14 +426,10 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="space-y-1">
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    Welcome, {firstName}
+                    {timeOfDayGreeting}, {business?.businessName || firstName}
                   </h1>
-                  <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
-                    {settings?.messaging?.welcomeMessage && settings.messaging.welcomeMessage.trim() !== ''
-                      ? settings.messaging.welcomeMessage
-                      : isProfileComplete
-                      ? `Commercial credit & funding readiness command center for ${business?.businessName || 'your business'}. Monitor verified bureau lines and real-time funding preparedness.`
-                      : 'Start by completing your business profile to activate your automated commercial credit roadmap.'}
+                  <p className="text-sm font-medium text-slate-600 max-w-2xl leading-relaxed">
+                    Let&apos;s get your business ready for stronger credit and funding.
                   </p>
                 </div>
 
@@ -463,6 +474,75 @@ export default function DashboardPage() {
                         </span>
                       </Button>
                     </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Concise Current Status & Progress */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/90 border border-slate-200/90 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Score & Level */}
+                  <div className="flex items-center gap-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                        Funding Readiness
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900 font-mono">
+                          {fundingReadiness.score}
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold">/100</span>
+                      </div>
+                    </div>
+                    <Badge variant={fundingReadiness.score >= 70 ? 'success' : fundingReadiness.score >= 50 ? 'info' : 'warning'}>
+                      {fundingReadiness.level}
+                    </Badge>
+                  </div>
+
+                  <div className="hidden sm:block h-8 w-px bg-slate-200" />
+
+                  {/* Next Milestone */}
+                  <div className="space-y-0.5 max-w-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                      Next milestone
+                    </span>
+                    <p className="text-xs font-bold text-slate-800 truncate" title={milestoneReadiness.nextMilestone?.title || 'Establish credit baseline'}>
+                      {milestoneReadiness.nextMilestone?.title || 'Establish a stronger business credit foundation'}
+                    </p>
+                  </div>
+
+                  <div className="hidden sm:block h-8 w-px bg-slate-200" />
+
+                  {/* Milestones count */}
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                      Recommended Milestones
+                    </span>
+                    <p className="text-xs font-bold text-indigo-700">
+                      {milestoneReadiness.completedMilestonesCount} of {milestoneReadiness.totalMilestonesCount} recommended milestones completed
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lightweight Recent Progress Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {milestoneReadiness.items.filter((i) => i.isCompleted).length > 0 ? (
+                    milestoneReadiness.items
+                      .filter((i) => i.isCompleted)
+                      .slice(0, 2)
+                      .map((item) => (
+                        <span
+                          key={item.definition.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs"
+                        >
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>{item.definition.title}</span>
+                        </span>
+                      ))
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                      <span>Begin Foundation setup</span>
+                    </span>
                   )}
                 </div>
               </div>

@@ -131,7 +131,10 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Crediqly AI Mentor</span>
+                <span>Crediqly AI Advisor</span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-100/70 border border-indigo-200 px-2.5 py-0.5 rounded-md">
+                ASK YOUR CREDIQLY MENTOR
               </span>
               {isPro ? (
                 <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
@@ -144,10 +147,10 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
               )}
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              ASK YOUR CREDIQLY MENTOR
+              Your Crediqly AI Advisor
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-2xl">
-              Contextual guidance calibrated to your live profile, {score}/100 readiness score, and current stage. Zero fabricated numbers or approval guarantees.
+              Personalized guidance based on your business profile and progress.
             </p>
           </div>
 

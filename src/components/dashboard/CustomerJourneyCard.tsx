@@ -99,6 +99,13 @@ export const CustomerJourneyCard: React.FC<CustomerJourneyCardProps> = ({
               <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-0.5 rounded-full">
                 Stage {activeStepNumber} of {totalSteps}
               </span>
+              <Link
+                href="/roadmap"
+                className="text-xs font-bold text-teal-300 hover:text-teal-200 underline flex items-center gap-1 ml-1"
+              >
+                <span>View Full Journey (My Journey)</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
 
             <div className="pt-1">
@@ -119,7 +126,7 @@ export const CustomerJourneyCard: React.FC<CustomerJourneyCardProps> = ({
           <div className="flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/10 backdrop-blur-xs p-4 rounded-2xl border border-white/15 max-w-md">
             <div className="text-left space-y-0.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-brand-200 block">
-                Recommended Action
+                Current Stage Action
               </span>
               <p className="text-xs font-medium text-white leading-snug line-clamp-2">
                 {activeStep.recommendedAction}
