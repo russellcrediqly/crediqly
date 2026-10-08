@@ -48,6 +48,7 @@ interface SubNavItemDef {
 interface NavItemDef {
   href: string;
   label: string;
+  sublabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   sectionKey?: DashboardSectionKey;
   proBadge?: 'Pro' | 'VIP';
@@ -62,21 +63,35 @@ interface NavGroupDef {
 const NAV_GROUPS: NavGroupDef[] = [
   {
     items: [
-      { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
+      {
+        href: '/dashboard',
+        label: 'Dashboard',
+        sublabel: 'Command Center',
+        icon: LayoutDashboard,
+      },
+      // Backwards compatibility: label: 'Command Center'
     ],
   },
   {
     title: 'MY BUSINESS',
     items: [
       {
-        href: '/readiness',
-        label: 'Readiness Journey',
-        icon: ShieldCheck,
-        sectionKey: 'funding_readiness',
+        href: '/roadmap',
+        label: 'My Journey',
+        icon: GitFork,
+        sectionKey: 'roadmap',
         subItems: [
-          { href: '/readiness', label: '0–100 Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
+          { href: '/roadmap', label: 'Credit Roadmap', icon: GitFork, sectionKey: 'roadmap' },
+          { href: '/readiness', label: 'Readiness Audit', icon: ShieldCheck, sectionKey: 'funding_readiness' },
           // Backwards compatibility: href: '/funding-readiness'
-          { href: '/roadmap', label: 'Milestone Roadmap', icon: GitFork, sectionKey: 'roadmap' },
+        ],
+      },
+      {
+        href: '/business',
+        label: 'Business Credit',
+        icon: Building2,
+        sectionKey: 'business_profile',
+        subItems: [
           { href: '/business', label: 'Business Profile', icon: Building2, sectionKey: 'business_profile' },
         ],
       },
@@ -85,9 +100,9 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     title: 'BUILD CREDIT',
     items: [
-      { href: '/products', label: 'Credit Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
+      { href: '/products', label: 'Products', icon: CreditCard, sectionKey: 'products', proBadge: 'Pro' },
+      { href: '/advisory', label: 'Advisory', icon: Headphones, proBadge: 'VIP' },
       { href: '/learn', label: 'Learn', icon: BookOpen },
-      { href: '/advisory', label: 'VIP Advisory', icon: Headphones, proBadge: 'VIP' },
     ],
   },
   {
@@ -95,13 +110,13 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       {
         href: '/funding',
-        label: 'Funding Marketplace',
+        label: 'Funding',
         icon: DollarSign,
         sectionKey: 'funding',
         // Backwards compatibility: { href: '/funding', label: 'Funding', icon: DollarSign }
         subItems: [
-          { href: '/funding', label: 'Explore & Grants', icon: DollarSign, sectionKey: 'funding' },
-          { href: '/funding-tracker', label: 'Application Pipeline', icon: FileCheck, sectionKey: 'funding_tracker' },
+          { href: '/funding', label: 'Funding Marketplace', icon: DollarSign, sectionKey: 'funding' },
+          { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck, sectionKey: 'funding_tracker' },
           // Backwards compatibility: { href: '/funding-tracker', label: 'Funding Tracker', icon: FileCheck }
         ],
       },
@@ -112,10 +127,10 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       {
         href: '/profile',
-        label: 'Account & Settings',
+        label: 'Account',
         icon: User,
         subItems: [
-          { href: '/profile', label: 'Profile & Business Info', icon: User },
+          { href: '/profile', label: 'Profile & Settings', icon: User },
           { href: '/pricing', label: 'Plans & Billing', icon: Sparkles },
           { href: '/check-in', label: 'Monthly Check-In', icon: CalendarCheck },
         ],

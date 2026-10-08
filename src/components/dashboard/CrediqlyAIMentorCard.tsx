@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -13,19 +13,25 @@ import {
   Info,
   RefreshCw,
   Zap,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useSubscription } from '@/context/SubscriptionContext';
-import { Lock } from 'lucide-react';
-import type { SafeCustomerAIContext, AIMentorResponse } from '@/types/aiMentor';
+import {
+  SafeCustomerAIContext,
+  AIMentorResponse,
+  CORE_AI_MENTOR_QUESTIONS,
+  AIMentorQuickQuestion,
+} from '@/types/aiMentor';
 
 interface CrediqlyAIMentorCardProps {
   context: SafeCustomerAIContext;
   className?: string;
 }
 
-const FREE_QUESTION_LIMIT = 2;
+const FREE_QUESTION_LIMIT = 3;
 
 export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
   context,
@@ -35,21 +41,29 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [response, setResponse] = useState<AIMentorResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [questionsCount, setQuestionsCount] = useState<number>(0);
 
   const isLimitReached = !isPro && questionsCount >= FREE_QUESTION_LIMIT;
   const remainingQuestions = Math.max(0, FREE_QUESTION_LIMIT - questionsCount);
-
   const score = context.fundingReadinessScore || 0;
 
-  const quickQuestions = [
-    { id: 'improve_first', label: 'What should I improve first?', prompt: 'What should I improve first?' },
-    { id: 'lowering', label: 'What is lowering my funding readiness?', prompt: 'What is lowering my funding readiness?' },
-    { id: 'why_score', label: `Why is my readiness score ${score}?`, prompt: `Why is my readiness score ${score}?` },
-    { id: 'before_applying', label: 'What should I do before applying for funding?', prompt: 'What should I do before applying for funding?' },
-  ];
+  // Dynamically tailor core question prompts to customer's exact data
+  const dynamicQuestions = useMemo(() => {
+    return CORE_AI_MENTOR_QUESTIONS.map((q) => {
+      if (q.id === 'why_score') {
+        return { ...q, label: `Why is my readiness score ${score}?`, prompt: `Why is my readiness score ${score}?` };
+      }
+      return q;
+    });
+  }, [score]);
+
+  const filteredQuestions = useMemo(() => {
+    if (activeCategory === 'all') return dynamicQuestions;
+    return dynamicQuestions.filter((q) => q.category === activeCategory);
+  }, [dynamicQuestions, activeCategory]);
 
   const handleAsk = async (queryText: string) => {
     if (isLimitReached) {
@@ -83,10 +97,11 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
       console.warn('AI Mentor request failed, using client fallback:', err);
       // Even if network fails completely, provide friendly deterministic response
       setResponse({
-        answer: `Your readiness score is ${score}/100. Based on your current profile, focus on completing your highest-priority roadmap milestones to strengthen commercial bureau depth.`,
+        answer: `Your readiness score is ${score}/100 in ${context.currentJourneyStage}. Based on your profile, focus on completing your highest-priority roadmap milestones to strengthen commercial bureau depth.`,
         nextStep: {
           label: 'View Recommendations',
           href: '/dashboard#next-actions',
+          reason: 'Review priority action',
         },
         source: 'deterministic_fallback',
         disclaimer:
@@ -106,15 +121,15 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
 
   return (
     <Card
-      className={`border-indigo-200/90 bg-gradient-to-b from-indigo-50/40 via-white to-white shadow-xs overflow-hidden ${className}`}
+      className={`border-indigo-200/90 bg-gradient-to-b from-indigo-50/40 via-white to-white shadow-2xs overflow-hidden rounded-3xl ${className}`}
       id="ai-mentor"
     >
-      <CardContent className="p-5 sm:p-7 space-y-5">
+      <CardContent className="p-6 sm:p-7 space-y-5">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-100/80 pb-4">
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200/80">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Crediqly AI Mentor</span>
               </span>
@@ -131,25 +146,45 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               ASK YOUR CREDIQLY MENTOR
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Instant, practical answers personalized to your live readiness factors, scores, and active roadmap.
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-2xl">
+              Contextual guidance calibrated to your live profile, {score}/100 readiness score, and current stage. Zero fabricated numbers or approval guarantees.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Bot className="w-4 h-4 text-indigo-600" />
-            <span>Trained on commercial credit standards</span>
+          <div className="flex items-center gap-2 text-xs text-slate-500 bg-indigo-50/60 px-3 py-1.5 rounded-xl border border-indigo-100 shrink-0">
+            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            <span className="font-semibold">Deterministic Immutability Active</span>
           </div>
         </div>
 
-        {/* Quick Questions Chips (visible if not locked) */}
+        {/* Category Filter Tabs */}
         {!isLimitReached && (
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-              Suggested questions for your profile:
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+              {[
+                { id: 'all', label: 'All Questions' },
+                { id: 'next_steps', label: 'Next Steps & Focus' },
+                { id: 'tradelines_banking', label: 'Tradelines & Banking' },
+                { id: 'funding_timing', label: 'Funding Readiness' },
+                { id: 'credit_education', label: 'Credit Education' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveCategory(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl transition-all shrink-0 ${
+                    activeCategory === tab.id
+                      ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                      : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Questions Chips */}
             <div className="flex flex-wrap gap-2">
-              {quickQuestions.map((q) => (
+              {filteredQuestions.map((q) => (
                 <button
                   key={q.id}
                   onClick={() => {
@@ -159,7 +194,7 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
                   disabled={loading || isLimitReached}
                   className={`text-xs font-semibold px-3.5 py-2 rounded-xl border transition-all text-left flex items-center gap-2 ${
                     activeQuestion === q.prompt
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                       : 'bg-white hover:bg-indigo-50/80 text-slate-700 border-slate-200 hover:border-indigo-300'
                   }`}
                 >
@@ -224,7 +259,7 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
             <Button
               type="submit"
               disabled={loading || !question.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-xs transition-colors"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-2xs transition-colors"
             >
               {loading ? (
                 <>
@@ -243,16 +278,21 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
 
         {/* Mentor Response Area */}
         {response && (
-          <div className="p-5 rounded-2xl bg-white border border-indigo-200/90 shadow-xs space-y-4 animate-in fade-in slide-in-from-top-2">
+          <div className="p-5 rounded-2xl bg-white border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                 <Bot className="w-5 h-5" />
               </div>
               <div className="space-y-2 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-900">
-                    Crediqly AI Mentor Response
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">
+                      Crediqly AI Mentor Guidance
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                      {response.source === 'ai_model' ? 'Verified Model' : 'Deterministic Rule Engine'}
+                    </span>
+                  </div>
                   <button
                     onClick={handleClear}
                     className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-1"
@@ -281,7 +321,7 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
                 <Link href={response.nextStep.href} className="shrink-0">
                   <Button
                     size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-xs w-full sm:w-auto"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-2xs w-full sm:w-auto"
                   >
                     <span>{response.nextStep.label}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

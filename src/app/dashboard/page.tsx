@@ -203,11 +203,20 @@ export default function DashboardPage() {
       profileCompleted: Boolean(business?.profileCompleted),
       profileCompletionPercentage,
       businessAge: business?.businessAge,
+      state: business?.state,
+      industry: business?.industry,
       annualRevenue: business?.annualRevenueRange,
+      revenueRange: business?.annualRevenueRange,
       personalCreditTier: business?.personalCreditRange,
+      personalCreditRange: business?.personalCreditRange,
       hasBusinessCreditProfile: business?.hasBusinessCreditProfile,
+      businessCreditStatus: business?.hasBusinessCreditProfile,
       entityType: business?.entityType,
       fundingGoal: rawPurpose,
+      requestedFundingAmount: business?.fundingAmount,
+      fundingPurpose: Array.isArray(business?.fundingPurpose) ? business?.fundingPurpose : [],
+      completedMilestones: completedTasks,
+      customerConfirmedActivities: business?.completedDbTasks || [],
       currentJourneyStage: customerJourney.currentStageLabel || customerJourney.activeStep?.fullTitle || '01 — ESTABLISH',
       readinessFactors: majorAreas.map((a) => ({
         area: a.name,
@@ -687,30 +696,32 @@ export default function DashboardPage() {
           )}
 
           {/* ================================================================= */}
-          {/* 3. GUIDED BUSINESS CREDIT & FUNDING JOURNEY (YOUR NEXT STEP)      */}
+          {/* 3. WHAT SHOULD I DO NEXT? (PRIMARY HERO ACTION: YOUR NEXT STEP)   */}
           {/* ================================================================= */}
           {sections.roadmap !== false && (
-            <GuidedJourneyCard
-              journey={customerJourney}
-              fundingReadiness={fundingReadiness}
-              business={business}
-              history={history}
-              actions={topRecommendedActions}
-              completedTasks={completedTasks}
-              milestoneOverrides={settings?.readinessMilestoneSettings?.milestoneOverrides}
-              onToggleComplete={toggleTaskCompletion}
-              onMarkActionComplete={markActionCompleted}
-              onUndoActionComplete={undoActionCompletion}
-              onReassessReadiness={refreshBusiness}
-              isPro={isPro}
-              isAdvisory={isAdvisory}
-              onUpgradeToPro={upgradeToPro}
-            />
+            <div id="next-actions" className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-full">
+                  YOUR NEXT STEP
+                </span>
+                <span className="text-xs font-semibold text-slate-400">
+                  • Single Highest-Leverage Priority
+                </span>
+              </div>
+              <WhatShouldIDoNextCard
+                actions={topRecommendedActions}
+                onToggleComplete={toggleTaskCompletion}
+                isPro={isPro}
+              />
+            </div>
           )}
 
-          {/* Backward compatibility aliases */}
-          {false && <WhatShouldIDoNextCard actions={topRecommendedActions} />}
-          {false && <CustomerJourneyCard journey={customerJourney} />}
+          {/* ================================================================= */}
+          {/* 4. BUSINESS CREDIT ROUTE MAP & CUSTOMER JOURNEY                   */}
+          {/* ================================================================= */}
+          {sections.roadmap !== false && (
+            <CustomerJourneyCard journey={customerJourney} />
+          )}
 
           {/* ================================================================= */}
           {/* 5B. EXPANDED PERSONALIZED RECOMMENDATIONS (Net-30, Cards, Loans)  */}

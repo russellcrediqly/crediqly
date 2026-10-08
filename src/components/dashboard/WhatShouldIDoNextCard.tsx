@@ -93,6 +93,9 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
               <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
                 {actions.length} Prioritized {actions.length === 1 ? 'Action' : 'Actions'}
               </span>
+              <span className="text-xs font-black uppercase tracking-wider text-teal-300 bg-teal-900/60 border border-teal-400/40 px-2.5 py-0.5 rounded-full">
+                YOUR NEXT STEP
+              </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               WHAT SHOULD I DO NEXT?
