@@ -19,6 +19,9 @@ import {
   ChevronRight,
   CreditCard,
   ExternalLink,
+  Cpu,
+  Activity,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -78,6 +81,23 @@ export default function AdminSettingsPage() {
   const [savingRoadmap, setSavingRoadmap] = useState(false);
   const [savedRoadmapSuccess, setSavedRoadmapSuccess] = useState(false);
 
+  // AI Advisor Diagnostics State
+  const [aiStatus, setAiStatus] = useState<{
+    provider: string;
+    model: string;
+    isConfigured: boolean;
+    isOnline: boolean;
+    statusMessage: string;
+  } | null>(null);
+  const [testingAi, setTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{
+    success: boolean;
+    latencyMs: number;
+    provider: string;
+    model: string;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     async function load() {
       try {
@@ -93,6 +113,17 @@ export default function AdminSettingsPage() {
         if (data.roadmapSettings) {
           setRoadmapSettings(data.roadmapSettings);
         }
+
+        // Fetch AI status
+        try {
+          const res = await fetch('/api/ai/status');
+          if (res.ok) {
+            const statusData = await res.json();
+            setAiStatus(statusData);
+          }
+        } catch (aiErr) {
+          console.warn('Could not load AI status:', aiErr);
+        }
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -101,6 +132,26 @@ export default function AdminSettingsPage() {
     }
     load();
   }, []);
+
+  const handleTestAiConnection = async () => {
+    setTestingAi(true);
+    setAiTestResult(null);
+    try {
+      const res = await fetch('/api/ai/status', { method: 'POST' });
+      const data = await res.json();
+      setAiTestResult(data);
+    } catch (err: any) {
+      setAiTestResult({
+        success: false,
+        latencyMs: 0,
+        provider: aiStatus?.provider || 'unknown',
+        model: aiStatus?.model || 'unknown',
+        message: err?.message || 'Failed to ping AI service',
+      });
+    } finally {
+      setTestingAi(false);
+    }
+  };
 
   const handleSaveGeneralSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,6 +298,106 @@ export default function AdminSettingsPage() {
 
       {/* DASHBOARD SECTION CONTROLS */}
       <DashboardSectionControls />
+
+      {/* AI ADVISOR ENGINE CONTROLS & DIAGNOSTICS */}
+      <Card className="bg-slate-950 border-slate-800 text-white shadow-xs">
+        <CardContent className="p-5 sm:p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white">AI Advisor Engine Controls &amp; Diagnostics</h3>
+                  <Badge variant={aiStatus?.isConfigured ? 'success' : 'neutral'} className="text-[10px] uppercase font-bold">
+                    {aiStatus?.isConfigured ? 'Live Model Active' : 'Deterministic Engine Active'}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Inspect the intelligent guidance layer, provider model configurations, and connection health without exposing secrets.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleTestAiConnection}
+              disabled={testingAi}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold gap-1.5 shrink-0"
+            >
+              {testingAi ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Testing Connection...</span>
+                </>
+              ) : (
+                <>
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Test Connection</span>
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Active Provider</span>
+              <span className="font-mono text-white font-bold capitalize">
+                {aiStatus?.provider || 'Deterministic Engine'}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Model Configuration</span>
+              <span className="font-mono text-white font-bold">
+                {aiStatus?.model || 'Crediqly Rules Engine v3.8'}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Secret Key Security</span>
+              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Zero Exposure (Server Env)</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Fallback Resilience</span>
+              <span className="text-indigo-400 font-semibold text-[11px]">
+                Deterministic Rule Engine Ready
+              </span>
+            </div>
+          </div>
+
+          {/* Test Connection Diagnostic Result Banner */}
+          {aiTestResult && (
+            <div
+              className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 animate-in fade-in ${
+                aiTestResult.success
+                  ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+                  : 'bg-rose-950/40 border-rose-500/30 text-rose-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {aiTestResult.success ? (
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <Activity className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span>
+                  <strong>Diagnostic Status:</strong> {aiTestResult.message}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-700 shrink-0">
+                {aiTestResult.latencyMs}ms
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 2. CUSTOMER ANNOUNCEMENTS & MESSAGING */}
       <Card className="bg-slate-950 border-slate-800 text-white shadow-xs">

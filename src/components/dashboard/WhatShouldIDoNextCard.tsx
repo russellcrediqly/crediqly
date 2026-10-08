@@ -243,6 +243,14 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                       <span>Why am I seeing this?</span>
                     </Button>
 
+                    <a
+                      href="#ai-mentor"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Ask AI Advisor</span>
+                    </a>
+
                     {onToggleComplete && topAction.roadmapTaskKey && (
                       <Button
                         type="button"

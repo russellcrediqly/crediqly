@@ -170,10 +170,10 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
               </div>
 
               {/* Action Button: Links to Products / Funding Details */}
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
                 <Link
                   href="/products"
-                  className="w-full block"
+                  className="flex-1"
                 >
                   <Button
                     variant="outline"
@@ -184,6 +184,15 @@ export const PersonalizedRecommendationsCard: React.FC<PersonalizedRecommendatio
                     <ArrowRight className="w-3.5 h-3.5 text-brand-600" />
                   </Button>
                 </Link>
+
+                <a
+                  href="#ai-mentor"
+                  title={`Ask Crediqly AI why ${item.name} is recommended`}
+                  className="px-2.5 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1 shrink-0 transition-colors shadow-2xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Ask AI</span>
+                </a>
               </div>
             </div>
           ))}

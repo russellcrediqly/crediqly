@@ -32,6 +32,7 @@ import {
   UnifiedDashboardRecommendations,
 } from '@/lib/recommendations/unifiedRecommendationService';
 import type { SafeCustomerAIContext } from '@/types/aiMentor';
+import { buildSafeCustomerAIContext } from '@/lib/ai/aiContextBuilder';
 import { evaluateMajorReadinessAreas } from '@/lib/readiness/fundingFactors';
 import { getFundingProducts } from '@/lib/supabase/fundingProductService';
 import { FundingProduct } from '@/types/fundingProduct';
@@ -178,82 +179,23 @@ export default function DashboardPage() {
     return '$5,000 – $15,000';
   }, [fundingReadiness.score]);
 
-  // Construct safe customer context for Crediqly AI Mentor (Phase E)
+  // Construct safe customer context for Crediqly AI Advisor (Intelligent Guidance Layer)
   const aiMentorContext: SafeCustomerAIContext = useMemo(() => {
-    const rawPurpose = Array.isArray(business?.fundingPurpose)
-      ? business?.fundingPurpose.join(', ')
-      : business?.fundingPurpose || '';
-
-    const matchesList = [];
-    if (personalizedFundingMatches.strongMatch) {
-      matchesList.push({
-        tier: personalizedFundingMatches.strongMatch.badgeLabel,
-        category: personalizedFundingMatches.strongMatch.category,
-        range: personalizedFundingMatches.strongMatch.estimatedRange,
-      });
-    }
-    if (personalizedFundingMatches.possibleMatch) {
-      matchesList.push({
-        tier: personalizedFundingMatches.possibleMatch.badgeLabel,
-        category: personalizedFundingMatches.possibleMatch.category,
-        range: personalizedFundingMatches.possibleMatch.estimatedRange,
-      });
-    }
-    if (personalizedFundingMatches.improveReadinessMatch) {
-      matchesList.push({
-        tier: personalizedFundingMatches.improveReadinessMatch.badgeLabel,
-        category: personalizedFundingMatches.improveReadinessMatch.category,
-        range: personalizedFundingMatches.improveReadinessMatch.estimatedRange,
-      });
-    }
-
-    const majorAreas = evaluateMajorReadinessAreas(business || {});
-
-    return {
-      businessName: business?.businessName,
-      fundingReadinessScore: fundingReadiness.score,
-      readinessLevel: fundingReadiness.level,
-      businessReadinessScore: readiness.businessReadiness.score,
-      creditReadinessScore: readiness.creditReadiness.score,
-      profileCompleted: Boolean(business?.profileCompleted),
-      profileCompletionPercentage,
-      businessAge: business?.businessAge,
-      state: business?.state,
-      industry: business?.industry,
-      annualRevenue: business?.annualRevenueRange,
-      revenueRange: business?.annualRevenueRange,
-      personalCreditTier: business?.personalCreditRange,
-      personalCreditRange: business?.personalCreditRange,
-      hasBusinessCreditProfile: business?.hasBusinessCreditProfile,
-      businessCreditStatus: business?.hasBusinessCreditProfile,
-      entityType: business?.entityType,
-      fundingGoal: rawPurpose,
-      requestedFundingAmount: business?.fundingAmount,
-      fundingPurpose: Array.isArray(business?.fundingPurpose) ? business?.fundingPurpose : [],
-      completedMilestones: completedTasks,
-      customerConfirmedActivities: business?.completedDbTasks || [],
-      currentJourneyStage: customerJourney.currentStageLabel || customerJourney.activeStep?.fullTitle || '01 — ESTABLISH',
-      readinessFactors: majorAreas.map((a) => ({
-        area: a.name,
-        status: a.indicator === 'green' ? 'strong' : a.indicator === 'amber' ? 'good' : 'needs_improvement',
-        score: a.indicator === 'green' ? 90 : a.indicator === 'amber' ? 70 : 45,
-      })),
-      topNextActions: topRecommendedActions.map((a) => ({
-        title: a.title,
-        priority: a.priority,
-        category: a.category,
-      })),
-      fundingMatches: matchesList,
-    };
+    return buildSafeCustomerAIContext({
+      business,
+      completedTasks,
+      fundingProducts,
+      subscriptionTier: isAdvisory ? 'Premium Advisory' : isPro ? 'Pro' : 'Free',
+      isAdvisory,
+      roadmap,
+    });
   }, [
     business,
-    fundingReadiness,
-    readiness,
-    profileCompletionPercentage,
-    customerJourney.currentStageLabel,
-    customerJourney.activeStep?.fullTitle,
-    topRecommendedActions,
-    personalizedFundingMatches,
+    completedTasks,
+    fundingProducts,
+    isPro,
+    isAdvisory,
+    roadmap,
   ]);
 
   // Load essential dashboard data on mount
