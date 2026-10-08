@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
-  variant?: 'default' | 'elevated' | 'quiet' | 'interactive';
+  variant?: 'default' | 'elevated' | 'quiet' | 'interactive' | 'editorial' | 'flat';
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -17,11 +17,13 @@ export const Card: React.FC<CardProps> = ({
   const hasCustomBorder = /\bborder-[a-z]/.test(className);
 
   const variantStyles = {
-    default: 'bg-white border border-slate-200/80 shadow-xs',
-    elevated: 'bg-white border border-slate-200/90 shadow-sm ring-1 ring-slate-900/[0.03]',
+    default: 'bg-white border border-slate-200/80 shadow-2xs',
+    elevated: 'bg-white border border-slate-200/90 shadow-sm ring-1 ring-slate-900/[0.04]',
     quiet: 'bg-slate-50/70 border border-slate-200/60 shadow-none',
+    editorial: 'bg-transparent border-none shadow-none',
+    flat: 'bg-white border border-slate-200/70 shadow-none',
     interactive:
-      'bg-white border border-slate-200/80 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-150 cursor-pointer',
+      'bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer',
   };
 
   return (

@@ -4,20 +4,17 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import {
-  Compass,
   ArrowRight,
   CheckCircle2,
   Sparkles,
-  ShieldCheck,
-  TrendingUp,
   ExternalLink,
   ChevronRight,
   Info,
-  Zap,
-  Target,
   Clock,
+  Target,
+  ShieldCheck,
 } from 'lucide-react';
 import type { RecommendedAction } from '@/lib/recommendations/nextActionsEngine';
 
@@ -35,6 +32,7 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
   className = '',
 }) => {
   const [completingKey, setCompletingKey] = useState<string | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const handleToggle = async (taskKey: string) => {
     if (!onToggleComplete) return;
@@ -48,208 +46,130 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
     }
   };
 
-  const renderPriorityBadge = (priority: RecommendedAction['priority']) => {
-    switch (priority) {
-      case 'High':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
-            <span>High Priority</span>
-          </span>
-        );
-      case 'Medium':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Recommended</span>
-          </span>
-        );
-      case 'Low':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Good / On Track</span>
-          </span>
-        );
-    }
-  };
-
   const topAction = actions.length > 0 ? actions[0] : null;
-  const subsequentActions = actions.length > 1 ? actions.slice(1) : [];
+  const subsequentActions = actions.length > 1 ? actions.slice(1, 3) : [];
 
   return (
-    <Card className={`border-brand-200 bg-white shadow-sm overflow-hidden rounded-2xl ${className}`}>
-      {/* Top Header */}
-      <div className="bg-slate-900 text-white p-6 sm:p-7 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-200 border border-white/15 text-xs font-semibold">
-                <Zap className="w-3.5 h-3.5 text-teal-400" />
-                <span>Recommendation Engine</span>
-              </span>
-              <span className="text-xs font-medium text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
-                {actions.length} Prioritized {actions.length === 1 ? 'Action' : 'Actions'}
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-300 bg-teal-950/80 border border-teal-500/40 px-2.5 py-0.5 rounded-full">
-                Your Next Step
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-              What Should I Do Next?
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Dynamically prioritized guidance based on your profile completion, credit depth, cash-flow stability, and funding requirements.
-            </p>
-          </div>
-
-          <div className="shrink-0 hidden md:block">
-            <Link href="/roadmap">
-              <Button
-                variant="outline-white"
-                size="sm"
-                className="text-xs font-semibold gap-1.5 shadow-2xs"
-              >
-                <span>View Full Roadmap</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
+    <Card className={`border-slate-200/90 bg-white shadow-xs overflow-hidden rounded-2xl ${className}`}>
       <CardContent className="p-6 sm:p-8 space-y-6">
         {actions.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
-              <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+          <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-2xs">
+              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
             </div>
-            <h3 className="text-lg font-black text-emerald-950">
-              All prioritized foundational actions completed!
+            <h3 className="text-lg font-bold text-slate-900">
+              All prioritized foundational actions completed
             </h3>
-            <p className="text-xs sm:text-sm text-emerald-800 max-w-md mx-auto leading-relaxed">
-              Your business profile, commercial credit depth, and funding baseline are in great standing. Continue maintaining clean on-time payment history.
+            <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+              Your business foundation, commercial credit depth, and funding profile are in strong standing. Maintain clean, on-time trade payments.
             </p>
             <div className="pt-2">
               <Link href="/funding">
-                <Button size="md" variant="primary" className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
-                  Explore Capital &amp; Funding Matches →
+                <Button size="md" variant="primary" className="text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs">
+                  Explore Funding Matches →
                 </Button>
               </Link>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* FEATURED RECOMMENDATION HERO (Center-of-View Experience) */}
+            {/* DOMINANT PRIMARY ACTION FOCAL POINT */}
             {topAction && (
-              <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/40 border-2 border-brand-400/80 shadow-md space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-200/70 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black text-base shrink-0 shadow-sm">
-                      #{topAction.order}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-md">
-                          YOUR NEXT STEP
-                        </span>
-                        {renderPriorityBadge(topAction.priority)}
-                      </div>
-                      <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mt-0.5">
-                        {topAction.title}
-                      </h3>
-                    </div>
+              <div className="space-y-5">
+                {/* Eyebrow & Status Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-900 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+                      YOUR NEXT STEP
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      Step #{topAction.order} of {actions.length}
+                    </span>
+                    <StatusBadge
+                      status={topAction.priority === 'High' ? 'Needs Attention' : 'Next'}
+                      size="sm"
+                    />
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-3 py-1 rounded-full shadow-2xs">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Potential impact: {topAction.priority === 'High' ? 'High' : 'Moderate'}</span>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>15–30 min</span>
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="font-semibold text-emerald-700">
+                      High Impact
                     </span>
                   </div>
                 </div>
 
-                {/* Why this matters */}
-                <div className="p-4 rounded-xl bg-white border border-brand-200/80 shadow-2xs space-y-1.5">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-800 block">
-                    Why this matters
-                  </span>
-                  <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                {/* Main Headline */}
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    {topAction.title}
+                  </h2>
+                  <p className="text-sm text-slate-600 leading-relaxed font-normal">
                     {topAction.whyItMatters}
                   </p>
                 </div>
 
-                {/* What to do (4-Step Action Guide) */}
-                <div className="p-4 sm:p-5 rounded-xl bg-slate-50/90 border border-slate-200/90 shadow-2xs space-y-2.5">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
-                    What to do
+                {/* Structured Action Guidance */}
+                <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
+                    Execution Steps
                   </span>
-                  <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-slate-700">
-                    <li className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60">
-                      <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-700">
+                    <div className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-slate-200/60">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         1
                       </span>
-                      <span>Review the recommended options</span>
-                    </li>
-                    <li className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60">
-                      <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <span className="leading-snug">Review stage-matched requirements and criteria</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-slate-200/60">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         2
                       </span>
-                      <span>Choose an option that fits your business</span>
-                    </li>
-                    <li className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60">
-                      <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <span className="leading-snug">Select the verified option fitting your entity</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-slate-200/60">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         3
                       </span>
-                      <span>Complete the provider application</span>
-                    </li>
-                    <li className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60">
-                      <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <span className="leading-snug">Complete the direct provider application</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-slate-200/60">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         4
                       </span>
-                      <span>Return to Crediqly and mark the milestone complete</span>
-                    </li>
-                  </ol>
+                      <span className="leading-snug">Confirm completion to advance readiness index</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Effort, Impact & Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-brand-200/60">
-                  <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Estimated effort: <strong>15–30 minutes</strong></span>
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="font-medium text-slate-600">
-                      Potential impact: <strong className="text-emerald-700">High</strong>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {/* Secondary: "Why am I seeing this?" */}
+                {/* Primary CTA & Secondary Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        const el = document.getElementById('why-seeing-this-detail');
-                        if (el) el.classList.toggle('hidden');
-                      }}
-                      className="text-xs font-semibold text-slate-700 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
+                      onClick={() => setShowExplanation(!showExplanation)}
+                      className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     >
-                      <Info className="w-3.5 h-3.5 mr-1 text-brand-600" />
-                      <span>Why am I seeing this?</span>
+                      <Info className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                      <span>{showExplanation ? 'Hide Rationale' : 'Why am I seeing this?'}</span>
                     </Button>
 
                     <a
                       href="#ai-mentor"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors shadow-2xs"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <Sparkles className="w-3.5 h-3.5 text-slate-600" />
                       <span>Ask AI Advisor</span>
                     </a>
+                  </div>
 
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     {onToggleComplete && topAction.roadmapTaskKey && (
                       <Button
                         type="button"
@@ -257,10 +177,10 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                         size="sm"
                         onClick={() => handleToggle(topAction.roadmapTaskKey!)}
                         disabled={completingKey === topAction.roadmapTaskKey}
-                        className="text-xs font-semibold shadow-2xs"
+                        className="text-xs font-semibold"
                       >
-                        <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
-                        <span>{completingKey === topAction.roadmapTaskKey ? 'Updating...' : 'Complete This Step'}</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                        <span>{completingKey === topAction.roadmapTaskKey ? 'Updating...' : 'Mark Completed'}</span>
                       </Button>
                     )}
 
@@ -268,7 +188,7 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                       <Button
                         variant="primary"
                         size="md"
-                        className="text-xs font-semibold gap-2 shadow-xs whitespace-nowrap"
+                        className="text-xs font-bold gap-2 bg-slate-900 hover:bg-slate-800 text-white shadow-xs whitespace-nowrap"
                       >
                         <span>{topAction.actionLabel || 'View Recommended Options'}</span>
                         <ArrowRight className="w-4 h-4" />
@@ -277,114 +197,72 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
                   </div>
                 </div>
 
-                {/* Collapsible Expander: Why am I seeing this? */}
-                <div id="why-seeing-this-detail" className="hidden p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-950 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-indigo-900">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Why Crediqly recommended this action:</span>
+                {/* Collapsible Rationale Block */}
+                {showExplanation && (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1 transition-all">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                      <Sparkles className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Underwriting &amp; Algorithmic Rationale:</span>
+                    </div>
+                    <p className="leading-relaxed text-slate-600">
+                      {topAction.explanation} Based on your completed milestones, this action directly unblocks next-tier credit tradelines and commercial underwriting criteria.
+                    </p>
                   </div>
-                  <p className="leading-relaxed text-indigo-900/90">
-                    {topAction.explanation} Based on your completed milestones, this is mathematically identified as your single highest-leverage prerequisite. Completing it directly unblocks next-tier credit tradelines and commercial underwriting criteria.
-                  </p>
-                </div>
+                )}
               </div>
             )}
 
-            {/* NEXT UP (Concise list of next 3 actions) */}
+            {/* UP NEXT QUEUE (Max 2 upcoming milestones in clean quiet rows) */}
             {subsequentActions.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-brand-600" />
-                    <span>NEXT UP</span>
+              <div className="space-y-2.5 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between gap-2 pb-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-slate-400" />
+                    <span>UP NEXT</span>
                   </span>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    Showing next {subsequentActions.length} prioritized actions
-                  </span>
+                  <Link
+                    href="/roadmap"
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                  >
+                    <span>View Full Roadmap</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3.5">
-                  {subsequentActions.slice(0, 2).map((action, idx) => (
+                <div className="space-y-2">
+                  {subsequentActions.map((action, idx) => (
                     <div
                       key={action.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-white hover:bg-slate-50/60 border border-slate-200/90 hover:border-slate-300 transition-all duration-200 shadow-2xs space-y-3"
+                      className="p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
-                      {/* Action Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center font-black text-xs shrink-0">
-                            #{action.order}
-                          </div>
-                          <div>
-                            <h4 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                              {action.title}
-                            </h4>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {renderPriorityBadge(action.priority)}
-                          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                            {idx === 0 ? 'Next Dependent Action' : 'Upcoming Action'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Explanation & Reason */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                            Short Explanation
-                          </span>
-                          <p className="text-slate-700 leading-relaxed font-medium">
-                            {action.explanation}
-                          </p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 block">
-                            Reason
-                          </span>
-                          <p className="text-slate-600 leading-relaxed">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <span className="w-6 h-6 rounded-md bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 sm:mt-0">
+                          {action.order}
+                        </span>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-900 truncate">
+                            {action.title}
+                          </h4>
+                          <p className="text-slate-500 text-[11px] truncate max-w-lg mt-0.5">
                             {action.whyItMatters}
                           </p>
                         </div>
                       </div>
 
-                      {/* Dependency & CTA */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-100 text-xs">
-                        <span className="text-[11px] text-slate-500 font-medium">
-                          <strong>Dependency: </strong>
-                          {idx === 0
-                            ? `Recommended after completing #${topAction?.order || 1}`
-                            : 'Unlocks as earlier stages season'}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                          {idx === 0 ? 'Next Up' : 'Upcoming'}
                         </span>
-
-                        <div className="flex items-center gap-2">
-                          {onToggleComplete && action.roadmapTaskKey && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggle(action.roadmapTaskKey!)}
-                              disabled={completingKey === action.roadmapTaskKey}
-                              className="text-xs font-semibold text-slate-800 border-slate-300 bg-white hover:bg-slate-50 shadow-2xs"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                              <span>{completingKey === action.roadmapTaskKey ? 'Updating...' : 'Mark Complete'}</span>
-                            </Button>
-                          )}
-
-                          <Link href={action.actionHref}>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              className="text-xs font-bold gap-1 shadow-xs bg-slate-900 hover:bg-slate-800 text-white whitespace-nowrap"
-                            >
-                              <span>{action.actionLabel}</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </Button>
-                          </Link>
-                        </div>
+                        <Link href={action.actionHref}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="text-xs font-semibold gap-1 h-7 text-slate-800"
+                          >
+                            <span>{action.actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-500" />
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   ))}
@@ -393,25 +271,7 @@ export const WhatShouldIDoNextCard: React.FC<WhatShouldIDoNextCardProps> = ({
             )}
           </div>
         )}
-
-        {/* Pro Context Banner */}
-        {!isPro && (
-          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-amber-950">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>Pro Guidance: </strong>
-                Upgrade to Pro to unlock direct vendor application walkthroughs, Tier 2/3 tradeline catalogs, and customized bank checklists.
-              </span>
-            </div>
-            <Link href="/pricing" className="shrink-0 font-bold text-brand-700 hover:text-brand-800 hover:underline">
-              Explore Pro ($39/mo) →
-            </Link>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
 };
-
-
