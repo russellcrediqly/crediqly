@@ -91,82 +91,69 @@ export async function POST(req: Request) {
         const consultationId = session.metadata?.consultationId;
 
         if (userId) {
-          // Handle Premium Advisory Checkout ($499 Setup + $149/mo Subscription)
-          if (isAdvisory) {
-            // 1. Record $499 Setup Payment
+          // Handle Funding Readiness Intensive ($999 One-Time)
+          if (paymentType === 'intensive') {
             await recordPayment({
               userId,
               stripeCustomerId: session.customer as string,
-              stripeCheckoutSessionId: `${session.id}_setup`,
+              stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: 49900,
+              amount: session.amount_total || 99900,
               currency: session.currency || 'usd',
-              paymentType: 'advisory_setup',
+              paymentType: 'intensive',
               status: 'paid',
             });
+            break;
+          }
 
-            // 2. Record First Month $149 Advisory Subscription Payment
+          // Handle Guided or Legacy Advisory Checkout
+          const isGuided = plan === 'guided' || plan === 'advisory' || plan === 'premium_advisory';
+          if (isGuided) {
             await recordPayment({
               userId,
               stripeCustomerId: session.customer as string,
-              stripeCheckoutSessionId: `${session.id}_monthly`,
+              stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: 14900,
+              amount: session.amount_total || 14999,
               currency: session.currency || 'usd',
-              paymentType: 'advisory_subscription',
+              paymentType: 'guided_subscription',
               status: 'paid',
             });
 
-            // 3. Activate Premium Advisory Subscription
             await upsertSubscription({
               userId,
-              plan: 'premium_advisory',
+              plan: 'guided',
               status: 'active',
               stripeCustomerId: session.customer as string,
               stripeSubscriptionId: session.subscription as string,
-              advisorySetupPaymentStatus: 'paid',
-              advisorySetupPaidAt: new Date().toISOString(),
-              advisorySetupCheckoutSessionId: session.id,
             });
-
-            // 4. If user upgraded from an active Pro subscription, cancel old Pro subscription in Stripe to avoid double billing
-            const oldProSubId = session.metadata?.supersededProSubscriptionId;
-            if (oldProSubId && stripe) {
-              try {
-                await stripe.subscriptions.cancel(oldProSubId);
-                console.log(`Cancelled superseded Pro subscription ${oldProSubId} for upgraded Advisory user ${userId}`);
-              } catch (err: any) {
-                console.warn('Could not cancel superseded Pro subscription:', err.message);
-              }
-            }
           } else {
-            // Standard Consultation or Pro Subscription Checkout
+            // Standard Consultation or Foundation Subscription Checkout
+            const isConsultation = paymentType === 'consultation' && consultationId;
             await recordPayment({
               userId,
               consultationId: consultationId || undefined,
               stripeCustomerId: session.customer as string,
               stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: session.amount_total || (paymentType === 'subscription' ? 3900 : 9900),
+              amount: session.amount_total || (isConsultation ? 9900 : 3999),
               currency: session.currency || 'usd',
-              paymentType,
+              paymentType: isConsultation ? 'consultation' : 'foundation_subscription',
               status: 'paid',
             });
 
             // Handle Consultation Checkout
-            if (paymentType === 'consultation' && consultationId) {
+            if (isConsultation) {
               await updateConsultationPaymentStatus(consultationId, 'paid', {
                 checkoutSessionId: session.id,
                 paymentIntentId: (session.payment_intent as string) || undefined,
                 paidAt: new Date().toISOString(),
               });
-            }
-
-            // Handle Pro Subscription Checkout
-            if (paymentType === 'subscription' || plan === 'pro') {
+            } else {
+              // Foundation Subscription Checkout
               await upsertSubscription({
                 userId,
-                plan: 'pro',
+                plan: 'foundation',
                 status: 'active',
                 stripeCustomerId: session.customer as string,
                 stripeSubscriptionId: session.subscription as string,
@@ -183,7 +170,7 @@ export async function POST(req: Request) {
         const sub = dataObject;
         let userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
         const customerId = sub.customer as string;
-        const planMetadata = sub.metadata?.crediqly_plan || sub.metadata?.plan;
+        const planMetadata = (sub.metadata?.crediqly_plan || sub.metadata?.plan || '').toLowerCase();
 
         if (!userId && customerId) {
           const existing = await getSubscriptionByCustomerId(customerId);
@@ -194,7 +181,10 @@ export async function POST(req: Request) {
 
         // Map Stripe subscription status to Crediqly status
         let mappedStatus: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'expired' = 'active';
-        let mappedPlan: 'free' | 'pro' | 'premium_advisory' = (planMetadata === 'premium_advisory' || planMetadata === 'advisory') ? 'premium_advisory' : 'pro';
+        let mappedPlan: 'free' | 'foundation' | 'guided' =
+          planMetadata === 'guided' || planMetadata === 'premium_advisory' || planMetadata === 'advisory'
+            ? 'guided'
+            : 'foundation';
 
         if (sub.status === 'active') {
           mappedStatus = 'active';

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
-import { Menu, X, ShieldCheck } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 export interface NavbarProps {
   variant?: 'light' | 'dark';
@@ -14,74 +14,75 @@ export interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const isDark = variant === 'dark';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const navLinks = [
+    { href: '/#how-it-works', label: 'How It Works' },
+    { href: '/#features', label: 'Platform' },
+    { href: '/#route-map', label: 'Roadmap' },
+    { href: '/pricing', label: 'Pricing', highlight: true },
+  ];
 
   return (
     <nav
-      className={`sticky top-0 z-40 backdrop-blur-md transition-colors ${
+      className={`sticky top-0 z-40 transition-all duration-300 ${
         isDark
-          ? 'bg-slate-950/95 border-b border-slate-800 text-slate-100'
-          : 'bg-white/95 border-b border-slate-200/80 text-slate-900'
-      }`}
+          ? scrolled
+            ? 'bg-slate-950/98 border-b border-slate-800/80 shadow-xl shadow-slate-950/40'
+            : 'bg-slate-950/80 border-b border-transparent'
+          : scrolled
+          ? 'bg-white/98 border-b border-slate-200 shadow-sm'
+          : 'bg-white/90 border-b border-transparent'
+      } backdrop-blur-md`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <CrediqlyLogo size="md" variant={isDark ? 'dark' : 'light'} subtitle="Business Credit & Funding" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <CrediqlyLogo
+              size="md"
+              variant={isDark ? 'dark' : 'light'}
+              showSubtitle={false}
+            />
           </Link>
 
           {/* Desktop Links */}
-          <div
-            className={`hidden lg:flex items-center gap-7 text-sm font-semibold ${
-              isDark ? 'text-slate-300' : 'text-slate-600'
-            }`}
-          >
-            <Link
-              href="/#features"
-              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
-            >
-              Capabilities
-            </Link>
-            <Link
-              href="/#route-map"
-              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
-            >
-              4-Tier Roadmap
-            </Link>
-            <Link
-              href="/#funding"
-              className={isDark ? 'hover:text-white transition-colors' : 'hover:text-slate-900 transition-colors'}
-            >
-              Matched Capital
-            </Link>
-            <Link
-              href="/pricing"
-              className={
-                isDark
-                  ? 'text-brand-300 hover:text-white font-bold transition-colors'
-                  : 'text-slate-800 hover:text-brand-600 font-bold transition-colors'
-              }
-            >
-              Pricing &amp; Plans
-            </Link>
-            <div
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
-                isDark
-                  ? 'text-slate-300 bg-slate-900/90 border-slate-700/80'
-                  : 'text-slate-600 bg-slate-100/90 border-slate-200/80'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Zero Sensitive Data</span>
-            </div>
+          <div className="hidden lg:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  link.highlight
+                    ? isDark
+                      ? 'text-brand-300 hover:text-white hover:bg-slate-800 font-semibold'
+                      : 'text-brand-700 hover:text-brand-900 hover:bg-brand-50 font-semibold'
+                    : isDark
+                    ? 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
             {user ? (
               <Link href={user.role === 'admin' ? '/admin' : '/dashboard'}>
-                <Button variant="primary" size="sm">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="bg-brand-600 hover:bg-brand-500 text-white font-semibold"
+                >
                   {user.role === 'admin' ? 'Admin Console' : 'Go to Dashboard'}
                 </Button>
               </Link>
@@ -91,14 +92,22 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={isDark ? 'text-slate-300 hover:text-white hover:bg-slate-800' : ''}
+                    className={
+                      isDark
+                        ? 'text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium'
+                        : 'text-slate-600 hover:text-slate-900 font-medium'
+                    }
                   >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button variant="primary" size="sm" className="bg-brand-600 hover:bg-brand-500 text-white font-bold">
-                    Get Started Free
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-5 shadow-sm shadow-brand-600/30"
+                  >
+                    Start Free
                   </Button>
                 </Link>
               </>
@@ -109,12 +118,15 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
           <div className="flex md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`p-2 rounded-lg ${
-                isDark ? 'text-slate-300 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              className={`p-2 rounded-lg transition-colors ${
+                isDark
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -123,50 +135,42 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden border-b px-4 pt-2 pb-6 space-y-3 ${
-            isDark ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+          className={`md:hidden border-t ${
+            isDark
+              ? 'bg-slate-950 border-slate-800'
+              : 'bg-white border-slate-200'
           }`}
         >
-          <div className="flex flex-col space-y-1.5 text-sm font-semibold text-slate-700">
-            <Link
-              href="/#how-it-works"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-slate-50"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/#features"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-slate-50"
-            >
-              Features
-            </Link>
-            <Link
-              href="/#route-map"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-slate-50"
-            >
-              Readiness Journey
-            </Link>
-            <Link
-              href="/#funding"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-slate-50"
-            >
-              Funding Marketplace
-            </Link>
-            <Link
-              href="/pricing"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg text-brand-700 font-bold hover:bg-brand-50"
-            >
-              Pricing &amp; Plans
-            </Link>
+          <div className="px-4 py-4 space-y-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  link.highlight
+                    ? isDark
+                      ? 'text-brand-300 bg-brand-950/40 hover:bg-brand-950/70'
+                      : 'text-brand-700 bg-brand-50 hover:bg-brand-100'
+                    : isDark
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
-          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+          <div
+            className={`px-4 pb-5 pt-2 border-t flex flex-col gap-2 ${
+              isDark ? 'border-slate-800' : 'border-slate-100'
+            }`}
+          >
             {user ? (
-              <Link href={user.role === 'admin' ? '/admin' : '/dashboard'} onClick={() => setMobileMenuOpen(false)}>
+              <Link
+                href={user.role === 'admin' ? '/admin' : '/dashboard'}
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 <Button variant="primary" className="w-full">
                   {user.role === 'admin' ? 'Admin Console' : 'Go to Dashboard'}
                 </Button>
@@ -174,13 +178,19 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
             ) : (
               <>
                 <Link href="/signin" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">
+                  <Button
+                    variant="outline"
+                    className={`w-full ${isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : ''}`}
+                  >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="primary" className="w-full">
-                    Get Started Free
+                  <Button
+                    variant="primary"
+                    className="w-full bg-brand-600 hover:bg-brand-500"
+                  >
+                    Start Free — No Card Required
                   </Button>
                 </Link>
               </>

@@ -55,8 +55,21 @@ export const stripe = new Proxy({} as Stripe, {
 });
 
 export const STRIPE_CONFIG = {
+  // Plan 2: Foundation ($39.99/mo promotional offer, $49.99/mo regular)
+  get foundationPriceId() {
+    return cleanKey(process.env.STRIPE_FOUNDATION_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID);
+  },
+  // Plan 3: Guided ($149.99/mo promotional offer, $199.99/mo regular)
+  get guidedPriceId() {
+    return cleanKey(process.env.STRIPE_GUIDED_PRICE_ID || process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID);
+  },
+  // Premium Service: Funding Readiness Intensive ($999 one-time)
+  get intensivePriceId() {
+    return cleanKey(process.env.STRIPE_INTENSIVE_PRICE_ID);
+  },
+  // Legacy price ID accessors maintained for backward compatibility
   get proPriceId() {
-    return cleanKey(process.env.STRIPE_PRO_PRICE_ID);
+    return cleanKey(process.env.STRIPE_FOUNDATION_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID);
   },
   get consultationPriceId() {
     return cleanKey(process.env.STRIPE_CONSULTATION_PRICE_ID);
@@ -65,15 +78,24 @@ export const STRIPE_CONFIG = {
     return cleanKey(process.env.STRIPE_ADVISORY_SETUP_PRICE_ID);
   },
   get advisoryMonthlyPriceId() {
-    return cleanKey(process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID);
+    return cleanKey(process.env.STRIPE_GUIDED_PRICE_ID || process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID);
   },
   get webhookSecret() {
     return cleanKey(process.env.STRIPE_WEBHOOK_SECRET);
   },
-  proPriceCents: 3900, // $39.00
+
+  // Authoritative price amounts in cents
+  foundationPriceCents: 3999, // $39.99/month promotional/current offer
+  foundationRegularPriceCents: 4999, // $49.99/month regular/reference
+  guidedPriceCents: 14999, // $149.99/month promotional/current offer
+  guidedRegularPriceCents: 19999, // $199.99/month regular/reference
+  intensivePriceCents: 99900, // $999.00 one-time payment
+
+  // Legacy cents aliases
+  proPriceCents: 3999, // $39.99
   consultationPriceCents: 9900, // $99.00
-  advisorySetupPriceCents: 49900, // $499.00 one-time setup
-  advisoryMonthlyPriceCents: 14900, // $149.00/month recurring
+  advisorySetupPriceCents: 49900, // $499.00
+  advisoryMonthlyPriceCents: 14999, // $149.99
 };
 
 /**

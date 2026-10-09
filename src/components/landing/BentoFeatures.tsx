@@ -3,316 +3,211 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  ShieldCheck,
   CheckCircle2,
   Lock,
-  Sparkles,
-  TrendingUp,
-  BarChart3,
   Bot,
-  Compass,
-  Zap,
   ArrowRight,
-  Layers,
-  FileCheck,
-  Building,
-  CreditCard,
   Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+const pillars = [
+  { id: 'foundation', label: 'Entity Foundation' },
+  { id: 'bureau', label: 'Bureau Depth' },
+  { id: 'capital', label: 'Capital Readiness' },
+] as const;
+
+type PillarId = typeof pillars[number]['id'];
+
+const milestoneData: Record<PillarId, { text: string; pts: number }[]> = {
+  foundation: [
+    { text: 'State Entity Registration & Good Standing (SOS)', pts: 5 },
+    { text: 'Federal EIN + Dedicated Business Checking Account', pts: 10 },
+    { text: 'Commercial Phone & Web Presence Compliance', pts: 5 },
+    { text: 'Business Address — No Home or UPS Store', pts: 5 },
+  ],
+  bureau: [
+    { text: 'Dun & Bradstreet D-U-N-S® File Generated', pts: 10 },
+    { text: '3 Active Tier-1 Net-30 Accounts Reporting Prompt Pay', pts: 10 },
+    { text: 'Tier-2 Revolving Corporate Cards (Paydex 80+ Target)', pts: 10 },
+    { text: 'Experian Commercial & Equifax Business Files Open', pts: 5 },
+  ],
+  capital: [
+    { text: 'Revenue Verification & Operating Seasoning (12+ mo)', pts: 10 },
+    { text: 'Dedicated Business Bank Account with 3+ Months History', pts: 10 },
+    { text: 'Application Document Pack Prepared (Tax/Deposit)', pts: 5 },
+    { text: 'DSCR Ratio ≥ 1.15x Against Target Credit Facility', pts: 5 },
+  ],
+};
+
 export const BentoFeatures: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'foundation' | 'bureau' | 'capital'>('bureau');
+  const [activeTab, setActiveTab] = useState<PillarId>('bureau');
 
   return (
-    <section id="features" className="py-20 md:py-32 bg-slate-900 text-white relative overflow-hidden">
-      {/* Subtle Ambient Refractions */}
-      <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-brand-500/10 blur-[130px] pointer-events-none -z-10 rounded-full" />
-      <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-teal-500/10 blur-[120px] pointer-events-none -z-10 rounded-full" />
+    <section id="features" className="py-20 md:py-32 bg-slate-900 text-white relative overflow-hidden border-t border-white/5">
+      {/* Ambient */}
+      <div className="absolute top-0 right-0 w-[600px] h-[500px] bg-brand-500/8 blur-[120px] pointer-events-none rounded-full" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold text-brand-300">
-            <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-            <span className="font-extrabold uppercase tracking-wider text-[10px]">
-              Institutional-Grade Architecture
-            </span>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-            Engineered to pass commercial{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-              underwriting on day one.
-            </span>
+        {/* Section header */}
+        <div className="max-w-2xl space-y-4 mb-14">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-400">Platform Capabilities</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
+            Built to pass commercial underwriting, not just look impressive.
           </h2>
-
-          <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-normal">
-            Most credit-building apps give you vanity scores and generic tips. Crediqly audits your real fundability across 14 deterministic milestones, eliminating lender red flags before you apply.
+          <p className="text-base text-slate-400 leading-relaxed">
+            Crediqly audits your real fundability across 14 deterministic milestones — each one directly tied to what prime commercial lenders evaluate.
           </p>
         </div>
 
-        {/* 2027 Asymmetric Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* ============================================================= */}
-          {/* BENTO 1: LARGE 8-COLUMN CARD (The 14-Milestone Engine)       */}
-          {/* ============================================================= */}
-          <div className="md:col-span-12 lg:col-span-8 rounded-3xl border border-slate-700/80 bg-slate-950/80 p-6 sm:p-8 flex flex-col justify-between space-y-6 shadow-xl backdrop-blur-sm relative overflow-hidden group">
-            <div className="space-y-4 relative z-10">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-950 text-brand-300 border border-brand-800 w-fit">
+        {/* Bento grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Large card: Milestone Engine */}
+          <div className="lg:col-span-7 rounded-3xl border border-white/8 bg-slate-950/70 p-6 sm:p-8 space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
                   Deterministic Milestone System
                 </span>
-                <span className="text-xs font-mono text-slate-400">
-                  Strictly 0 → 100 • Sums to 100 Points
-                </span>
+                <h3 className="text-xl sm:text-2xl font-bold text-white">
+                  One Authoritative Readiness Score
+                </h3>
+                <p className="text-sm text-slate-400 max-w-md">
+                  Zero arbitrary point bumps. Every point reflects a verified milestone required by prime commercial lenders. Total weights always sum to 100.
+                </p>
               </div>
-
-              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                One Authoritative Readiness Calculation
-              </h3>
-
-              <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
-                Zero arbitrary increases, zero fake +10 score bumps. Every single point reflects verified database-backed milestones required by prime commercial lenders.
-              </p>
-
-              {/* Interactive Category Selector inside Bento */}
-              <div className="flex items-center gap-2 pt-2 border-b border-slate-800 pb-3">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('foundation')}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
-                    activeTab === 'foundation'
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                  }`}
-                >
-                  Pillar 1: Legal Entity
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('bureau')}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
-                    activeTab === 'bureau'
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                  }`}
-                >
-                  Pillar 2: Bureau Depth
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('capital')}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
-                    activeTab === 'capital'
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                  }`}
-                >
-                  Pillar 3: Capital Ready
-                </button>
-              </div>
-
-              {/* Dynamic Pillar Items */}
-              <div className="space-y-2.5 pt-1 text-xs">
-                {activeTab === 'foundation' && (
-                  <>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">State Entity Registration &amp; Good Standing (SOS)</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+5 pts</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Federal EIN &amp; Dedicated Business Checking</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+10 pts</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Commercial Phone &amp; Web Presence Compliance</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+5 pts</span>
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'bureau' && (
-                  <>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Dun &amp; Bradstreet D-U-N-S® Bureau File Generated</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+10 pts</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">3 Active Tier-1 Net-30 Vendor Accounts Reporting Prompt Pay</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+10 pts</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Tier-2 Revolving Corporate Cards (Paydex 80+ Target)</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+10 pts</span>
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'capital' && (
-                  <>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Revenue Verification &amp; Operating Seasoning</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+10 pts</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="text-slate-200 font-semibold">Application Document Readiness Pack (Tax/Deposit Prep)</span>
-                      </div>
-                      <span className="font-mono text-emerald-400 font-bold">+5 pts</span>
-                    </div>
-                  </>
-                )}
-              </div>
+              <span className="text-xs font-mono text-slate-600 shrink-0 mt-1">0 → 100 pts</span>
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-              <span className="text-xs text-slate-400">
-                14 Defined Milestones • Total Active Weights = 100
-              </span>
-              <Link href="/signup" className="text-xs font-bold text-brand-300 hover:text-white flex items-center gap-1">
-                <span>View Full Milestone Engine</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+            {/* Tab selector */}
+            <div className="flex items-center gap-1 border-b border-white/6 pb-4">
+              {pillars.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setActiveTab(p.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    activeTab === p.id
+                      ? 'bg-brand-600 text-white'
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Milestone list */}
+            <div className="space-y-2">
+              {milestoneData[activeTab].map((m, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-xs text-slate-300 truncate">{m.text}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-400 font-mono shrink-0">
+                    +{m.pts} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-1 text-xs text-slate-600">
+              <span>14 milestones · weights total exactly 100</span>
+              <Link href="/signup" className="text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 transition-colors">
+                View Full Engine <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>
 
-          {/* ============================================================= */}
-          {/* BENTO 2: 4-COLUMN CARD (Zero-SSN Vault Architecture)          */}
-          {/* ============================================================= */}
-          <div className="md:col-span-12 lg:col-span-4 rounded-3xl border border-slate-700/80 bg-gradient-to-b from-slate-950 to-slate-900 p-6 sm:p-8 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden">
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <Lock className="w-6 h-6" />
+          {/* Right column: 2 stacked cards */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+
+            {/* Card: Zero-SSN */}
+            <div className="flex-1 rounded-3xl border border-emerald-900/40 bg-gradient-to-b from-emerald-950/30 to-slate-950/60 p-6 sm:p-7 space-y-4 shadow-xl">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Lock className="w-5 h-5" />
               </div>
-
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 w-fit block">
-                Zero-SSN Cryptographic Vault
-              </span>
-
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                No Personal Credit Exposure
-              </h3>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                We never ask for your Social Security Number, personal banking passwords, or tax returns. Build credit that stands strictly on your company EIN.
-              </p>
-
-              <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>0 Personal Hard Inquiries</span>
-                </div>
-                <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>0 Impact on Personal Utilization</span>
-                </div>
-                <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Separate Personal &amp; Business Liability</span>
-                </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white">No Personal Credit Exposure</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  We never ask for your SSN, banking passwords, or personal tax returns. Your credit profile is built entirely under your company EIN.
+                </p>
               </div>
-            </div>
-
-            <div className="pt-2">
+              <div className="space-y-2 pt-1">
+                {[
+                  '0 personal hard inquiries',
+                  '0 impact on personal utilization',
+                  'Liability stays inside your entity',
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-xs text-emerald-300">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    {item}
+                  </div>
+                ))}
+              </div>
               <Link href="/signup">
-                <Button size="sm" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
-                  <span>Start Protected Audit</span>
+                <Button size="sm" className="w-full mt-1 bg-white/5 hover:bg-white/10 text-white text-xs font-medium border border-white/8 rounded-xl">
+                  Start Protected Audit
                 </Button>
               </Link>
             </div>
-          </div>
 
-          {/* ============================================================= */}
-          {/* BENTO 3: 6-COLUMN CARD (Intelligent Priority Queue)           */}
-          {/* ============================================================= */}
-          <div className="md:col-span-12 lg:col-span-6 rounded-3xl border border-slate-700/80 bg-slate-950 p-6 sm:p-8 flex flex-col justify-between space-y-5 shadow-xl">
-            <div className="space-y-3">
+            {/* Card: Priority Engine */}
+            <div className="flex-1 rounded-3xl border border-white/8 bg-slate-950/70 p-6 sm:p-7 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
-                  Intelligent Priority Engine
-                </span>
-                <span className="text-xs font-mono text-emerald-400">+10 Pts Impact</span>
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Target className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold">+10 pts impact</span>
               </div>
-
-              <h3 className="text-xl font-black text-white tracking-tight">
-                What Should I Do Next?
-              </h3>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                No more paralysis by analysis. The algorithm continuously identifies your single highest-leverage move, explains why lenders care, and tells you what unlocks next.
-              </p>
-
-              {/* Mockup Action Item */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 text-xs">
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white">Always Know Your Next Move</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  The engine continuously identifies your highest-leverage action, explains why lenders care, and shows what unlocks next.
+                </p>
+              </div>
+              {/* Mini action preview */}
+              <div className="p-3.5 rounded-xl bg-white/3 border border-white/6 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-white text-sm">
-                    Open Dedicated Business Checking Account
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 text-[10px] font-bold">
-                    Underwriting Blocker
+                  <span className="font-semibold text-white">Open Business Checking Account</span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-950/60 border border-rose-800/60 text-rose-300 text-[10px] font-medium">
+                    Blocker
                   </span>
                 </div>
-                <p className="text-slate-400 leading-relaxed">
-                  Prime commercial lenders automatically reject businesses operating through personal bank accounts.
+                <p className="text-slate-500 leading-relaxed">
+                  Prime lenders auto-reject businesses banking from personal accounts.
                 </p>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-[11px] text-slate-400">
-                  <span>✨ After this: Tier-1 Tradelines Unlock</span>
-                  <span className="text-brand-300 font-bold">Estimated Time: 15 mins</span>
+                <div className="flex items-center justify-between pt-0.5 border-t border-white/5 text-[10px] text-slate-600">
+                  <span>Unlocks after: Tier-1 Tradelines</span>
+                  <span className="text-brand-400 font-medium">~15 min setup</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ============================================================= */}
-          {/* BENTO 4: 6-COLUMN CARD (AI Mentor & Lender Underwriting Sync)  */}
-          {/* ============================================================= */}
-          <div className="md:col-span-12 lg:col-span-6 rounded-3xl border border-slate-700/80 bg-slate-950 p-6 sm:p-8 flex flex-col justify-between space-y-5 shadow-xl">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-teal-950 text-teal-300 border border-teal-800">
-                  Context-Aware Copilot
-                </span>
-                <span className="text-xs font-mono text-cyan-400">Live Knowledge Base</span>
+            {/* Card: AI Mentor */}
+            <div className="flex-1 rounded-3xl border border-teal-900/40 bg-gradient-to-b from-teal-950/20 to-slate-950/60 p-6 sm:p-7 space-y-4 shadow-xl">
+              <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+                <Bot className="w-5 h-5" />
               </div>
-
-              <h3 className="text-xl font-black text-white tracking-tight">
-                Data-Aware Crediqly AI Mentor
-              </h3>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Ask specific questions about your DSCR, Paydex thresholds, or lender requirements. The AI Mentor evaluates your exact profile to deliver institutional-grade guidance.
-              </p>
-
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-slate-300 font-semibold">
-                  <Bot className="w-4 h-4 text-teal-400" />
-                  <span>"Why did my revolving credit line require a 1.15x DSCR?"</span>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white">Context-Aware AI Mentor</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Ask questions about your specific profile. The AI Mentor evaluates your exact readiness data to deliver institution-grade guidance.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-white/3 border border-white/6 space-y-2 text-xs">
+                <div className="flex items-start gap-2 text-slate-300">
+                  <Bot className="w-3.5 h-3.5 text-teal-400 mt-0.5 shrink-0" />
+                  <span className="italic">"Why did my revolving line require a 1.15x DSCR?"</span>
                 </div>
-                <p className="text-slate-400 pl-6 leading-relaxed">
-                  "Debt Service Coverage Ratio measures your operating cash flow against debt obligations. At your current $28k monthly revenue, you safely support up to $50,000 in credit line draws without triggering underwriter risk buffers."
+                <p className="text-slate-500 pl-5 leading-relaxed">
+                  DSCR measures operating cash flow vs. debt. At $28k/mo revenue you safely support up to $50k in draw limits.
                 </p>
               </div>
             </div>

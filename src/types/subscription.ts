@@ -1,4 +1,10 @@
-export type SubscriptionPlan = 'free' | 'pro' | 'premium_advisory';
+export type SubscriptionPlan =
+  | 'free'
+  | 'foundation'
+  | 'guided'
+  // Legacy aliases maintained for backward compatibility with existing DB records
+  | 'pro'
+  | 'premium_advisory';
 
 export type SubscriptionStatus =
   | 'free'
@@ -18,17 +24,24 @@ export interface Subscription {
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
-  // Done-For-You Premium Advisory setup tracking ($499 one-time fee)
+  // Legacy setup tracking
   advisorySetupPaymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
   advisorySetupPaidAt?: string;
   advisorySetupCheckoutSessionId?: string;
   advisorySetupPaymentIntentId?: string;
+  // Funding Readiness Intensive tracking ($999 one-time)
+  intensivePaymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  intensivePaidAt?: string;
+  intensiveCheckoutSessionId?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export type PaymentType =
   | 'subscription'
+  | 'foundation_subscription'
+  | 'guided_subscription'
+  | 'intensive'
   | 'consultation'
   | 'advisory_setup'
   | 'advisory_subscription';
@@ -42,7 +55,7 @@ export interface PaymentRecord {
   stripeCustomerId?: string;
   stripeCheckoutSessionId: string;
   stripePaymentIntentId?: string;
-  amount: number; // in cents, e.g. 3900 for $39, 9900 for $99, 49900 for $499, 14900 for $149
+  amount: number; // in cents, e.g. 3999 for $39.99, 14999 for $149.99, 99900 for $999.00
   currency: string;
   paymentType: PaymentType;
   status: PaymentStatus;
@@ -52,34 +65,50 @@ export interface PaymentRecord {
 
 /**
  * Authoritative client/server access helper:
- * Returns true only if the customer has an active Done-For-You Premium Advisory tier.
+ * Returns true if the customer has an active Guided plan (or legacy Premium Advisory tier).
  */
-export function hasPremiumAdvisory(subscription?: Partial<Subscription> | null): boolean {
+export function hasGuidedAccess(subscription?: Partial<Subscription> | null): boolean {
   if (!subscription) return false;
   const plan = (subscription.plan || (subscription as any).plan_id || '').toLowerCase();
   const status = (subscription.status || '').toLowerCase();
+  const isGuidedPlan =
+    plan === 'guided' ||
+    plan === 'premium_advisory' ||
+    plan === 'advisory';
+
   return (
-    (plan === 'premium_advisory' || plan === 'advisory') &&
+    isGuidedPlan &&
     (status === 'active' || status === 'trialing' || status === 'paid')
   );
 }
 
 /**
+ * Backwards-compatible alias for hasGuidedAccess
+ */
+export const hasPremiumAdvisory = hasGuidedAccess;
+
+/**
  * Authoritative client/server access helper:
- * Returns true if the user has active Pro software access.
- * Premium Advisory customers strictly inherit all Pro software capabilities (Premium Advisory > Pro > Free).
+ * Returns true if the user has active Foundation software access (or legacy Pro access).
+ * Guided customers strictly inherit all Foundation software capabilities (Guided > Foundation > Free).
  * Also correctly honors active period for subscriptions set to cancel at period end.
  */
-export function hasActiveProSubscription(subscription?: Partial<Subscription> | null): boolean {
+export function hasFoundationAccess(subscription?: Partial<Subscription> | null): boolean {
   if (!subscription) return false;
-  // Premium Advisory automatically grants all Pro software features
-  if (hasPremiumAdvisory(subscription)) return true;
+  // Guided automatically grants all Foundation features
+  if (hasGuidedAccess(subscription)) return true;
 
   const plan = (subscription.plan || (subscription as any).plan_id || '').toLowerCase();
   const status = (subscription.status || '').toLowerCase();
 
-  const isProPlan = plan === 'pro' || plan === 'pro_monthly' || plan === 'pro_tier' || plan.includes('pro');
-  if (!isProPlan) return false;
+  const isFoundationPlan =
+    plan === 'foundation' ||
+    plan === 'pro' ||
+    plan === 'pro_monthly' ||
+    plan === 'pro_tier' ||
+    plan.includes('pro');
+
+  if (!isFoundationPlan) return false;
 
   // Active, trialing, or paid status
   if (status === 'active' || status === 'trialing' || status === 'paid') {
@@ -96,3 +125,8 @@ export function hasActiveProSubscription(subscription?: Partial<Subscription> | 
 
   return false;
 }
+
+/**
+ * Backwards-compatible alias for hasFoundationAccess
+ */
+export const hasActiveProSubscription = hasFoundationAccess;

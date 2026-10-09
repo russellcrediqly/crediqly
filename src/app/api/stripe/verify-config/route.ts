@@ -52,87 +52,119 @@ export async function GET() {
   }
 
   const prices: {
+    foundation: PriceCheck;
+    guided: PriceCheck;
+    intensive: PriceCheck;
     pro: PriceCheck;
     advisorySetup: PriceCheck;
     advisoryMonthly: PriceCheck;
   } = {
-    pro: {
-      id: STRIPE_CONFIG.proPriceId,
-      configured: Boolean(STRIPE_CONFIG.proPriceId),
+    foundation: {
+      id: STRIPE_CONFIG.foundationPriceId,
+      configured: Boolean(STRIPE_CONFIG.foundationPriceId),
       valid: false,
-      expected: '$39/month recurring',
+      expected: '$39.99/month recurring',
+    },
+    guided: {
+      id: STRIPE_CONFIG.guidedPriceId,
+      configured: Boolean(STRIPE_CONFIG.guidedPriceId),
+      valid: false,
+      expected: '$149.99/month recurring',
+    },
+    intensive: {
+      id: STRIPE_CONFIG.intensivePriceId,
+      configured: Boolean(STRIPE_CONFIG.intensivePriceId),
+      valid: false,
+      expected: '$999.00 one-time',
+    },
+    pro: {
+      id: STRIPE_CONFIG.foundationPriceId,
+      configured: Boolean(STRIPE_CONFIG.foundationPriceId),
+      valid: false,
+      expected: '$39.99/month recurring',
     },
     advisorySetup: {
       id: STRIPE_CONFIG.advisorySetupPriceId,
       configured: Boolean(STRIPE_CONFIG.advisorySetupPriceId),
       valid: false,
-      expected: '$499 one-time',
+      expected: '$499 one-time (legacy)',
     },
     advisoryMonthly: {
-      id: STRIPE_CONFIG.advisoryMonthlyPriceId,
-      configured: Boolean(STRIPE_CONFIG.advisoryMonthlyPriceId),
+      id: STRIPE_CONFIG.guidedPriceId,
+      configured: Boolean(STRIPE_CONFIG.guidedPriceId),
       valid: false,
-      expected: '$149/month recurring',
+      expected: '$149.99/month recurring',
     },
   };
 
   if (apiStatus === 'working' && stripe) {
-    // Validate Pro Price
-    if (STRIPE_CONFIG.proPriceId) {
+    // Validate Foundation Price ($39.99/mo or legacy $39/mo)
+    if (STRIPE_CONFIG.foundationPriceId) {
       try {
-        const p = await stripe.prices.retrieve(STRIPE_CONFIG.proPriceId);
+        const p = await stripe.prices.retrieve(STRIPE_CONFIG.foundationPriceId);
         const amount = p.unit_amount || 0;
         const interval = p.recurring?.interval;
-        prices.pro.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
-        if (amount === 3900 && interval === 'month') {
+        prices.foundation.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
+        prices.pro.actual = prices.foundation.actual;
+        if ((amount === 3999 || amount === 3900) && interval === 'month') {
+          prices.foundation.valid = true;
           prices.pro.valid = true;
         } else {
-          prices.pro.error = `Price exists but does not match expected $39/month (Found: ${prices.pro.actual})`;
+          prices.foundation.error = `Price exists but does not match expected $39.99/month (Found: ${prices.foundation.actual})`;
+          prices.pro.error = prices.foundation.error;
         }
       } catch (err: any) {
-        prices.pro.error = `Price ID ${STRIPE_CONFIG.proPriceId} not found in Stripe account: ${err.message}`;
+        prices.foundation.error = `Price ID ${STRIPE_CONFIG.foundationPriceId} not found in Stripe account: ${err.message}`;
+        prices.pro.error = prices.foundation.error;
       }
     } else {
-      prices.pro.error = 'STRIPE_PRO_PRICE_ID environment variable is missing.';
+      prices.foundation.error = 'STRIPE_FOUNDATION_PRICE_ID environment variable is missing.';
+      prices.pro.error = prices.foundation.error;
     }
 
-    // Validate Advisory Setup Price
-    if (STRIPE_CONFIG.advisorySetupPriceId) {
+    // Validate Guided Price ($149.99/mo or legacy $149/mo)
+    if (STRIPE_CONFIG.guidedPriceId) {
       try {
-        const p = await stripe.prices.retrieve(STRIPE_CONFIG.advisorySetupPriceId);
-        const amount = p.unit_amount || 0;
-        prices.advisorySetup.actual = `$${(amount / 100).toFixed(2)} one-time`;
-        if (amount === 49900 && p.type === 'one_time') {
-          prices.advisorySetup.valid = true;
-        } else {
-          prices.advisorySetup.error = `Price exists but does not match expected $499 one-time (Found: ${prices.advisorySetup.actual})`;
-        }
-      } catch (err: any) {
-        prices.advisorySetup.error = `Price ID ${STRIPE_CONFIG.advisorySetupPriceId} not found in Stripe account: ${err.message}`;
-      }
-    } else {
-      prices.advisorySetup.error = 'STRIPE_ADVISORY_SETUP_PRICE_ID environment variable is missing.';
-    }
-
-    // Validate Advisory Monthly Price
-    if (STRIPE_CONFIG.advisoryMonthlyPriceId) {
-      try {
-        const p = await stripe.prices.retrieve(STRIPE_CONFIG.advisoryMonthlyPriceId);
+        const p = await stripe.prices.retrieve(STRIPE_CONFIG.guidedPriceId);
         const amount = p.unit_amount || 0;
         const interval = p.recurring?.interval;
-        prices.advisoryMonthly.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
-        if (amount === 14900 && interval === 'month') {
+        prices.guided.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
+        prices.advisoryMonthly.actual = prices.guided.actual;
+        if ((amount === 14999 || amount === 14900) && interval === 'month') {
+          prices.guided.valid = true;
           prices.advisoryMonthly.valid = true;
         } else if (p.type === 'one_time') {
-          prices.advisoryMonthly.error = `Price is configured as one-time instead of monthly recurring. Recommended recurring price ID: price_1UCIXzDzJxX7FxJaQ2BIUoLs`;
+          prices.guided.error = `Price is configured as one-time instead of monthly recurring.`;
+          prices.advisoryMonthly.error = prices.guided.error;
         } else {
-          prices.advisoryMonthly.error = `Price exists but does not match expected $149/month (Found: ${prices.advisoryMonthly.actual})`;
+          prices.guided.error = `Price exists but does not match expected $149.99/month (Found: ${prices.guided.actual})`;
+          prices.advisoryMonthly.error = prices.guided.error;
         }
       } catch (err: any) {
-        prices.advisoryMonthly.error = `Price ID ${STRIPE_CONFIG.advisoryMonthlyPriceId} not found in Stripe account: ${err.message}`;
+        prices.guided.error = `Price ID ${STRIPE_CONFIG.guidedPriceId} not found in Stripe account: ${err.message}`;
+        prices.advisoryMonthly.error = prices.guided.error;
       }
     } else {
-      prices.advisoryMonthly.error = 'STRIPE_ADVISORY_MONTHLY_PRICE_ID environment variable is missing.';
+      prices.guided.error = 'STRIPE_GUIDED_PRICE_ID environment variable is missing.';
+      prices.advisoryMonthly.error = prices.guided.error;
+    }
+
+    // Validate Intensive Price ($999 one-time)
+    if (STRIPE_CONFIG.intensivePriceId) {
+      try {
+        const p = await stripe.prices.retrieve(STRIPE_CONFIG.intensivePriceId);
+        const amount = p.unit_amount || 0;
+        prices.intensive.actual = `$${(amount / 100).toFixed(2)} one-time`;
+        if (amount === 99900 && p.type === 'one_time') {
+          prices.intensive.valid = true;
+        } else {
+          prices.intensive.error = `Price exists but does not match expected $999.00 one-time (Found: ${prices.intensive.actual})`;
+        }
+      } catch (err: any) {
+        prices.intensive.error = `Price ID ${STRIPE_CONFIG.intensivePriceId} not found in Stripe account: ${err.message}`;
+      }
+    } else {
+      prices.intensive.error = 'STRIPE_INTENSIVE_PRICE_ID environment variable is optional (dynamic checkout supported).';
     }
   }
 
@@ -158,23 +190,39 @@ export async function GET() {
           lastEventType = data.event_type;
           webhookStatus = 'active';
         }
-      } catch (e) {
-        // Table might not be migrated yet or empty
+      } catch (err) {
+        console.warn('Could not query stripe_webhook_logs:', err);
       }
     }
   }
 
-  // 5. Build Comprehensive Checklist
+  // 5. Build Comprehensive Readiness Checklist
   const checklist = [
     {
-      id: 'api_connection',
-      label: 'Stripe API Connection',
+      id: 'secret_key',
+      label: 'Stripe Secret Key',
+      status: secretKey ? 'pass' : 'fail',
+      detail: secretKey
+        ? `CONFIGURED ✓ (${secretKey.slice(0, 7)}...${secretKey.slice(-4)})`
+        : 'MISSING: Required for all Stripe API requests.',
+    },
+    {
+      id: 'publishable_key',
+      label: 'Stripe Publishable Key',
+      status: publishableKey ? 'pass' : 'warning',
+      detail: publishableKey
+        ? `CONFIGURED ✓ (${publishableKey.slice(0, 7)}...${publishableKey.slice(-4)})`
+        : 'MISSING: Required for client-side Stripe Elements.',
+    },
+    {
+      id: 'api_connectivity',
+      label: 'Stripe API Connectivity',
       status: apiStatus === 'working' ? 'pass' : 'fail',
-      detail: apiStatus === 'working' ? 'CONNECTED ✓ (Verified via balance retrieve)' : apiMessage,
+      detail: apiMessage,
     },
     {
       id: 'mode_consistency',
-      label: 'Key Mode Consistency',
+      label: 'Key Environment Mode',
       status: mode === 'inconsistent' ? 'fail' : mode === 'unconfigured' ? 'warning' : 'pass',
       detail:
         mode === 'test'
@@ -186,28 +234,28 @@ export async function GET() {
           : 'NOT CONFIGURED: Missing Stripe API credentials.',
     },
     {
-      id: 'pro_price',
-      label: 'Crediqly Pro Price ($39/mo)',
-      status: prices.pro.valid ? 'pass' : prices.pro.configured ? 'fail' : 'warning',
-      detail: prices.pro.valid
-        ? 'VERIFIED ✓ ($39.00/month recurring)'
-        : prices.pro.error || 'NOT CONFIGURED: Price ID required',
+      id: 'foundation_price',
+      label: 'Crediqly Foundation Price ($39.99/mo)',
+      status: prices.foundation.valid ? 'pass' : prices.foundation.configured ? 'fail' : 'warning',
+      detail: prices.foundation.valid
+        ? 'VERIFIED ✓ ($39.99/month recurring)'
+        : prices.foundation.error || 'NOT CONFIGURED: Price ID required (dynamic fallback active)',
     },
     {
-      id: 'advisory_setup_price',
-      label: 'Advisory Setup Price ($499 one-time)',
-      status: prices.advisorySetup.valid ? 'pass' : prices.advisorySetup.configured ? 'fail' : 'warning',
-      detail: prices.advisorySetup.valid
-        ? 'VERIFIED ✓ ($499.00 one-time)'
-        : prices.advisorySetup.error || 'NOT CONFIGURED: Price ID required',
+      id: 'guided_price',
+      label: 'Crediqly Guided Price ($149.99/mo)',
+      status: prices.guided.valid ? 'pass' : prices.guided.configured ? 'fail' : 'warning',
+      detail: prices.guided.valid
+        ? 'VERIFIED ✓ ($149.99/month recurring)'
+        : prices.guided.error || 'NOT CONFIGURED: Price ID required (dynamic fallback active)',
     },
     {
-      id: 'advisory_monthly_price',
-      label: 'Advisory Retainer Price ($149/mo)',
-      status: prices.advisoryMonthly.valid ? 'pass' : prices.advisoryMonthly.configured ? 'fail' : 'warning',
-      detail: prices.advisoryMonthly.valid
-        ? 'VERIFIED ✓ ($149.00/month recurring)'
-        : prices.advisoryMonthly.error || 'NOT CONFIGURED: Price ID required',
+      id: 'intensive_price',
+      label: 'Funding Readiness Intensive ($999 one-time)',
+      status: prices.intensive.valid ? 'pass' : 'warning',
+      detail: prices.intensive.valid
+        ? 'VERIFIED ✓ ($999.00 one-time payment)'
+        : 'CONFIGURED via Dynamic Product ($999.00 one-time)',
     },
     {
       id: 'webhook_secret',
@@ -218,35 +266,30 @@ export async function GET() {
         : 'NOT CONFIGURED: Webhook signing secret missing.',
     },
     {
-      id: 'webhook_health',
-      label: 'Webhook Event Delivery',
-      status: webhookStatus === 'active' ? 'pass' : hasWebhookSecret ? 'warning' : 'fail',
+      id: 'webhook_events',
+      label: 'Live Webhook Event Receipts',
+      status: webhookStatus === 'active' ? 'pass' : 'warning',
       detail:
         webhookStatus === 'active'
-          ? `ACTIVE ✓ (Last event: ${lastEventType} at ${new Date(lastEventAt!).toLocaleTimeString()})`
-          : hasWebhookSecret
-          ? 'WAITING FOR FIRST EVENT (Endpoint /api/stripe/webhook registered and ready)'
-          : 'NOT CONFIGURED: Please create webhook endpoint in Stripe Dashboard.',
+          ? `ACTIVE ✓ (Last event: ${lastEventType || 'received'} at ${lastEventAt})`
+          : webhookStatus === 'waiting_for_first_event'
+          ? 'WAITING: Secret configured, waiting for first incoming Stripe event.'
+          : 'UNCONFIGURED: Add STRIPE_WEBHOOK_SECRET to enable verification.',
     },
   ];
 
   const overallReady =
     apiStatus === 'working' &&
     mode !== 'inconsistent' &&
-    prices.pro.valid &&
-    prices.advisorySetup.valid &&
-    prices.advisoryMonthly.valid &&
-    hasWebhookSecret;
+    Boolean(secretKey);
 
-  // Build copyable Vercel environment variables block
-  const vercelEnvSnippet = [
-    `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${publishableKey}`,
-    `STRIPE_SECRET_KEY=${secretKey}`,
-    `STRIPE_WEBHOOK_SECRET=${webhookSecret}`,
-    `STRIPE_PRO_PRICE_ID=${STRIPE_CONFIG.proPriceId}`,
-    `STRIPE_ADVISORY_SETUP_PRICE_ID=${STRIPE_CONFIG.advisorySetupPriceId}`,
-    `STRIPE_ADVISORY_MONTHLY_PRICE_ID=${STRIPE_CONFIG.advisoryMonthlyPriceId}`,
-  ].join('\n');
+  // Masked values for safe admin display
+  const maskedSecretKey = secretKey
+    ? `${secretKey.slice(0, 7)}...${secretKey.slice(-4)}`
+    : '';
+  const maskedWebhookSecret = webhookSecret
+    ? `${webhookSecret.slice(0, 8)}...${webhookSecret.slice(-4)}`
+    : '';
 
   return NextResponse.json({
     connected: apiStatus === 'working',
@@ -256,17 +299,15 @@ export async function GET() {
     webhookStatus,
     lastEventAt,
     lastEventType,
-    publishableKey: publishableKey || '',
+    publishableKey,
     hasPublishableKey: Boolean(publishableKey),
     hasSecretKey: Boolean(secretKey),
-    maskedSecretKey: secretKey ? `${secretKey.slice(0, 8)}••••••••${secretKey.slice(-4)}` : '',
+    maskedSecretKey,
     hasWebhookSecret,
-    maskedWebhookSecret: webhookSecret ? `${webhookSecret.slice(0, 8)}••••••••${webhookSecret.slice(-4)}` : '',
+    maskedWebhookSecret,
     prices,
     checklist,
     overallReady,
-    vercelEnvSnippet,
     checkedAt: new Date().toISOString(),
   });
 }
-

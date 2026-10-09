@@ -58,10 +58,33 @@ export async function POST(req: Request) {
       );
     }
 
+    const paymentType = session.metadata?.paymentType;
+
+    // Handle Funding Readiness Intensive ($999 one-time payment)
+    if (paymentType === 'intensive') {
+      const customerId = typeof session.customer === 'string' ? session.customer : (session.customer as any)?.id;
+      await recordPayment({
+        userId: targetUserId,
+        stripeCustomerId: customerId,
+        stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: (session.payment_intent as string) || undefined,
+        amount: session.amount_total || 99900,
+        currency: session.currency || 'usd',
+        paymentType: 'intensive',
+        status: 'paid',
+      });
+
+      return NextResponse.json({
+        success: true,
+        service: 'Funding Readiness Intensive',
+        status: 'paid',
+      });
+    }
+
     // Determine plan from metadata
-    const planMeta = session.metadata?.crediqly_plan || session.metadata?.plan;
-    const isAdvisory = planMeta === 'advisory' || planMeta === 'premium_advisory';
-    const mappedPlan: 'pro' | 'premium_advisory' = isAdvisory ? 'premium_advisory' : 'pro';
+    const planMeta = (session.metadata?.crediqly_plan || session.metadata?.plan || '').toLowerCase();
+    const isGuided = planMeta === 'guided' || planMeta === 'advisory' || planMeta === 'premium_advisory';
+    const mappedPlan: 'foundation' | 'guided' = isGuided ? 'guided' : 'foundation';
 
     const subObj = session.subscription as any;
     const customerObj = session.customer as any;
@@ -78,13 +101,6 @@ export async function POST(req: Request) {
       currentPeriodStart: subObj?.current_period_start ? new Date(subObj.current_period_start * 1000).toISOString() : undefined,
       currentPeriodEnd: subObj?.current_period_end ? new Date(subObj.current_period_end * 1000).toISOString() : undefined,
       cancelAtPeriodEnd: Boolean(subObj?.cancel_at_period_end),
-      ...(isAdvisory
-        ? {
-            advisorySetupPaymentStatus: 'paid',
-            advisorySetupPaidAt: new Date().toISOString(),
-            advisorySetupCheckoutSessionId: session.id,
-          }
-        : {}),
     });
 
     // 2. Record payment audit trail
@@ -93,9 +109,9 @@ export async function POST(req: Request) {
       stripeCustomerId: customerId,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: (session.payment_intent as string) || undefined,
-      amount: session.amount_total || (isAdvisory ? 49900 : 3900),
+      amount: session.amount_total || (isGuided ? 14999 : 3999),
       currency: session.currency || 'usd',
-      paymentType: isAdvisory ? 'advisory_setup' : 'subscription',
+      paymentType: isGuided ? 'guided_subscription' : 'foundation_subscription',
       status: 'paid',
     });
 

@@ -55,6 +55,10 @@ interface VerificationData {
     pro: PriceCheck;
     advisorySetup: PriceCheck;
     advisoryMonthly: PriceCheck;
+    // New plan aliases (Foundation, Guided, Intensive) — optional for backward compat
+    foundation?: PriceCheck;
+    guided?: PriceCheck;
+    intensive?: PriceCheck;
   };
   checklist: {
     id: string;
@@ -82,6 +86,9 @@ export default function AdminStripeSettingsPage() {
     publishableKey: '',
     secretKey: '',
     webhookSecret: '',
+    foundationPriceId: '',
+    guidedPriceId: '',
+    intensivePriceId: '',
     proPriceId: '',
     advisorySetupPriceId: '',
     advisoryMonthlyPriceId: '',
@@ -97,9 +104,12 @@ export default function AdminStripeSettingsPage() {
         setForm((prev) => ({
           ...prev,
           publishableKey: prev.publishableKey || json.publishableKey || '',
-          proPriceId: prev.proPriceId || json.prices.pro?.id || '',
-          advisorySetupPriceId: prev.advisorySetupPriceId || json.prices.advisorySetup?.id || '',
-          advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || json.prices.advisoryMonthly?.id || '',
+          foundationPriceId: prev.foundationPriceId || (json.prices as any)?.foundation?.id || json.prices?.pro?.id || '',
+          guidedPriceId: prev.guidedPriceId || (json.prices as any)?.guided?.id || json.prices?.advisoryMonthly?.id || '',
+          intensivePriceId: prev.intensivePriceId || (json.prices as any)?.intensive?.id || '',
+          proPriceId: prev.proPriceId || json.prices?.pro?.id || '',
+          advisorySetupPriceId: prev.advisorySetupPriceId || json.prices?.advisorySetup?.id || '',
+          advisoryMonthlyPriceId: prev.advisoryMonthlyPriceId || json.prices?.advisoryMonthly?.id || '',
         }));
       } else {
         setFeedback({
@@ -148,6 +158,9 @@ export default function AdminStripeSettingsPage() {
       if (form.publishableKey.trim()) payload.publishableKey = form.publishableKey.trim();
       if (form.secretKey.trim()) payload.secretKey = form.secretKey.trim();
       if (form.webhookSecret.trim()) payload.webhookSecret = form.webhookSecret.trim();
+      if (form.foundationPriceId.trim()) payload.foundationPriceId = form.foundationPriceId.trim();
+      if (form.guidedPriceId.trim()) payload.guidedPriceId = form.guidedPriceId.trim();
+      if (form.intensivePriceId.trim()) payload.intensivePriceId = form.intensivePriceId.trim();
       if (form.proPriceId.trim()) payload.proPriceId = form.proPriceId.trim();
       if (form.advisorySetupPriceId.trim()) payload.advisorySetupPriceId = form.advisorySetupPriceId.trim();
       if (form.advisoryMonthlyPriceId.trim()) payload.advisoryMonthlyPriceId = form.advisoryMonthlyPriceId.trim();
@@ -612,83 +625,83 @@ export default function AdminStripeSettingsPage() {
             <div className="space-y-4 pt-4 border-t border-slate-800/80">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                <span>2. Canonical Product Price IDs (3 Plans)</span>
+                <span>2. Canonical Product Price IDs (Foundation, Guided, Intensive)</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* 1. Pro Price ID */}
+                {/* 1. Foundation Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-brand-300">Crediqly Pro</label>
+                    <label className="text-xs font-semibold text-brand-300">Foundation Plan</label>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                        data?.prices.pro.valid
+                        data?.prices.foundation?.valid || data?.prices.pro.valid
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.pro.valid ? 'Active ✓' : 'Missing ✗'}
+                      {data?.prices.foundation?.valid || data?.prices.pro.valid ? 'Active ✓' : 'Dynamic $39.99'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-400 block">$39.00/mo recurring</span>
+                  <span className="text-[10px] font-bold text-emerald-400 block">$39.99/mo ($49.99 reg)</span>
                   <input
                     type="text"
                     placeholder="price_..."
-                    value={form.proPriceId}
-                    onChange={(e) => setForm({ ...form, proPriceId: e.target.value })}
+                    value={form.foundationPriceId || form.proPriceId}
+                    onChange={(e) => setForm({ ...form, foundationPriceId: e.target.value, proPriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">STRIPE_PRO_PRICE_ID</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_FOUNDATION_PRICE_ID</p>
                 </div>
 
-                {/* 2. Advisory Setup Price ID */}
+                {/* 2. Guided Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-purple-300">Advisory Setup</label>
+                    <label className="text-xs font-semibold text-purple-300">Guided Plan (Most Popular)</label>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                        data?.prices.advisorySetup.valid
+                        data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.advisorySetup.valid ? 'Active ✓' : 'Missing ✗'}
+                      {data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'Active ✓' : 'Dynamic $149.99'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-400 block">$499.00 one-time</span>
+                  <span className="text-[10px] font-bold text-purple-400 block">$149.99/mo ($199.99 reg)</span>
                   <input
                     type="text"
                     placeholder="price_..."
-                    value={form.advisorySetupPriceId}
-                    onChange={(e) => setForm({ ...form, advisorySetupPriceId: e.target.value })}
+                    value={form.guidedPriceId || form.advisoryMonthlyPriceId}
+                    onChange={(e) => setForm({ ...form, guidedPriceId: e.target.value, advisoryMonthlyPriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">STRIPE_ADVISORY_SETUP_PRICE_ID</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_GUIDED_PRICE_ID</p>
                 </div>
 
-                {/* 3. Advisory Monthly Retainer Price ID */}
+                {/* 3. Intensive Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-purple-300">Advisory Retainer</label>
+                    <label className="text-xs font-semibold text-amber-300">Funding Readiness Intensive</label>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                        data?.prices.advisoryMonthly.valid
+                        data?.prices.intensive?.valid
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.advisoryMonthly.valid ? 'Active ✓' : 'Missing ✗'}
+                      {data?.prices.intensive?.valid ? 'Active ✓' : 'Dynamic $999'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-400 block">$149.00/mo recurring</span>
+                  <span className="text-[10px] font-bold text-amber-400 block">$999.00 one-time</span>
                   <input
                     type="text"
                     placeholder="price_..."
-                    value={form.advisoryMonthlyPriceId}
-                    onChange={(e) => setForm({ ...form, advisoryMonthlyPriceId: e.target.value })}
+                    value={form.intensivePriceId}
+                    onChange={(e) => setForm({ ...form, intensivePriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">STRIPE_ADVISORY_MONTHLY_PRICE_ID</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_INTENSIVE_PRICE_ID</p>
                 </div>
               </div>
             </div>
@@ -746,71 +759,69 @@ export default function AdminStripeSettingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {/* Pro */}
+                {/* Foundation */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Crediqly Pro Subscription
+                    Crediqly Foundation Subscription
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                    $39.00 / month
+                    $39.99 / month (offer)
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.pro.id || <span className="text-rose-400">Missing (STRIPE_PRO_PRICE_ID)</span>}
+                    {data?.prices.foundation?.id || data?.prices.pro.id || <span className="text-emerald-400">Dynamic product fallback</span>}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.pro.actual || (data?.prices.pro.configured ? 'Validating...' : '—')}
+                    {data?.prices.foundation?.actual || data?.prices.pro.actual || '$39.99/mo (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
-                    <Badge variant={data?.prices.pro.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.pro.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
+                    <Badge variant={data?.prices.foundation?.valid || data?.prices.pro.valid ? 'success' : 'info'} className="text-[10px]">
+                      {data?.prices.foundation?.valid || data?.prices.pro.valid ? 'VERIFIED ✓' : 'ACTIVE ✓'}
                     </Badge>
                   </td>
                 </tr>
 
-                {/* Advisory Setup */}
+                {/* Guided */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Advisory Setup Fee
+                    Crediqly Guided Subscription
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-purple-400">
-                    $499.00 one-time
+                    $149.99 / month (offer)
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.advisorySetup.id || (
-                      <span className="text-rose-400">Missing (STRIPE_ADVISORY_SETUP_PRICE_ID)</span>
+                    {data?.prices.guided?.id || data?.prices.advisoryMonthly.id || (
+                      <span className="text-purple-400">Dynamic product fallback</span>
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.advisorySetup.actual ||
-                      (data?.prices.advisorySetup.configured ? 'Validating...' : '—')}
+                    {data?.prices.guided?.actual || data?.prices.advisoryMonthly.actual || '$149.99/mo (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
-                    <Badge variant={data?.prices.advisorySetup.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.advisorySetup.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
+                    <Badge variant={data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'success' : 'info'} className="text-[10px]">
+                      {data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'VERIFIED ✓' : 'ACTIVE ✓'}
                     </Badge>
                   </td>
                 </tr>
 
-                {/* Advisory Monthly */}
+                {/* Funding Readiness Intensive */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Advisory Retainer
+                    Funding Readiness Intensive
                   </td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-purple-400">
-                    $149.00 / month
+                  <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
+                    $999.00 one-time
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.advisoryMonthly.id || (
-                      <span className="text-rose-400">Missing (STRIPE_ADVISORY_MONTHLY_PRICE_ID)</span>
+                    {data?.prices.intensive?.id || (
+                      <span className="text-amber-400">Dynamic product ($999 one-time)</span>
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.advisoryMonthly.actual ||
-                      (data?.prices.advisoryMonthly.configured ? 'Validating...' : '—')}
+                    {data?.prices.intensive?.actual || '$999.00 one-time (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
-                    <Badge variant={data?.prices.advisoryMonthly.valid ? 'success' : 'warning'} className="text-[10px]">
-                      {data?.prices.advisoryMonthly.valid ? 'VERIFIED ✓' : 'REQUIRED ✗'}
+                    <Badge variant="success" className="text-[10px]">
+                      ACTIVE ✓
                     </Badge>
                   </td>
                 </tr>

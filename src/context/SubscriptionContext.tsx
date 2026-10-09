@@ -3,17 +3,30 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { getUserSubscription } from '@/lib/supabase/subscriptionService';
-import { Subscription, hasActiveProSubscription, hasPremiumAdvisory } from '@/types/subscription';
+import {
+  Subscription,
+  hasFoundationAccess,
+  hasGuidedAccess,
+  hasActiveProSubscription,
+  hasPremiumAdvisory,
+} from '@/types/subscription';
 
 interface SubscriptionContextType {
   subscription: Subscription | null;
-  isPro: boolean;
-  isAdvisory: boolean;
+  // Plan flags
+  isFoundation: boolean;
+  isGuided: boolean;
+  isPro: boolean; // Backwards-compatible alias for isFoundation
+  isAdvisory: boolean; // Backwards-compatible alias for isGuided
   loading: boolean;
   refreshSubscription: () => Promise<void>;
   verifyCheckoutSession: (sessionId: string) => Promise<void>;
-  upgradeToPro: () => Promise<void>;
-  upgradeToAdvisory: () => Promise<void>;
+  // Upgrades
+  upgradeToFoundation: () => Promise<void>;
+  upgradeToGuided: () => Promise<void>;
+  requestIntensive: () => Promise<void>;
+  upgradeToPro: () => Promise<void>; // Backwards-compatible alias for upgradeToFoundation
+  upgradeToAdvisory: () => Promise<void>; // Backwards-compatible alias for upgradeToGuided
   openCustomerPortal: () => Promise<void>;
 }
 
@@ -93,11 +106,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [fetchSubscription, verifyCheckoutSession, user?.id]);
 
-  const isPro = hasActiveProSubscription(subscription);
-  const isAdvisory = hasPremiumAdvisory(subscription);
+  const isFoundation = hasFoundationAccess(subscription);
+  const isGuided = hasGuidedAccess(subscription);
+  const isPro = isFoundation;
+  const isAdvisory = isGuided;
 
-  // Trigger Pro subscription checkout
-  const upgradeToPro = async () => {
+  // Trigger Plan 2: Foundation checkout ($39.99/mo)
+  const upgradeToFoundation = async () => {
     if (!user?.id) {
       window.location.href = '/signup';
       return;
@@ -110,6 +125,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         body: JSON.stringify({
           userId: user.id,
           customerEmail: user.email,
+          plan: 'foundation',
         }),
       });
 
@@ -119,23 +135,55 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       } else if (data.notConfigured) {
         alert('Stripe payments are currently in setup mode on this server. Please contact support.');
       } else {
-        throw new Error(data.error || 'Failed to start checkout session.');
+        throw new Error(data.error || 'Failed to start Foundation checkout session.');
       }
     } catch (err: any) {
-      console.error('Upgrade to Pro error:', err);
+      console.error('Upgrade to Foundation error:', err);
       alert(err.message || 'Unable to proceed to checkout. Please try again.');
     }
   };
 
-  // Trigger Done-For-You Premium Advisory checkout ($499 setup + $149/mo)
-  const upgradeToAdvisory = async () => {
+  // Trigger Plan 3: Guided checkout ($149.99/mo)
+  const upgradeToGuided = async () => {
     if (!user?.id) {
       window.location.href = '/signup';
       return;
     }
 
     try {
-      const res = await fetch('/api/stripe/checkout-advisory', {
+      const res = await fetch('/api/stripe/checkout-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          customerEmail: user.email,
+          plan: 'guided',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else if (data.notConfigured) {
+        alert('Stripe payments are currently in setup mode on this server. Please contact support.');
+      } else {
+        throw new Error(data.error || 'Failed to start Guided checkout session.');
+      }
+    } catch (err: any) {
+      console.error('Upgrade to Guided error:', err);
+      alert(err.message || 'Unable to proceed to checkout. Please try again.');
+    }
+  };
+
+  // Trigger Funding Readiness Intensive checkout ($999 one-time)
+  const requestIntensive = async () => {
+    if (!user?.id) {
+      window.location.href = '/signup';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/stripe/checkout-intensive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,10 +198,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       } else if (data.notConfigured) {
         alert('Stripe payments are currently in setup mode on this server. Please contact support.');
       } else {
-        throw new Error(data.error || 'Failed to start Premium Advisory checkout session.');
+        throw new Error(data.error || 'Failed to start Funding Readiness Intensive checkout.');
       }
     } catch (err: any) {
-      console.error('Upgrade to Premium Advisory error:', err);
+      console.error('Request Funding Readiness Intensive error:', err);
       alert(err.message || 'Unable to proceed to checkout. Please try again.');
     }
   };
@@ -184,13 +232,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     <SubscriptionContext.Provider
       value={{
         subscription,
+        isFoundation,
+        isGuided,
         isPro,
         isAdvisory,
         loading,
         refreshSubscription: fetchSubscription,
         verifyCheckoutSession,
-        upgradeToPro,
-        upgradeToAdvisory,
+        upgradeToFoundation,
+        upgradeToGuided,
+        requestIntensive,
+        upgradeToPro: upgradeToFoundation,
+        upgradeToAdvisory: upgradeToGuided,
         openCustomerPortal,
       }}
     >

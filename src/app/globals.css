@@ -14,3 +14,71 @@ body {
   min-height: 100vh;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Range input — homepage simulator */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #0d9488;
+  margin-top: -5px;
+  transition: background 0.15s ease;
+}
+
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #14b8a6;
+  outline-offset: 2px;
+}
+
+input[type='range'].accent-emerald-500::-webkit-slider-thumb {
+  background: #10b981;
+}
+
+input[type='range'].accent-cyan-500::-webkit-slider-thumb {
+  background: #06b6d4;
+}
+
+input[type='range'].accent-indigo-500::-webkit-slider-thumb {
+  background: #6366f1;
+}
+
+/* Focus visible outline */
+:focus-visible {
+  outline: 2px solid #14b8a6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+

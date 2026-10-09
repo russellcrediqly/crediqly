@@ -1,58 +1,34 @@
 'use client';
 
 import React from 'react';
-import {
-  ShieldCheck,
-  Lock,
-  Building2,
-  CheckCircle,
-  FileCheck,
-  CreditCard,
-  Zap,
-} from 'lucide-react';
+import { ShieldCheck, Lock, Building2, FileCheck, CheckCircle } from 'lucide-react';
+
+const items = [
+  { icon: Building2, label: 'Dun & Bradstreet', color: 'text-brand-400' },
+  { icon: FileCheck, label: 'Experian Commercial', color: 'text-teal-400' },
+  { icon: CheckCircle, label: 'Equifax Business', color: 'text-cyan-400' },
+  { icon: Lock, label: 'Zero-SSN Architecture', color: 'text-emerald-400' },
+  { icon: ShieldCheck, label: 'Stripe Secured Payments', color: 'text-indigo-400' },
+];
 
 export const TrustBar: React.FC = () => {
   return (
-    <section className="py-8 bg-slate-950 border-y border-slate-800/80 text-white relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Section Indicator */}
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 uppercase tracking-widest shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Institutional Compatibility</span>
-          </div>
-
-          {/* Partner Badges Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6 sm:gap-8 items-center justify-center w-full md:w-auto text-xs text-slate-400">
-            {/* D&B */}
-            <div className="flex items-center gap-2 hover:text-white transition-colors cursor-default">
-              <Building2 className="w-4 h-4 text-brand-400" />
-              <span className="font-bold tracking-tight">Dun &amp; Bradstreet</span>
-            </div>
-
-            {/* Experian Commercial */}
-            <div className="flex items-center gap-2 hover:text-white transition-colors cursor-default">
-              <FileCheck className="w-4 h-4 text-teal-400" />
-              <span className="font-bold tracking-tight">Experian Commercial</span>
-            </div>
-
-            {/* Equifax Business */}
-            <div className="flex items-center gap-2 hover:text-white transition-colors cursor-default">
-              <CheckCircle className="w-4 h-4 text-cyan-400" />
-              <span className="font-bold tracking-tight">Equifax Business</span>
-            </div>
-
-            {/* Zero-SSN Vault */}
-            <div className="flex items-center gap-2 hover:text-white transition-colors cursor-default">
-              <Lock className="w-4 h-4 text-emerald-400" />
-              <span className="font-bold tracking-tight">Zero-SSN Vault</span>
-            </div>
-
-            {/* Stripe Verified */}
-            <div className="flex items-center gap-2 hover:text-white transition-colors cursor-default col-span-2 sm:col-span-1 justify-center">
-              <ShieldCheck className="w-4 h-4 text-indigo-400" />
-              <span className="font-bold tracking-tight">Stripe Verified</span>
-            </div>
+    <section className="bg-slate-950 border-b border-white/6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0 whitespace-nowrap">
+            Platform Compatibility
+          </span>
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-7 gap-y-3">
+            {items.map(({ icon: Icon, label, color }) => (
+              <div
+                key={label}
+                className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-default"
+              >
+                <Icon className={`w-3.5 h-3.5 ${color} shrink-0`} />
+                <span className="font-medium">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
