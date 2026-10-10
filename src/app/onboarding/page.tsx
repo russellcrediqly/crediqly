@@ -24,7 +24,7 @@ import {
   FUNDING_AMOUNTS,
   FUNDING_PURPOSES,
 } from '@/lib/constants';
-import { BusinessProfile } from '@/types/business';
+import { BusinessProfile, isProfileInformationComplete } from '@/types/business';
 import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 import {
   Building,
@@ -62,7 +62,7 @@ export default function OnboardingPage() {
         router.replace('/admin');
         return;
       }
-      if (!businessLoading && business && business.profileCompleted) {
+      if (!businessLoading && business && (business.profileCompleted || isProfileInformationComplete(business))) {
         router.replace('/dashboard');
       }
     }

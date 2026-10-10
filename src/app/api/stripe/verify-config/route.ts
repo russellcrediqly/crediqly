@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import { stripe, isStripeConfigured, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { verifyAdminRequest } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authVerification = verifyAdminRequest(req as any);
+  if (!authVerification.authorized) {
+    return NextResponse.json(
+      { error: 'Forbidden: Administrator credentials required.' },
+      { status: 403 }
+    );
+  }
+
   const secretKey = process.env.STRIPE_SECRET_KEY || '';
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
   const webhookSecret = STRIPE_CONFIG.webhookSecret || '';

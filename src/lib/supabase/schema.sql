@@ -1027,4 +1027,74 @@ create index if not exists idx_stripe_webhook_logs_created_at on public.stripe_w
 -- UPDATE public.profiles SET role = 'admin' WHERE email = 'your-email@domain.com';
 -- ==============================================================================
 
+-- ==============================================================================
+-- 24. ADMIN AUDIT LOGS TABLE
+-- Authoritative immutable audit trail for administrative mutations
+-- ==============================================================================
+create table if not exists public.admin_audit_logs (
+  id text primary key,
+  admin_email text not null,
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  entity_name text,
+  description text not null,
+  previous_value text,
+  new_value text,
+  created_at timestamptz default now() not null
+);
+
+alter table public.admin_audit_logs enable row level security;
+
+drop policy if exists "Admins can view admin audit logs" on public.admin_audit_logs;
+create policy "Admins can view admin audit logs"
+  on public.admin_audit_logs for select
+  using (public.is_admin());
+
+drop policy if exists "Admins can insert admin audit logs" on public.admin_audit_logs;
+create policy "Admins can insert admin audit logs"
+  on public.admin_audit_logs for insert
+  with check (public.is_admin());
+
+create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs(created_at desc);
+create index if not exists idx_admin_audit_logs_entity on public.admin_audit_logs(entity_type, entity_id);
+
+-- ==============================================================================
+-- 25. ADMIN CUSTOMER INTERNAL NOTES TABLE
+-- Protected internal staff notes (Zero visibility for regular customers)
+-- ==============================================================================
+create table if not exists public.admin_customer_notes (
+  id text primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  admin_email text not null,
+  content text not null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+alter table public.admin_customer_notes enable row level security;
+
+drop policy if exists "Admins can manage admin customer notes" on public.admin_customer_notes;
+create policy "Admins can manage admin customer notes"
+  on public.admin_customer_notes for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create index if not exists idx_admin_customer_notes_user_id on public.admin_customer_notes(user_id);
+create index if not exists idx_admin_customer_notes_created_at on public.admin_customer_notes(created_at desc);
+
+-- ==============================================================================
+-- 26. ENHANCED SUBSCRIPTION ENTITLEMENT COLUMNS
+-- Support for Manual Admin Grants, Expirations, and Precedence
+-- ==============================================================================
+alter table public.subscriptions add column if not exists provider text default 'none';
+alter table public.subscriptions add column if not exists access_source text default 'free';
+alter table public.subscriptions add column if not exists grant_type text;
+alter table public.subscriptions add column if not exists granted_by text;
+alter table public.subscriptions add column if not exists grant_reason text;
+alter table public.subscriptions add column if not exists granted_at timestamptz;
+alter table public.subscriptions add column if not exists expires_at timestamptz;
+alter table public.subscriptions add column if not exists billing_status text default 'free';
+
+
 

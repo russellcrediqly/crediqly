@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 import { UserRole, AccountStatus } from '@/types/user';
 import { updateCustomerProfile } from '@/lib/supabase/profileService';
+import { isProfileInformationComplete } from '@/types/business';
 
 export interface AuthUser {
   id: string;
@@ -333,13 +334,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const { data: bizData } = await supabase
               .from('businesses')
-              .select('profile_completed')
+              .select('profile_completed, business_name, entity_type, state')
               .eq('user_id', data.user.id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
 
-            if (bizData && bizData.profile_completed) {
+            if (bizData && (bizData.profile_completed || isProfileInformationComplete(bizData))) {
               isProfileComplete = true;
             }
           } catch (bizErr) {
@@ -352,7 +353,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const localBiz = localStorage.getItem('crediqly_business_' + data.user.id);
               if (localBiz) {
                 const parsed = JSON.parse(localBiz);
-                if (parsed.profileCompleted) {
+                if (isProfileInformationComplete(parsed)) {
                   isProfileComplete = true;
                 }
               }
@@ -417,7 +418,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const localBiz = localStorage.getItem('crediqly_business_' + mockUser.id);
           if (localBiz) {
             const parsed = JSON.parse(localBiz);
-            if (parsed.profileCompleted) isCompleted = true;
+            if (isProfileInformationComplete(parsed)) isCompleted = true;
           }
         } catch (e) {}
       }

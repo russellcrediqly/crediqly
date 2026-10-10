@@ -114,3 +114,36 @@ export type FundingGoalsSection = Pick<
   BusinessProfile,
   'annualRevenueRange' | 'personalCreditRange' | 'fundingAmount' | 'fundingPurpose'
 >;
+
+/**
+ * Determines whether a business profile has completed onboarding or possesses
+ * sufficient verified core business data to skip initial onboarding.
+ * Handles both camelCase and snake_case models safely.
+ */
+export function isProfileInformationComplete(
+  profile?: Partial<BusinessProfile> | Record<string, any> | null
+): boolean {
+  if (!profile) return false;
+  if (profile.profileCompleted === true || (profile as any).profile_completed === true) {
+    return true;
+  }
+  const name = profile.businessName || (profile as any).business_name;
+  const entity = profile.entityType || (profile as any).entity_type;
+  const state = profile.state;
+
+  const hasName = Boolean(
+    typeof name === 'string' &&
+    name.trim().length > 0 &&
+    name.trim().toLowerCase() !== 'my business'
+  );
+  const hasEntity = Boolean(
+    typeof entity === 'string' &&
+    entity.trim().length > 0
+  );
+  const hasState = Boolean(
+    typeof state === 'string' &&
+    state.trim().length > 0
+  );
+
+  return Boolean(hasName && hasEntity && hasState);
+}

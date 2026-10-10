@@ -16,8 +16,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Server-side Protection for Admin API Endpoints
-  if (pathname.startsWith('/api/admin')) {
+  // 2. Server-side Protection for Admin API Endpoints & Sensitive System Config
+  if (
+    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/api/stripe/save-config') ||
+    pathname.startsWith('/api/stripe/verify-config')
+  ) {
     const verification = verifyAdminRequest(request);
     if (!verification.authorized) {
       return NextResponse.json(

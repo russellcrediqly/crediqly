@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { ShieldCheck } from 'lucide-react';
 import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
+import { isProfileInformationComplete } from '@/types/business';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -30,7 +31,9 @@ export default function SignInPage() {
       }
       // Direct authenticated visitor appropriately
       if (!businessLoading) {
-        if (business && business.profileCompleted === false) {
+        if (business && isProfileInformationComplete(business)) {
+          router.replace('/dashboard');
+        } else if (business && business.profileCompleted === false) {
           router.replace('/onboarding');
         } else {
           router.replace('/dashboard');

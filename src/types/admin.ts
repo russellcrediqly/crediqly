@@ -1,5 +1,15 @@
 import { UserRole, AccountStatus } from './user';
 import { BusinessProfile } from './business';
+import { AccessSource, GrantType } from './subscription';
+
+export interface AdminCustomerNote {
+  id: string;
+  userId: string;
+  adminEmail: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface AdminUserListItem {
   id: string; // profile id
@@ -31,6 +41,14 @@ export interface AdminUserListItem {
   // Plan, Subscription & Operations
   plan?: 'free' | 'foundation' | 'guided' | 'intensive' | 'pro' | 'premium_advisory';
   subscriptionStatus?: string;
+  accessSource?: AccessSource;
+  grantType?: GrantType;
+  grantedBy?: string;
+  grantReason?: string;
+  expiresAt?: string;
+  billingStatus?: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
   isAdvisory?: boolean;
   advisoryStatus?: string;
   fundingApplicationsCount?: number;
@@ -55,9 +73,16 @@ export interface AdminUserDetail {
     planId: string;
     status: string;
     provider: string;
+    accessSource?: AccessSource;
+    grantType?: GrantType;
+    grantedBy?: string;
+    grantReason?: string;
+    grantedAt?: string;
+    expiresAt?: string;
     currentPeriodEnd?: string;
     stripeCustomerId?: string;
     stripeSubscriptionId?: string;
+    billingStatus?: string;
     createdAt?: string;
   } | null;
   payments?: {
@@ -70,6 +95,7 @@ export interface AdminUserDetail {
     stripePaymentIntentId?: string;
     stripeCheckoutSessionId?: string;
   }[];
+  notes?: AdminCustomerNote[];
   consultations?: any[];
   fundingApplications?: any[];
   roadmapProgress?: {
@@ -102,6 +128,9 @@ export interface AdminUserFilters {
   role: 'all' | UserRole;
   status: 'all' | AccountStatus;
   onboarding: 'all' | 'completed' | 'in_progress';
+  plan: 'all' | 'free' | 'foundation' | 'guided';
+  accessSource: 'all' | AccessSource;
+  billingStatus: 'all' | string;
 }
 
 export interface AdminOverviewStats {
@@ -117,8 +146,16 @@ export interface AdminOverviewStats {
   avgCreditReadiness: number;
   activeSubscriptions: number;
   newUsersThisWeek: number;
-  freeUsers?: number;
-  proUsers?: number;
-  advisoryUsers?: number;
+  freeUsers: number;
+  foundationUsers: number;
+  guidedMonthlyUsers: number;
+  guidedOneTimeUsers: number;
+  adminGrantedUsers: number;
+  complimentaryUsers: number;
+  proUsers?: number; // legacy alias for foundationUsers
+  advisoryUsers?: number; // legacy alias for guidedUsers
   mrr?: number;
+  recurringMrr: number;
+  oneTimeRevenue: number;
+  totalVerifiedRevenue: number;
 }

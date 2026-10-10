@@ -343,42 +343,80 @@ export default function AdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Customer Tier & MRR Telemetry Banner */}
-      <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
-            <CreditCard className="w-5 h-5" />
+      {/* Customer Tier & Revenue Telemetry Banner */}
+      <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-2">
+                <span>Verified Customer Plan &amp; Revenue Telemetry</span>
+                <Badge variant="success" className="text-[10px]">Real Database Records</Badge>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                Standardized Crediqly pricing: Free ($0), Foundation ($47.99/mo), Guided Monthly ($147.99/mo), Guided 12-Month ($997), and Owner Admin Grants ($0).
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs font-bold text-white flex items-center gap-2">
-              <span>Customer Tier Breakdown & Recurring Revenue</span>
-              <Badge variant="success" className="text-[10px]">Live Telemetry</Badge>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              Customer subscription distributions across Free, Foundation ($47.99/mo), and Guided ($147.99/mo).
-            </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <Link href="/admin/customers">
+              <Button size="sm" variant="outline" className="border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs gap-1.5 font-bold shadow-xs">
+                <Users className="w-3.5 h-3.5 text-brand-400" />
+                <span>Customer Directory</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
-            <span className="text-[10px] text-slate-400 block uppercase font-medium">Free Tier</span>
-            <span className="text-sm font-extrabold text-white">{stats?.freeUsers ?? 0}</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
+          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
+            <span className="text-[10px] text-slate-400 block uppercase font-medium">Free Tier ($0)</span>
+            <span className="text-base font-extrabold text-white">{stats?.freeUsers ?? 0}</span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-brand-950/40 border border-brand-800/60 text-center">
-            <span className="text-[10px] text-brand-300 block uppercase font-medium">Foundation ($47.99/mo)</span>
-            <span className="text-sm font-extrabold text-brand-300">{stats?.proUsers ?? 0}</span>
+          <div className="p-3 rounded-xl bg-brand-950/40 border border-brand-800/60 text-center">
+            <span className="text-[10px] text-brand-300 block uppercase font-medium">Foundation ($47.99)</span>
+            <span className="text-base font-extrabold text-brand-300">
+              {stats?.foundationUsers ?? stats?.proUsers ?? 0}
+            </span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-800/60 text-center">
-            <span className="text-[10px] text-purple-300 block uppercase font-medium">Guided ($147.99/mo)</span>
-            <span className="text-sm font-extrabold text-purple-300">{stats?.advisoryUsers ?? 0}</span>
+          <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/60 text-center">
+            <span className="text-[10px] text-purple-300 block uppercase font-medium">Guided Mo ($147.99)</span>
+            <span className="text-base font-extrabold text-purple-300">
+              {stats?.guidedMonthlyUsers ?? stats?.advisoryUsers ?? 0}
+            </span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-center">
-            <span className="text-[10px] text-emerald-300 block uppercase font-medium">Live MRR</span>
-            <span className="text-sm font-extrabold text-emerald-400">${(stats?.mrr ?? 0).toLocaleString()}</span>
+          <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-800/60 text-center">
+            <span className="text-[10px] text-indigo-300 block uppercase font-medium">Guided 12-Mo ($997)</span>
+            <span className="text-base font-extrabold text-indigo-300">
+              {stats?.guidedOneTimeUsers ?? 0}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/60 text-center">
+            <span className="text-[10px] text-blue-300 block uppercase font-medium">Admin Grants ($0)</span>
+            <span className="text-base font-extrabold text-blue-300">
+              {(stats?.adminGrantedUsers ?? 0) + (stats?.complimentaryUsers ?? 0)}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-center">
+            <span className="text-[10px] text-emerald-300 block uppercase font-medium">Recurring MRR</span>
+            <span className="text-base font-extrabold text-emerald-400">
+              ${(stats?.recurringMrr ?? stats?.mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-center">
+            <span className="text-[10px] text-emerald-300 block uppercase font-medium">Total Revenue</span>
+            <span className="text-base font-extrabold text-emerald-400">
+              ${(stats?.totalVerifiedRevenue ?? (stats?.mrr ?? 0) + (stats?.oneTimeRevenue ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
       </div>

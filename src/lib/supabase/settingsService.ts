@@ -32,13 +32,15 @@ const DEFAULT_SETTINGS: PlatformSettings = {
   updatedAt: new Date().toISOString(),
 };
 
+let inMemorySettings: PlatformSettings = { ...DEFAULT_SETTINGS };
+
 function getLocalSettings(): PlatformSettings {
-  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  if (typeof window === 'undefined') return { ...inMemorySettings };
   try {
     const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
+    if (!raw) return { ...inMemorySettings };
     const parsed = JSON.parse(raw);
-    return {
+    const merged: PlatformSettings = {
       ...DEFAULT_SETTINGS,
       ...parsed,
       sections: {
@@ -61,13 +63,16 @@ function getLocalSettings(): PlatformSettings {
         ...(parsed.readinessMilestoneSettings || {}),
       },
     };
+    inMemorySettings = merged;
+    return merged;
   } catch (err) {
     console.error('Failed to read local platform settings:', err);
-    return { ...DEFAULT_SETTINGS };
+    return { ...inMemorySettings };
   }
 }
 
 function saveLocalSettings(settings: PlatformSettings): void {
+  inMemorySettings = { ...settings };
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(settings));

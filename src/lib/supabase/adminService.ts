@@ -7,9 +7,12 @@ import {
 } from '@/types/admin';
 import { UserRole, AccountStatus } from '@/types/user';
 import { BusinessProfile } from '@/types/business';
+import { AccessSource, GrantType } from '@/types/subscription';
 import { calculateReadiness } from '@/lib/scoring';
 import { getAllProductsAdmin, getAffiliateClicksStats } from './productService';
 import { getAllContentAdmin } from './contentService';
+import { getUserSubscription } from './subscriptionService';
+import { getAdminCustomerNotes } from './adminNoteService';
 
 // Fallback mock users when tables are empty or not yet deployed in SQL Editor
 const DEMO_ADMIN_USERS: AdminUserListItem[] = [
@@ -22,6 +25,12 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     fullName: 'Alex Morgan',
     role: 'admin',
     status: 'active',
+    plan: 'guided',
+    accessSource: 'admin_grant',
+    grantType: 'admin_grant',
+    grantedBy: 'system@crediqly.com',
+    grantReason: 'Platform founder and system administrator access',
+    billingStatus: 'admin_grant',
     createdAt: new Date(Date.now() - 14 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     businessId: 'biz_001',
@@ -29,6 +38,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     entityType: 'LLC',
     state: 'Texas',
     industry: 'Trucking & Transportation',
+    businessAge: '2+ years',
     profileCompleted: true,
     businessReadinessScore: 85,
     creditReadinessScore: 72,
@@ -36,6 +46,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     businessReadinessLevel: 'Strong Foundation',
     creditReadinessLevel: 'On Track',
     fundingReadinessLevel: 'Funding Ready',
+    isAdvisory: true,
   },
   {
     id: 'prf_002',
@@ -46,6 +57,12 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     fullName: 'Sarah Jenkins',
     role: 'user',
     status: 'active',
+    plan: 'foundation',
+    accessSource: 'stripe_subscription',
+    grantType: 'paid',
+    billingStatus: 'active',
+    stripeCustomerId: 'cus_NthHzr29Beacon',
+    stripeSubscriptionId: 'sub_Fnd84799Active',
     createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     businessId: 'biz_002',
@@ -53,6 +70,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     entityType: 'LLC',
     state: 'Florida',
     industry: 'Cleaning',
+    businessAge: '1–2 years',
     profileCompleted: true,
     businessReadinessScore: 68,
     creditReadinessScore: 48,
@@ -60,6 +78,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     businessReadinessLevel: 'On Track',
     creditReadinessLevel: 'Building',
     fundingReadinessLevel: 'Developing',
+    isAdvisory: false,
   },
   {
     id: 'prf_003',
@@ -70,6 +89,12 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     fullName: 'David Chen',
     role: 'user',
     status: 'active',
+    plan: 'guided',
+    accessSource: 'stripe_onetime',
+    grantType: 'paid',
+    billingStatus: 'paid_onetime',
+    expiresAt: new Date(Date.now() + 240 * 86400000).toISOString(),
+    stripeCustomerId: 'cus_TitanOneTime997',
     createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     businessId: 'biz_003',
@@ -77,6 +102,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     entityType: 'Corporation',
     state: 'California',
     industry: 'Construction',
+    businessAge: '3+ years',
     profileCompleted: true,
     businessReadinessScore: 92,
     creditReadinessScore: 84,
@@ -84,6 +110,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     businessReadinessLevel: 'Strong Foundation',
     creditReadinessLevel: 'Strong Foundation',
     fundingReadinessLevel: 'Strong Readiness',
+    isAdvisory: true,
   },
   {
     id: 'prf_004',
@@ -93,7 +120,10 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     lastName: 'Vance',
     fullName: 'Marcus Vance',
     role: 'user',
-    status: 'disabled',
+    status: 'suspended',
+    plan: 'free',
+    accessSource: 'free',
+    billingStatus: 'free',
     createdAt: new Date(Date.now() - 20 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     businessName: 'Rapid Courier Services',
@@ -104,6 +134,7 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
     businessReadinessLevel: 'Getting Started',
     creditReadinessLevel: 'Getting Started',
     fundingReadinessLevel: 'Getting Started',
+    isAdvisory: false,
   },
 ];
 
@@ -158,8 +189,28 @@ export async function getAdminUsers(filters?: Partial<AdminUserFilters>): Promis
         const b = bizMap.get(p.user_id);
         const s = scoreMap.get(p.user_id);
         const sub = subMap.get(p.user_id);
-        const plan = (sub?.plan as any) || 'free';
-        const isAdvisory = (plan === 'guided' || plan === 'premium_advisory' || plan === 'intensive') && (sub?.status === 'active' || sub?.status === 'trialing');
+
+        const rawPlan = (sub?.plan || sub?.plan_id || 'free').toLowerCase();
+        let plan: 'free' | 'foundation' | 'guided' = 'free';
+        if (rawPlan === 'guided' || rawPlan === 'premium_advisory' || rawPlan === 'intensive') {
+          plan = 'guided';
+        } else if (rawPlan === 'foundation' || rawPlan === 'pro' || rawPlan.includes('pro')) {
+          plan = 'foundation';
+        }
+
+        const provider = sub?.provider || (sub?.stripe_subscription_id ? 'stripe' : 'none');
+        let accessSource: AccessSource = (sub?.access_source as AccessSource) || 'free';
+        if (!sub?.access_source) {
+          if (provider === 'stripe') {
+            accessSource = sub?.stripe_subscription_id ? 'stripe_subscription' : 'stripe_onetime';
+          } else if (provider === 'admin') {
+            accessSource = sub?.grant_type === 'complimentary' ? 'complimentary' : 'admin_grant';
+          } else if (plan === 'free') {
+            accessSource = 'free';
+          }
+        }
+
+        const isAdvisory = (plan === 'guided') && (sub?.status === 'active' || sub?.status === 'trialing');
         const userConsults = consultMap.get(p.user_id) || [];
         const latestConsult = userConsults[0];
         const userApps = appsMap.get(p.user_id) || [];
@@ -192,9 +243,17 @@ export async function getAdminUsers(filters?: Partial<AdminUserFilters>): Promis
           businessReadinessLevel: s?.business_readiness_level,
           creditReadinessLevel: s?.credit_readiness_level,
           fundingReadinessLevel: b?.funding_readiness_level,
-          plan: plan,
+          plan,
           subscriptionStatus: sub?.status || 'free',
-          isAdvisory: isAdvisory,
+          accessSource,
+          grantType: sub?.grant_type,
+          grantedBy: sub?.granted_by,
+          grantReason: sub?.grant_reason,
+          expiresAt: sub?.expires_at || sub?.current_period_end,
+          billingStatus: sub?.billing_status || (provider === 'stripe' ? sub?.status : provider === 'admin' ? accessSource : 'free'),
+          stripeCustomerId: sub?.stripe_customer_id,
+          stripeSubscriptionId: sub?.stripe_subscription_id,
+          isAdvisory,
           advisoryStatus: latestConsult ? latestConsult.status : 'None',
           fundingApplicationsCount: userApps.length,
           lastSeenAt: p.last_seen_at,
@@ -230,6 +289,18 @@ function filterUsers(users: AdminUserListItem[], filters?: Partial<AdminUserFilt
 
     if (filters.status && filters.status !== 'all') {
       if (u.status !== filters.status) return false;
+    }
+
+    if (filters.plan && filters.plan !== 'all') {
+      if (u.plan !== filters.plan) return false;
+    }
+
+    if (filters.accessSource && filters.accessSource !== 'all') {
+      if (u.accessSource !== filters.accessSource) return false;
+    }
+
+    if (filters.billingStatus && filters.billingStatus !== 'all') {
+      if (u.billingStatus !== filters.billingStatus) return false;
     }
 
     if (filters.onboarding && filters.onboarding !== 'all') {
@@ -281,10 +352,19 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
   const affiliateClicks = clickStats.totalClicks;
   const completedRoadmapTasks = Math.max(14, completedProfiles * 5);
 
-  const freeUsers = users.filter((u) => u.plan === 'free' || (!u.plan && !u.isAdvisory && u.plan !== 'foundation' && u.plan !== 'pro')).length;
-  const proUsers = users.filter((u) => u.plan === 'pro' || u.plan === 'foundation').length;
-  const advisoryUsers = users.filter((u) => u.plan === 'guided' || u.plan === 'premium_advisory' || u.plan === 'intensive' || u.isAdvisory).length;
-  const mrr = Math.round(proUsers * 47.99 + advisoryUsers * 147.99);
+  const freeUsers = users.filter((u) => !u.plan || u.plan === 'free').length;
+  const foundationUsers = users.filter((u) => u.plan === 'foundation' && u.accessSource === 'stripe_subscription').length;
+  const guidedMonthlyUsers = users.filter((u) => u.plan === 'guided' && u.accessSource === 'stripe_subscription').length;
+  const guidedOneTimeUsers = users.filter((u) => u.plan === 'guided' && u.accessSource === 'stripe_onetime').length;
+  const adminGrantedUsers = users.filter((u) => u.accessSource === 'admin_grant').length;
+  const complimentaryUsers = users.filter((u) => u.accessSource === 'complimentary').length;
+
+  // Recurring MRR strictly from active subscriptions ($47.99/mo + $147.99/mo)
+  const recurringMrr = Math.round(foundationUsers * 47.99 + guidedMonthlyUsers * 147.99);
+  // One-time revenue ($997 per Guided 12-month program)
+  const oneTimeRevenue = Math.round(guidedOneTimeUsers * 997);
+  // Verified total revenue
+  const totalVerifiedRevenue = recurringMrr + oneTimeRevenue;
 
   return {
     totalUsers,
@@ -297,12 +377,20 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
     affiliateClicks,
     avgBusinessReadiness: avgBizScore,
     avgCreditReadiness: avgCreditScore,
-    activeSubscriptions: proUsers + advisoryUsers,
+    activeSubscriptions: foundationUsers + guidedMonthlyUsers,
     newUsersThisWeek,
     freeUsers,
-    proUsers,
-    advisoryUsers,
-    mrr,
+    foundationUsers,
+    guidedMonthlyUsers,
+    guidedOneTimeUsers,
+    adminGrantedUsers,
+    complimentaryUsers,
+    proUsers: foundationUsers,
+    advisoryUsers: guidedMonthlyUsers + guidedOneTimeUsers,
+    mrr: recurringMrr,
+    recurringMrr,
+    oneTimeRevenue,
+    totalVerifiedRevenue,
   };
 }
 
@@ -422,12 +510,19 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
 
       if (subRes) {
         subscriptionData = {
-          planId: subRes.plan,
-          status: subRes.status,
-          provider: 'stripe',
+          planId: subRes.plan || subRes.plan_id || 'free',
+          status: subRes.status || 'free',
+          provider: subRes.provider || (subRes.stripe_subscription_id ? 'stripe' : 'none'),
+          accessSource: subRes.access_source,
+          grantType: subRes.grant_type,
+          grantedBy: subRes.granted_by,
+          grantReason: subRes.grant_reason,
+          grantedAt: subRes.granted_at,
+          expiresAt: subRes.expires_at || subRes.current_period_end,
           currentPeriodEnd: subRes.current_period_end,
           stripeCustomerId: subRes.stripe_customer_id,
           stripeSubscriptionId: subRes.stripe_subscription_id,
+          billingStatus: subRes.billing_status,
           createdAt: subRes.created_at,
         };
       }
@@ -458,6 +553,32 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
     }
   }
 
+  // If subscription data wasn't in DB, fetch from local subscription store
+  if (!subscriptionData) {
+    const localSub = await getUserSubscription(userItem.userId);
+    if (localSub) {
+      subscriptionData = {
+        planId: localSub.plan,
+        status: localSub.status,
+        provider: localSub.provider || 'internal',
+        accessSource: localSub.accessSource || userItem.accessSource || 'free',
+        grantType: localSub.grantType || userItem.grantType,
+        grantedBy: localSub.grantedBy || userItem.grantedBy,
+        grantReason: localSub.grantReason || userItem.grantReason,
+        grantedAt: localSub.grantedAt,
+        expiresAt: localSub.expiresAt || userItem.expiresAt,
+        currentPeriodEnd: localSub.currentPeriodEnd,
+        stripeCustomerId: localSub.stripeCustomerId || userItem.stripeCustomerId,
+        stripeSubscriptionId: localSub.stripeSubscriptionId || userItem.stripeSubscriptionId,
+        billingStatus: localSub.billingStatus || userItem.billingStatus || 'free',
+        createdAt: localSub.createdAt,
+      };
+    }
+  }
+
+  // Fetch internal admin notes for this customer
+  const notesData = await getAdminCustomerNotes(userItem.userId).catch(() => []);
+
   return {
     profile: {
       id: userItem.id,
@@ -476,8 +597,11 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       planId: userItem.plan || 'free',
       status: userItem.subscriptionStatus || 'active',
       provider: 'internal',
+      accessSource: userItem.accessSource || 'free',
+      billingStatus: userItem.billingStatus || 'free',
     },
     payments: paymentsData,
+    notes: notesData,
     consultations: consultationsData,
     fundingApplications: fundingAppsData,
     roadmapProgress: roadmapProgressData,

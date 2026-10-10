@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
-import { BusinessProfile } from '@/types/business';
+import { BusinessProfile, isProfileInformationComplete } from '@/types/business';
 import { useAuth } from './AuthContext';
 import { calculateReadiness } from '@/lib/scoring';
 import { logActivity } from '@/lib/supabase/activityService';
@@ -119,7 +119,7 @@ function fromDbRow(row: Record<string, any>): BusinessProfile {
     fundingPurpose: cleanPurposes,
     completedDbTasks: dbTasks,
 
-    profileCompleted: Boolean(row.profile_completed),
+    profileCompleted: Boolean(row.profile_completed) || isProfileInformationComplete(row),
     profileCompletedAt: row.profile_completed_at,
     businessReadinessScore: row.business_readiness_score !== null && row.business_readiness_score !== undefined ? Number(row.business_readiness_score) : undefined,
     creditReadinessScore: row.credit_readiness_score !== null && row.credit_readiness_score !== undefined ? Number(row.credit_readiness_score) : undefined,

@@ -31,6 +31,10 @@ import {
   Award,
   Target,
   RefreshCw,
+  Trash2,
+  Plus,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -43,11 +47,21 @@ import {
   updateAdminBusinessProfile,
   triggerAdminPasswordReset,
 } from '@/lib/supabase/adminService';
+import {
+  grantAdminPlanAccess,
+  revokeAdminPlanAccess,
+  extendAdminPlanAccess,
+} from '@/lib/supabase/subscriptionService';
+import {
+  getAdminCustomerNotes,
+  addAdminCustomerNote,
+  deleteAdminCustomerNote,
+} from '@/lib/supabase/adminNoteService';
 import { getAllProductsAdmin } from '@/lib/supabase/productService';
 import { adminUpdateConsultation } from '@/lib/supabase/consultationService';
 import { updateFundingApplication } from '@/lib/supabase/fundingApplicationService';
 import { logAdminAction } from '@/lib/supabase/adminAuditService';
-import { AdminUserDetail } from '@/types/admin';
+import { AdminUserDetail, AdminCustomerNote } from '@/types/admin';
 import { UserRole, AccountStatus } from '@/types/user';
 import { BusinessProfile } from '@/types/business';
 import { Product, RecommendedProduct, CATEGORY_LABELS } from '@/types/product';
@@ -68,6 +82,7 @@ type ActiveTab =
   | 'advisory'
   | 'applications'
   | 'recommendations'
+  | 'notes'
   | 'account'
   | 'dashboard_view';
 
@@ -93,6 +108,32 @@ export default function AdminCustomerDetailPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [customerCheckIns, setCustomerCheckIns] = useState<MonthlyCheckInRecord[]>([]);
 
+  // Internal Notes State
+  const [notes, setNotes] = useState<AdminCustomerNote[]>([]);
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+
+  // Owner Plan & Entitlement Modals
+  const [grantModalOpen, setGrantModalOpen] = useState(false);
+  const [grantPlan, setGrantPlan] = useState<'foundation' | 'guided'>('foundation');
+  const [grantType, setGrantType] = useState<'admin_grant' | 'complimentary'>('admin_grant');
+  const [grantDuration, setGrantDuration] = useState<number>(3);
+  const [grantReason, setGrantReason] = useState('');
+  const [grantLoading, setGrantLoading] = useState(false);
+
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revokeLoading, setRevokeLoading] = useState(false);
+
+  const [extendModalOpen, setExtendModalOpen] = useState(false);
+  const [extendMonths, setExtendMonths] = useState<number>(3);
+  const [extendReason, setExtendReason] = useState('');
+  const [extendLoading, setExtendLoading] = useState(false);
+
+  const [statusConfirmModalOpen, setStatusConfirmModalOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<AccountStatus>('active');
+  const [statusChangeLoading, setStatusChangeLoading] = useState(false);
+
   // Action status states
   const [saving, setSaving] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
@@ -101,10 +142,11 @@ export default function AdminCustomerDetailPage() {
   const fetchDetail = useCallback(async () => {
     if (!userId) return;
     try {
-      const [data, products, checkIns] = await Promise.all([
+      const [data, products, checkIns, fetchedNotes] = await Promise.all([
         getAdminUserDetail(userId),
         getAllProductsAdmin().catch(() => []),
         getMonthlyCheckIns(userId).catch(() => []),
+        getAdminCustomerNotes(userId).catch(() => []),
       ]);
       if (data) {
         setUserDetail(data);
@@ -118,6 +160,7 @@ export default function AdminCustomerDetailPage() {
       }
       setAllProducts(products || []);
       setCustomerCheckIns(checkIns || []);
+      setNotes(fetchedNotes || data?.notes || []);
     } catch (e) {
       console.error('Error fetching admin customer detail:', e);
     } finally {
@@ -262,6 +305,153 @@ export default function AdminCustomerDetailPage() {
       }
     } catch (e: any) {
       setFeedback({ type: 'error', message: e.message || 'Failed to update application' });
+    }
+  };
+
+  // Handle Manual Plan Grant
+  const handleGrantPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantReason.trim()) {
+      setFeedback({ type: 'error', message: 'A reason for granting access is required.' });
+      return;
+    }
+    setGrantLoading(true);
+    try {
+      await grantAdminPlanAccess({
+        userId,
+        plan: grantPlan,
+        grantType,
+        durationMonths: grantDuration > 0 ? grantDuration : undefined,
+        isIndefinite: grantDuration === 0,
+        reason: grantReason.trim(),
+        adminEmail: 'crediqly@gmail.com',
+      });
+      setFeedback({
+        type: 'success',
+        message: `Granted ${grantType === 'complimentary' ? 'Complimentary' : 'Administrative'} ${grantPlan.toUpperCase()} access (${grantDuration === 0 ? 'Indefinite' : `${grantDuration} months`}).`,
+      });
+      setGrantModalOpen(false);
+      setGrantReason('');
+      await fetchDetail();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to grant plan access.' });
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  // Handle Administrative Access Revocation
+  const handleRevokePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revokeReason.trim()) {
+      setFeedback({ type: 'error', message: 'A revocation reason is required.' });
+      return;
+    }
+    setRevokeLoading(true);
+    try {
+      await revokeAdminPlanAccess({
+        userId,
+        reason: revokeReason.trim(),
+        adminEmail: 'crediqly@gmail.com',
+      });
+      setFeedback({
+        type: 'success',
+        message: 'Administrative access revoked. Effective entitlements recalculated.',
+      });
+      setRevokeModalOpen(false);
+      setRevokeReason('');
+      await fetchDetail();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to revoke plan access.' });
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
+
+  // Handle Administrative Entitlement Extension
+  const handleExtendPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extendReason.trim()) {
+      setFeedback({ type: 'error', message: 'An extension reason is required.' });
+      return;
+    }
+    setExtendLoading(true);
+    try {
+      await extendAdminPlanAccess({
+        userId,
+        additionalMonths: extendMonths,
+        reason: extendReason.trim(),
+        adminEmail: 'crediqly@gmail.com',
+      });
+      setFeedback({
+        type: 'success',
+        message: `Plan entitlement successfully extended by ${extendMonths} months.`,
+      });
+      setExtendModalOpen(false);
+      setExtendReason('');
+      await fetchDetail();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to extend entitlement.' });
+    } finally {
+      setExtendLoading(false);
+    }
+  };
+
+  // Handle Internal Administrative Notes
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNoteContent.trim()) return;
+    setAddingNote(true);
+    try {
+      const created = await addAdminCustomerNote({
+        userId,
+        adminEmail: 'crediqly@gmail.com',
+        content: newNoteContent.trim(),
+      });
+      setNotes((prev) => [created, ...prev]);
+      setNewNoteContent('');
+      setFeedback({ type: 'success', message: 'Internal administrative note recorded.' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to save internal note.' });
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteAdminCustomerNote({
+        noteId,
+        userId,
+        adminEmail: 'crediqly@gmail.com',
+      });
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      setFeedback({ type: 'success', message: 'Internal note deleted.' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to delete internal note.' });
+    }
+  };
+
+  // Handle Account Status Confirmation
+  const handleConfirmStatusUpdate = async () => {
+    setStatusChangeLoading(true);
+    try {
+      const res = await updateAdminUserStatus(userId, role, pendingStatus);
+      if (res.success) {
+        setStatus(pendingStatus);
+        setFeedback({
+          type: 'success',
+          message: `Account status updated to ${pendingStatus.toUpperCase()}.`,
+        });
+        setStatusConfirmModalOpen(false);
+        await fetchDetail();
+      } else {
+        setFeedback({ type: 'error', message: res.error || 'Failed to update status.' });
+      }
+    } catch (e: any) {
+      setFeedback({ type: 'error', message: e.message || 'Status update failed.' });
+    } finally {
+      setStatusChangeLoading(false);
     }
   };
 
@@ -494,8 +684,9 @@ export default function AdminCustomerDetailPage() {
           { id: 'advisory', label: '6. Advisory Meetings', icon: Calendar },
           { id: 'applications', label: '7. Applications', icon: FileText },
           { id: 'recommendations', label: '8. Product Matches', icon: Sparkles },
-          { id: 'account', label: '9. Account & Security', icon: Lock },
-          { id: 'dashboard_view', label: '10. Command Center View', icon: Layers },
+          { id: 'notes', label: '9. Internal Notes', icon: FileText },
+          { id: 'account', label: '10. Account & Security', icon: Lock },
+          { id: 'dashboard_view', label: '11. Command Center View', icon: Layers },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1000,6 +1191,7 @@ export default function AdminCustomerDetailPage() {
       {/* SECTION 5: Plan & Billing */}
       {activeTab === 'billing' && (
         <div className="space-y-6">
+          {/* Top Plan & Entitlement Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
               <span className="text-[11px] text-slate-400 uppercase font-semibold">Active Plan</span>
@@ -1014,9 +1206,48 @@ export default function AdminCustomerDetailPage() {
             </div>
 
             <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <span className="text-[11px] text-slate-400 uppercase font-semibold">Subscription Status</span>
-              <div className="text-xl font-black text-emerald-400 capitalize">
-                {userDetail.subscription?.status || 'Active (Free)'}
+              <span className="text-[11px] text-slate-400 uppercase font-semibold">Access Source</span>
+              <div className="pt-1">
+                {(() => {
+                  const src = userDetail.subscription?.accessSource || (isGuided || isFoundation ? 'stripe_subscription' : 'free');
+                  if (src === 'stripe_subscription') {
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <CreditCard className="w-3 h-3" />
+                        Stripe Recurring Sub
+                      </span>
+                    );
+                  }
+                  if (src === 'stripe_onetime') {
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        <Award className="w-3 h-3" />
+                        12-Mo Paid ($997)
+                      </span>
+                    );
+                  }
+                  if (src === 'admin_grant') {
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        <Shield className="w-3 h-3" />
+                        Admin Granted
+                      </span>
+                    );
+                  }
+                  if (src === 'complimentary') {
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        <Sparkles className="w-3 h-3" />
+                        Complimentary
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                      Standard Free
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-xs text-slate-400 pt-1">
                 Provider: {userDetail.subscription?.provider || 'Stripe'}
@@ -1024,14 +1255,153 @@ export default function AdminCustomerDetailPage() {
             </div>
 
             <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <span className="text-[11px] text-slate-400 uppercase font-semibold">Customer Since</span>
-              <div className="text-xl font-black text-slate-200">
-                {new Date(userDetail.profile.createdAt).toLocaleDateString()}
+              <span className="text-[11px] text-slate-400 uppercase font-semibold">Expiration / Renewal</span>
+              <div className="text-sm font-bold text-slate-200 pt-1">
+                {(() => {
+                  const exp = userDetail.subscription?.expiresAt;
+                  const end = userDetail.subscription?.currentPeriodEnd;
+                  const src = userDetail.subscription?.accessSource;
+                  if (exp) {
+                    const isExp = new Date(exp).getTime() < Date.now();
+                    return (
+                      <span className={isExp ? 'text-rose-400' : 'text-emerald-400'}>
+                        {isExp ? 'Expired: ' : 'Expires: '}
+                        {new Date(exp).toLocaleDateString()}
+                      </span>
+                    );
+                  }
+                  if (end) {
+                    return <span className="text-emerald-400">Renews: {new Date(end).toLocaleDateString()}</span>;
+                  }
+                  if (src === 'admin_grant' || src === 'complimentary') {
+                    return <span className="text-blue-300">Indefinite (No Expiration)</span>;
+                  }
+                  return <span className="text-slate-400">N/A (Free Tier)</span>;
+                })()}
               </div>
               <p className="text-xs text-slate-400 pt-1">
-                {userDetail.payments?.length || 0} Total Billing Transactions
+                Status: <span className="text-white capitalize">{userDetail.subscription?.status || 'Active'}</span>
               </p>
             </div>
+          </div>
+
+          {/* Owner Plan Action Toolbar */}
+          <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-brand-400" />
+                <span>Owner Entitlement Controls</span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Directly grant plan entitlements, extend existing access, or revoke administrative overrides.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => setGrantModalOpen(true)}
+                className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Grant / Upgrade Plan</span>
+              </Button>
+
+              {(userDetail.subscription?.accessSource === 'admin_grant' ||
+                userDetail.subscription?.accessSource === 'complimentary') && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setExtendModalOpen(true)}
+                    className="border-brand-500/40 bg-slate-900 text-brand-300 hover:bg-brand-500/10 text-xs gap-1.5"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Extend Duration</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRevokeModalOpen(true)}
+                    className="border-rose-500/40 bg-slate-900 text-rose-300 hover:bg-rose-500/10 text-xs gap-1.5"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Revoke Admin Access</span>
+                  </Button>
+                </>
+              )}
+
+              {userDetail.subscription?.stripeCustomerId && (
+                <a
+                  href={`https://dashboard.stripe.com/customers/${userDetail.subscription.stripeCustomerId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-brand-400" />
+                  <span>Stripe Customer</span>
+                </a>
+              )}
+
+              {userDetail.subscription?.stripeSubscriptionId && (
+                <a
+                  href={`https://dashboard.stripe.com/subscriptions/${userDetail.subscription.stripeSubscriptionId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-brand-400" />
+                  <span>Stripe Sub</span>
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Admin Grant Details (if applicable) */}
+          {(userDetail.subscription?.accessSource === 'admin_grant' ||
+            userDetail.subscription?.accessSource === 'complimentary') && (
+            <div className="p-4 rounded-xl bg-blue-950/30 border border-blue-900/50 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-blue-300 font-bold">
+                <Shield className="w-4 h-4 text-blue-400" />
+                <span>Administrative Grant Metadata</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-300 pt-1">
+                <div>
+                  <span className="text-slate-500 block text-[11px]">Granted By:</span>
+                  <span className="font-mono text-white">{userDetail.subscription.grantedBy || 'Owner / Administrator'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[11px]">Granted Date:</span>
+                  <span className="text-white">
+                    {userDetail.subscription.grantedAt
+                      ? new Date(userDetail.subscription.grantedAt).toLocaleString()
+                      : 'Recorded'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[11px]">Grant Reason:</span>
+                  <span className="text-white italic">&quot;{userDetail.subscription.grantReason || 'Administrative approval'}&quot;</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Precedence Notice Callout */}
+          <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400 space-y-1.5">
+            <div className="font-semibold text-slate-300 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-brand-400" />
+              <span>Crediqly Entitlement Precedence &amp; Billing Rules</span>
+            </div>
+            <p className="leading-relaxed">
+              1. <strong className="text-slate-200">Active Stripe Subscription</strong> ($47.99/mo Foundation or $147.99/mo Guided) always takes priority.
+              <br />
+              2. <strong className="text-slate-200">12-Month One-Time Purchase</strong> ($997) provides 12-month Guided access without recurring charges.
+              <br />
+              3. <strong className="text-slate-200">Owner Admin Grants</strong> allow temporary or complimentary access without generating simulated Stripe transactions.
+              <br />
+              4. When an admin grant is revoked, access immediately recalculates back to the customer&apos;s active Stripe subscription or the Free default tier.
+            </p>
           </div>
 
           {/* Payment Transactions Table */}
@@ -1039,10 +1409,10 @@ export default function AdminCustomerDetailPage() {
             <CardHeader className="pb-3 border-b border-slate-800/80">
               <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-emerald-400" />
-                <span>Payment & Transaction History</span>
+                <span>Verified Payment &amp; Transaction History</span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                All charges and subscription payments recorded for this account.
+                Genuine database-backed payments and subscription transactions for this customer.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -1320,7 +1690,105 @@ export default function AdminCustomerDetailPage() {
         </Card>
       )}
 
-      {/* SECTION 9: Account & Security */}
+      {/* SECTION 9: Internal Administrative Notes */}
+      {activeTab === 'notes' && (
+        <div className="space-y-6">
+          <Card className="bg-slate-950 border-slate-800 text-white">
+            <CardHeader className="pb-3 border-b border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand-400" />
+                    <span>Section 9: Confidential Internal Notes &amp; Activity Log</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-400 mt-1">
+                    Internal notes are strictly restricted to application owners and administrators. Customers cannot view this section.
+                  </CardDescription>
+                </div>
+                <Badge variant="neutral" className="text-[10px] font-mono">
+                  {notes.length} {notes.length === 1 ? 'Note' : 'Notes'} Recorded
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {/* Add Note Form */}
+              <form onSubmit={handleAddNote} className="space-y-3">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Record New Administrative Note
+                </label>
+                <textarea
+                  rows={3}
+                  value={newNoteContent}
+                  onChange={(e) => setNewNoteContent(e.target.value)}
+                  placeholder="Record onboarding observations, customer call summaries, VIP arrangement details, or verification notes..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-brand-400" />
+                    Encrypted internal audit record
+                  </span>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={addingNote || !newNoteContent.trim()}
+                    className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{addingNote ? 'Saving...' : 'Add Internal Note'}</span>
+                  </Button>
+                </div>
+              </form>
+
+              {/* Notes List */}
+              <div className="space-y-3 pt-2 border-t border-slate-800">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Historical Internal Notes
+                </h4>
+                {notes.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 bg-slate-900/40 rounded-xl border border-dashed border-slate-800">
+                    No administrative notes recorded yet for this customer.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-200">
+                              {note.adminEmail || 'Owner / Administrator'}
+                            </span>
+                            <span className="text-slate-500">•</span>
+                            <span className="text-[11px] text-slate-400">
+                              {new Date(note.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                          {note.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* SECTION 10: Account & Security */}
       {activeTab === 'account' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -1394,14 +1862,61 @@ export default function AdminCustomerDetailPage() {
                     </div>
                   </div>
 
-                  <div className="pt-4 flex justify-end">
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                      {status !== 'suspended' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPendingStatus('suspended');
+                            setStatusConfirmModalOpen(true);
+                          }}
+                          className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs gap-1.5"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>Suspend Account</span>
+                        </Button>
+                      )}
+                      {status !== 'active' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPendingStatus('active');
+                            setStatusConfirmModalOpen(true);
+                          }}
+                          className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 text-xs gap-1.5"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Reactivate Account</span>
+                        </Button>
+                      )}
+                      {status !== 'disabled' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPendingStatus('disabled');
+                            setStatusConfirmModalOpen(true);
+                          }}
+                          className="border-rose-500/40 text-rose-300 hover:bg-rose-500/10 text-xs gap-1.5"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Disable Account</span>
+                        </Button>
+                      )}
+                    </div>
                     <Button
                       type="submit"
                       disabled={saving}
                       className="bg-brand-600 hover:bg-brand-500 text-white text-xs gap-1.5"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      <span>{saving ? 'Saving...' : 'Save Account Changes'}</span>
+                      <span>{saving ? 'Saving...' : 'Save Profile Changes'}</span>
                     </Button>
                   </div>
                 </form>
@@ -1742,6 +2257,333 @@ export default function AdminCustomerDetailPage() {
                   )}
                 </CardContent>
               </Card>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grant Plan Access Modal */}
+      {grantModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5 text-brand-400">
+                <Shield className="w-5 h-5" />
+                <h3 className="text-base font-bold text-white">Grant Plan Access (Owner Override)</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGrantModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGrantPlan} className="space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Manually grant Foundation or Guided plan entitlements to{' '}
+                <strong className="text-white">{userDetail.profile.email}</strong>.
+                This provides full application features without charging a credit card or generating fake Stripe payments.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Target Plan</label>
+                  <select
+                    value={grantPlan}
+                    onChange={(e) => setGrantPlan(e.target.value as 'foundation' | 'guided')}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="foundation">Foundation ($47.99/mo value)</option>
+                    <option value="guided">Guided ($147.99/mo / $997 value)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Grant Category</label>
+                  <select
+                    value={grantType}
+                    onChange={(e) => setGrantType(e.target.value as 'admin_grant' | 'complimentary')}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="admin_grant">Admin Override</option>
+                    <option value="complimentary">Complimentary / VIP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Entitlement Duration</label>
+                <select
+                  value={grantDuration}
+                  onChange={(e) => setGrantDuration(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                >
+                  <option value={1}>1 Month</option>
+                  <option value={3}>3 Months</option>
+                  <option value={6}>6 Months</option>
+                  <option value={12}>12 Months (1 Year)</option>
+                  <option value={0}>Indefinite (No Expiration)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Reason for Grant <span className="text-rose-400">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={grantReason}
+                  onChange={(e) => setGrantReason(e.target.value)}
+                  placeholder="e.g. Approved VIP access for pilot partner; billing dispute resolution; scholarship grant"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGrantModalOpen(false)}
+                  disabled={grantLoading}
+                  className="border-slate-750 text-slate-300 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={grantLoading || !grantReason.trim()}
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold"
+                >
+                  {grantLoading ? 'Granting Access...' : 'Confirm Plan Grant'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Revoke Plan Access Modal */}
+      {revokeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5 text-rose-400">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="text-base font-bold text-white">Revoke Administrative Plan Access</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRevokeModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRevokePlan} className="space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Revoking administrative access will remove manual overrides for{' '}
+                <strong className="text-white">{userDetail.profile.email}</strong>.
+              </p>
+
+              <div className="p-3 bg-rose-950/30 border border-rose-900/50 rounded-xl text-xs text-rose-300 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Automatic Precedence Recalculation</span>
+                </div>
+                <p className="text-[11px] text-rose-200/90 leading-relaxed">
+                  If this customer has an active paid Stripe subscription, access will immediately restore to that subscription. Otherwise, the customer will revert to the standard Free tier. Active Stripe subscriptions and payment records are NOT deleted.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Revocation Reason <span className="text-rose-400">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="e.g. Promotional entitlement period ended; requested by customer; account review"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRevokeModalOpen(false)}
+                  disabled={revokeLoading}
+                  className="border-slate-750 text-slate-300 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={revokeLoading || !revokeReason.trim()}
+                  className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
+                >
+                  {revokeLoading ? 'Revoking Access...' : 'Confirm Revocation'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Extend Entitlement Modal */}
+      {extendModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5 text-brand-400">
+                <Clock className="w-5 h-5" />
+                <h3 className="text-base font-bold text-white">Extend Entitlement Duration</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExtendModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleExtendPlan} className="space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Add additional duration to the active administrative grant for{' '}
+                <strong className="text-white">{userDetail.profile.email}</strong>.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Additional Duration</label>
+                <select
+                  value={extendMonths}
+                  onChange={(e) => setExtendMonths(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                >
+                  <option value={1}>+1 Additional Month</option>
+                  <option value={3}>+3 Additional Months</option>
+                  <option value={6}>+6 Additional Months</option>
+                  <option value={12}>+12 Additional Months (1 Year)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Extension Reason <span className="text-rose-400">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={extendReason}
+                  onChange={(e) => setExtendReason(e.target.value)}
+                  placeholder="e.g. Extended for client satisfaction, continuation of coaching program"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-750 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExtendModalOpen(false)}
+                  disabled={extendLoading}
+                  className="border-slate-750 text-slate-300 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={extendLoading || !extendReason.trim()}
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold"
+                >
+                  {extendLoading ? 'Extending...' : 'Confirm Extension'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Account Status Confirmation Modal */}
+      {statusConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5 text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="text-base font-bold text-white">Confirm Account Status Change</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatusConfirmModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-300">
+              <p>
+                Are you sure you want to change account status for{' '}
+                <strong className="text-white">{userDetail.profile.email}</strong> to{' '}
+                <strong className="text-amber-300 uppercase">{pendingStatus}</strong>?
+              </p>
+              {pendingStatus === 'suspended' && (
+                <div className="p-3 bg-amber-950/30 border border-amber-900/50 rounded-xl text-amber-200 text-xs">
+                  <strong>Notice:</strong> The user will be temporarily prevented from accessing the platform and generating new assessment reports while under review.
+                </div>
+              )}
+              {pendingStatus === 'disabled' && (
+                <div className="p-3 bg-rose-950/30 border border-rose-900/50 rounded-xl text-rose-200 text-xs">
+                  <strong>Notice:</strong> The account will be completely disabled. All active sessions and login attempts will be rejected.
+                </div>
+              )}
+              {pendingStatus === 'active' && (
+                <div className="p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-xl text-emerald-200 text-xs">
+                  <strong>Notice:</strong> The account will be restored to active status with full platform access.
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setStatusConfirmModalOpen(false)}
+                disabled={statusChangeLoading}
+                className="border-slate-750 text-slate-300 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleConfirmStatusUpdate}
+                disabled={statusChangeLoading}
+                className={`text-white text-xs font-bold ${
+                  pendingStatus === 'disabled'
+                    ? 'bg-rose-600 hover:bg-rose-500'
+                    : pendingStatus === 'suspended'
+                    ? 'bg-amber-600 hover:bg-amber-500'
+                    : 'bg-emerald-600 hover:bg-emerald-500'
+                }`}
+              >
+                {statusChangeLoading ? 'Updating Status...' : `Set as ${pendingStatus.toUpperCase()}`}
+              </Button>
             </div>
           </div>
         </div>

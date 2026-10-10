@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { refreshStripeConfig, getStripeClient, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
+import { verifyAdminRequest } from '@/lib/auth/adminAuth';
 
 interface SaveConfigRequest {
   publishableKey?: string;
@@ -18,6 +19,14 @@ interface SaveConfigRequest {
 
 export async function POST(req: Request) {
   try {
+    const authVerification = verifyAdminRequest(req as any);
+    if (!authVerification.authorized) {
+      return NextResponse.json(
+        { error: 'Forbidden: Administrator credentials required.' },
+        { status: 403 }
+      );
+    }
+
     const body: SaveConfigRequest = await req.json().catch(() => ({}));
 
     const {
