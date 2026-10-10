@@ -41,6 +41,6 @@ export const config = {
      * - /favicon.ico (favicon file)
      * - /public assets (images, icons, etc.)
      */
-    '/((?!api/stripe/webhook|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/stripe/webhook|_next/static|_next/image|favicon.ico|icon.svg|apple-touch-icon.png|site.webmanifest|.*\\.(?:png|jpg|jpeg|svg|ico|webmanifest)).*)',
   ],
 };

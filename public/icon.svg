@@ -1,0 +1,50 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Midnight Slate-Navy Squircle Background Gradient -->
+    <linearGradient id="cq-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+
+    <!-- Trust Sapphire to Cyan Arc Gradient -->
+    <linearGradient id="cq-arc" x1="96" y1="396" x2="332" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E40AF" />
+      <stop offset="35%" stop-color="#2563EB" />
+      <stop offset="70%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <!-- Upward Growth Dynamic Gradient (Crediqly Emerald & Mint) -->
+    <linearGradient id="cq-growth" x1="230" y1="282" x2="365" y2="147" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0D9488" />
+      <stop offset="50%" stop-color="#14B8A6" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+
+    <!-- Apex Beacon Node Gradient -->
+    <linearGradient id="cq-beacon" x1="345" y1="127" x2="385" y2="167" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#6EE7B7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Deep Obsidian-Navy Squircle Container with Precision Curvature -->
+  <rect width="512" height="512" rx="128" fill="url(#cq-bg)" />
+  <rect x="4" y="4" width="504" height="504" rx="124" stroke="rgba(255, 255, 255, 0.14)" stroke-width="8" />
+
+  <!-- The Foundation 'C' Arc (Business Credit Base) -->
+  <path d="M 332 352 C 300 390 253 406 198 390 C 134 371 96 310 96 243 C 96 176 134 115 198 96 C 253 80 300 96 332 134" 
+        stroke="url(#cq-arc)" 
+        stroke-width="48" 
+        stroke-linecap="round" />
+
+  <!-- The Ascendant Capital Vector (45-degree Financial Growth Surge) -->
+  <path d="M 230 282 L 365 147 M 365 147 L 269 147 M 365 147 L 365 243" 
+        stroke="url(#cq-growth)" 
+        stroke-width="46" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Milestone Beacon Dot -->
+  <circle cx="365" cy="147" r="23" fill="url(#cq-beacon)" />
+</svg>

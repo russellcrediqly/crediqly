@@ -2,124 +2,469 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Crediqly Premium Logo Preview</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Crediqly Brand Icon Concepts Exploration</title>
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 40px;
+      margin: 0;
+    }
+    h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card h3 { margin-top: 0; font-size: 16px; color: #38bdf8; }
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 20px 0;
+      padding: 16px;
+      background: #0f172a;
+      border-radius: 12px;
+    }
+    .light-row {
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .favicon-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      background: #0b0f19;
+      border-radius: 8px;
+    }
+    .fav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: #1e293b;
+      border-radius: 8px 8px 0 0;
+      font-size: 12px;
+      border-bottom: 2px solid #0ea5e9;
+    }
+    .fav-tab-light {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-bottom: 2px solid #0d9488;
+    }
+    .wordmark {
+      font-weight: 900;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+    }
+    .wordmark-light { color: #0f172a; }
+    .wordmark-dark { color: #ffffff; }
+    .wordmark span.accent { color: #14b8a6; }
+    .desc { font-size: 12px; color: #94a3b8; line-height: 1.5; }
   </style>
 </head>
-<body class="bg-slate-100 p-12 space-y-12">
-  <div class="max-w-4xl mx-auto space-y-10">
-    <div>
-      <h1 class="text-3xl font-black text-slate-900">Crediqly Premium Logo Variants</h1>
-      <p class="text-slate-500 text-sm mt-1">Inspection across light, dark, sidebar, and navbar contexts.</p>
-    </div>
+<body>
+  <h1>Crediqly Brand Icon & Logo Exploration</h1>
+  <p>Evaluating precision FinTech vector geometry across 16px (favicon), 32px (mobile/tablet), 40px (navbar/sidebar), and full wordmark lockups on dark and light backgrounds.</p>
 
-    <!-- Light Background (Navbar & Dashboard Sidebar) -->
-    <div class="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
-      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">On Light Background (Navbar, Dashboard, Landing)</h3>
-      <div class="flex items-center gap-10 flex-wrap">
-        <!-- Variant 1: Full Brand with Subtitle -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 shrink-0">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-sm">
+  <div class="grid">
+
+    <!-- MASTER CONCEPT: The Crediqly Ascent Mark -->
+    <div class="card" style="border: 2px solid #0d9488; background: #0c1527; grid-column: 1 / -1;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="color: #2dd4bf; font-size: 18px; margin: 0;">Master Concept: The Crediqly "Ascent &amp; Foundation" FinTech Mark</h3>
+        <span style="background: #042f2e; color: #2dd4bf; border: 1px solid #0d9488; font-size: 11px; font-weight: 700; padding: 2px 10px; rounded: 9999px; border-radius: 9999px;">RECOMMENDED PRODUCTION STANDARD</span>
+      </div>
+      <p class="desc" style="color: #cbd5e1; font-size: 13px; margin: 8px 0 20px 0;">
+        Fuses the stability of business credit (the geometric "C" foundation arc in deep sapphire-blue) with the upward trajectory of commercial funding readiness (a precision 45&deg; growth arrow in luminous emerald-teal). Bold silhouette with optimal stroke weight for 16px favicon readability and 48px executive branding.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <!-- Dark Background Preview -->
+        <div style="background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px;">
+          <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px;">Dark Theme (Navbar, Footer, Admin Console)</div>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <svg width="44" height="44" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="#0B132B"/>
+              <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.14)"/>
+              <!-- Lower Foundation Arc (C) -->
+              <path d="M 26 27.5 C 23.5 30.5 19.8 31.8 15.5 30.5 C 10.5 29 7.5 24.2 7.5 19 C 7.5 13.8 10.5 9 15.5 7.5 C 19.8 6.2 23.5 7.5 26 10.5" 
+                    stroke="url(#mc-blue)" stroke-width="3.8" stroke-linecap="round"/>
+              <!-- Ascending Growth Dynamic Arrow -->
+              <path d="M 18 22 L 28.5 11.5 M 28.5 11.5 L 21 11.5 M 28.5 11.5 L 28.5 19" 
+                    stroke="url(#mc-teal)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Milestone Beacon Dot -->
+              <circle cx="28.5" cy="11.5" r="1.8" fill="#34D399"/>
               <defs>
-                <linearGradient id="cq-bg1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#1E40AF" />
-                  <stop offset="50%" stop-color="#1D4ED8" />
-                  <stop offset="100%" stop-color="#0F172A" />
+                <linearGradient id="mc-blue" x1="7.5" y1="31" x2="26" y2="7.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#2563EB"/>
+                  <stop offset="0.5" stop-color="#3B82F6"/>
+                  <stop offset="1" stop-color="#0284C7"/>
                 </linearGradient>
-                <linearGradient id="cq-arc1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#93C5FD" />
-                  <stop offset="50%" stop-color="#3B82F6" />
-                  <stop offset="100%" stop-color="#2563EB" />
-                </linearGradient>
-                <linearGradient id="cq-accent1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#34D399" />
-                  <stop offset="100%" stop-color="#06B6D4" />
+                <linearGradient id="mc-teal" x1="18" y1="22" x2="28.5" y2="11.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0D9488"/>
+                  <stop offset="0.5" stop-color="#14B8A6"/>
+                  <stop offset="1" stop-color="#34D399"/>
                 </linearGradient>
               </defs>
-              <rect width="40" height="40" rx="11" fill="url(#cq-bg1)" />
-              <rect x="0.5" y="0.5" width="39" height="39" rx="10.5" stroke="rgba(255, 255, 255, 0.22)" stroke-width="1" />
-              <!-- C curve -->
-              <path d="M 27 13.5 C 24.6 11.2 21.4 10 17.5 10 C 12.2 10 8 14.5 8 20 C 8 25.5 12.2 30 17.5 30 C 22 30 25.4 28 27.2 25.5" stroke="url(#cq-arc1)" stroke-width="3.8" stroke-linecap="round" />
-              <!-- Upward growth arrow -->
-              <path d="M 20.5 14.5 L 28.5 14.5 L 28.5 22.5 M 28.5 14.5 L 18 25" stroke="url(#cq-accent1)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="28.5" cy="14.5" r="1.5" fill="#34D399" />
             </svg>
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center tracking-tight font-black text-2xl text-slate-900 leading-none">
-              <span>Crediq</span><span class="text-brand-600">ly</span>
+            <div>
+              <div class="wordmark wordmark-dark" style="font-size: 24px;">Crediq<span style="color: #2dd4bf;">ly</span></div>
+              <div style="font-size: 10px; font-weight: 800; color: #2dd4bf; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;">Business Credit &amp; Funding</div>
             </div>
-            <span class="text-[10px] font-extrabold tracking-widest uppercase text-brand-600 mt-1">
-              Business Credit & Funding
-            </span>
           </div>
         </div>
 
-        <!-- Variant 2: Command Center Badge -->
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 shrink-0">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-sm">
-              <rect width="40" height="40" rx="10" fill="url(#cq-bg1)" />
-              <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255, 255, 255, 0.22)" stroke-width="1" />
-              <path d="M 27 13.5 C 24.6 11.2 21.4 10 17.5 10 C 12.2 10 8 14.5 8 20 C 8 25.5 12.2 30 17.5 30 C 22 30 25.4 28 27.2 25.5" stroke="url(#cq-arc1)" stroke-width="3.8" stroke-linecap="round" />
-              <path d="M 20.5 14.5 L 28.5 14.5 L 28.5 22.5 M 28.5 14.5 L 18 25" stroke="url(#cq-accent1)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="28.5" cy="14.5" r="1.5" fill="#34D399" />
+        <!-- Light Background Preview -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 12px;">Light Theme (Public Navbar, Dashboard, Auth)</div>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <svg width="44" height="44" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="#0F172A"/>
+              <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.14)"/>
+              <path d="M 26 27.5 C 23.5 30.5 19.8 31.8 15.5 30.5 C 10.5 29 7.5 24.2 7.5 19 C 7.5 13.8 10.5 9 15.5 7.5 C 19.8 6.2 23.5 7.5 26 10.5" 
+                    stroke="url(#mc-blue-l)" stroke-width="3.8" stroke-linecap="round"/>
+              <path d="M 18 22 L 28.5 11.5 M 28.5 11.5 L 21 11.5 M 28.5 11.5 L 28.5 19" 
+                    stroke="url(#mc-teal-l)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="28.5" cy="11.5" r="1.8" fill="#34D399"/>
+              <defs>
+                <linearGradient id="mc-blue-l" x1="7.5" y1="31" x2="26" y2="7.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#3B82F6"/>
+                  <stop offset="0.5" stop-color="#60A5FA"/>
+                  <stop offset="1" stop-color="#38BDF8"/>
+                </linearGradient>
+                <linearGradient id="mc-teal-l" x1="18" y1="22" x2="28.5" y2="11.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0D9488"/>
+                  <stop offset="0.5" stop-color="#14B8A6"/>
+                  <stop offset="1" stop-color="#34D399"/>
+                </linearGradient>
+              </defs>
             </svg>
+            <div>
+              <div class="wordmark wordmark-light" style="font-size: 24px;">Crediq<span style="color: #0d9488;">ly</span></div>
+              <div style="font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;">Business Credit &amp; Funding</div>
+            </div>
           </div>
-          <div class="flex flex-col">
-            <span class="text-xl font-black tracking-tight text-slate-900 leading-none">Crediqly</span>
-            <span class="text-[10px] font-bold tracking-wider uppercase text-brand-700 mt-0.5">Command Center</span>
+        </div>
+      </div>
+
+      <!-- Favicon Simulators -->
+      <div style="margin-top: 18px; padding: 14px 18px; background: #070c18; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap;">
+        <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">Browser Tab Favicon Simulation (16px &amp; 32px Retina):</span>
+        <div style="display: flex; gap: 14px; align-items: center;">
+          <!-- Chrome Dark Tab -->
+          <div style="display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 6px 12px; border-radius: 6px; font-size: 12px;">
+            <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="9" fill="#0B132B"/>
+              <path d="M 26 27.5 C 23.5 30.5 19.8 31.8 15.5 30.5 C 10.5 29 7.5 24.2 7.5 19 C 7.5 13.8 10.5 9 15.5 7.5 C 19.8 6.2 23.5 7.5 26 10.5" stroke="#38BDF8" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 18 22 L 28.5 11.5 M 28.5 11.5 L 21 11.5 M 28.5 11.5 L 28.5 19" stroke="#34D399" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span style="color: #e2e8f0;">Crediqly &mdash; Build Business Credit...</span>
+          </div>
+
+          <!-- Chrome Light Tab -->
+          <div style="display: flex; align-items: center; gap: 8px; background: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 12px;">
+            <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="9" fill="#0F172A"/>
+              <path d="M 26 27.5 C 23.5 30.5 19.8 31.8 15.5 30.5 C 10.5 29 7.5 24.2 7.5 19 C 7.5 13.8 10.5 9 15.5 7.5 C 19.8 6.2 23.5 7.5 26 10.5" stroke="#38BDF8" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 18 22 L 28.5 11.5 M 28.5 11.5 L 21 11.5 M 28.5 11.5 L 28.5 19" stroke="#34D399" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span style="color: #0f172a;">Crediqly &mdash; Build Business Credit...</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Dark Background (Footer, Admin Console) -->
-    <div class="p-8 bg-slate-950 rounded-3xl border border-slate-800 shadow-xl space-y-6 text-white">
-      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">On Dark Background (Admin Console, Footer)</h3>
-      <div class="flex items-center gap-10 flex-wrap">
-        <!-- Variant: Admin Console -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 shrink-0">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-md">
-              <rect width="40" height="40" rx="11" fill="url(#cq-bg1)" />
-              <rect x="0.5" y="0.5" width="39" height="39" rx="10.5" stroke="rgba(255, 255, 255, 0.28)" stroke-width="1" />
-              <path d="M 27 13.5 C 24.6 11.2 21.4 10 17.5 10 C 12.2 10 8 14.5 8 20 C 8 25.5 12.2 30 17.5 30 C 22 30 25.4 28 27.2 25.5" stroke="url(#cq-arc1)" stroke-width="3.8" stroke-linecap="round" />
-              <path d="M 20.5 14.5 L 28.5 14.5 L 28.5 22.5 M 28.5 14.5 L 18 25" stroke="url(#cq-accent1)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="28.5" cy="14.5" r="1.5" fill="#34D399" />
-            </svg>
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center tracking-tight font-black text-2xl text-white leading-none">
-              <span>Crediq</span><span class="text-brand-400">ly</span>
-            </div>
-            <span class="text-[10px] font-bold tracking-wider uppercase text-brand-400 mt-1 flex items-center gap-1">
-              Admin Console
-            </span>
-          </div>
-        </div>
+    <!-- CONCEPT 1: Ascendant Credit Arc + Razor Growth Vector -->
+    <div class="card">
+      <h3>Concept 1: The Ascendant Monogram (Unified "C" + 45° Surge)</h3>
+      <p class="desc">A dual-ribbon geometric "C". The foundation arc represents business stability; the upper arm surges upward at 45° as a precision financial growth arrow.</p>
+      
+      <div class="preview-row">
+        <!-- 40px on Dark -->
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0B132B"/>
+          <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.12)"/>
+          <!-- Lower Foundation Arc (C curve) -->
+          <path d="M 27 27 C 24 30.5 19.5 31.5 15 29.5 C 10.5 27.5 8 23 8 18 C 8 13.5 10.5 9.5 15 7.5 C 18 6.2 21.5 6.5 24.5 8.2" 
+                stroke="url(#c1-base)" stroke-width="4" stroke-linecap="round"/>
+          <!-- Upward Growth Apex -->
+          <path d="M 19 21 L 29 11 M 29 11 L 21.5 11 M 29 11 L 29 18.5" 
+                stroke="url(#c1-apex)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="c1-base" x1="8" y1="30" x2="27" y2="8" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1E40AF"/>
+              <stop offset="0.6" stop-color="#2563EB"/>
+              <stop offset="1" stop-color="#0284C7"/>
+            </linearGradient>
+            <linearGradient id="c1-apex" x1="19" y1="21" x2="29" y2="11" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0D9488"/>
+              <stop offset="0.5" stop-color="#14B8A6"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+          </defs>
+        </svg>
 
-        <!-- Variant: Clean Footer -->
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 shrink-0">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-              <rect width="40" height="40" rx="10" fill="url(#cq-bg1)" />
-              <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
-              <path d="M 27 13.5 C 24.6 11.2 21.4 10 17.5 10 C 12.2 10 8 14.5 8 20 C 8 25.5 12.2 30 17.5 30 C 22 30 25.4 28 27.2 25.5" stroke="url(#cq-arc1)" stroke-width="3.8" stroke-linecap="round" />
-              <path d="M 20.5 14.5 L 28.5 14.5 L 28.5 22.5 M 28.5 14.5 L 18 25" stroke="url(#cq-accent1)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="28.5" cy="14.5" r="1.5" fill="#34D399" />
-            </svg>
-          </div>
-          <span class="text-xl font-black text-white tracking-tight">Crediqly</span>
+        <div class="wordmark wordmark-dark">
+          Crediq<span class="accent">ly</span>
+        </div>
+      </div>
+
+      <div class="preview-row light-row">
+        <!-- 40px on Light -->
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0F172A"/>
+          <!-- Same crisp icon inside -->
+          <path d="M 27 27 C 24 30.5 19.5 31.5 15 29.5 C 10.5 27.5 8 23 8 18 C 8 13.5 10.5 9.5 15 7.5 C 18 6.2 21.5 6.5 24.5 8.2" 
+                stroke="url(#c1-base-l)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 19 21 L 29 11 M 29 11 L 21.5 11 M 29 11 L 29 18.5" 
+                stroke="url(#c1-apex-l)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="c1-base-l" x1="8" y1="30" x2="27" y2="8" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#3B82F6"/>
+              <stop offset="1" stop-color="#06B6D4"/>
+            </linearGradient>
+            <linearGradient id="c1-apex-l" x1="19" y1="21" x2="29" y2="11" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#14B8A6"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div class="wordmark wordmark-light">
+          Crediq<span class="accent" style="color: #0d9488;">ly</span>
+        </div>
+      </div>
+
+      <!-- Browser Tab Favicon Preview (16px & 20px) -->
+      <div class="favicon-row">
+        <div class="fav-tab">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0B132B"/>
+            <path d="M 27 27 C 24 30.5 19.5 31.5 15 29.5 C 10.5 27.5 8 23 8 18 C 8 13.5 10.5 9.5 15 7.5 C 18 6.2 21.5 6.5 24.5 8.2" stroke="#38BDF8" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 19 21 L 29 11 M 29 11 L 21.5 11 M 29 11 L 29 18.5" stroke="#34D399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Crediqly &mdash; Dark Tab</span>
+        </div>
+        <div class="fav-tab fav-tab-light">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0F172A"/>
+            <path d="M 27 27 C 24 30.5 19.5 31.5 15 29.5 C 10.5 27.5 8 23 8 18 C 8 13.5 10.5 9.5 15 7.5 C 18 6.2 21.5 6.5 24.5 8.2" stroke="#38BDF8" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 19 21 L 29 11 M 29 11 L 21.5 11 M 29 11 L 29 18.5" stroke="#34D399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Crediqly &mdash; Light Tab</span>
         </div>
       </div>
     </div>
+
+    <!-- CONCEPT 2: Tri-Pillar Credit Horizon (The 3 Ascending Tradeline Bars forming a "C") -->
+    <div class="card">
+      <h3>Concept 2: The Funding Trajectory (Ascending Tier Pillars in "C" Frame)</h3>
+      <p class="desc">Three precision ascending financial pillars (Tier 1, Tier 2/3, Tier 4 Funding) bounded by an energetic modern "C" contour. Deeply grounded in credit readiness stages.</p>
+      
+      <div class="preview-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0B132B"/>
+          <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.12)"/>
+          <!-- Precision Geometric C Contour -->
+          <path d="M 28 12 C 25.5 8.8 21.2 7 16.5 7 C 9.6 7 4.5 12.5 4.5 20 C 4.5 27.5 9.6 33 16.5 33 C 21.5 33 26 31 28.5 27.5" 
+                stroke="#2563EB" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Ascending Bar 1: Base -->
+          <rect x="13" y="21" width="3.2" height="7" rx="1.6" fill="#3B82F6"/>
+          <!-- Ascending Bar 2: Growth -->
+          <rect x="18.5" y="16" width="3.2" height="12" rx="1.6" fill="#0D9488"/>
+          <!-- Ascending Bar 3: Apex with Arrow Angle -->
+          <rect x="24" y="11" width="3.2" height="17" rx="1.6" fill="#34D399"/>
+        </svg>
+
+        <div class="wordmark wordmark-dark">
+          Crediq<span class="accent">ly</span>
+        </div>
+      </div>
+
+      <div class="preview-row light-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0F172A"/>
+          <path d="M 28 12 C 25.5 8.8 21.2 7 16.5 7 C 9.6 7 4.5 12.5 4.5 20 C 4.5 27.5 9.6 33 16.5 33 C 21.5 33 26 31 28.5 27.5" 
+                stroke="#3B82F6" stroke-width="3.5" stroke-linecap="round"/>
+          <rect x="13" y="21" width="3.2" height="7" rx="1.6" fill="#60A5FA"/>
+          <rect x="18.5" y="16" width="3.2" height="12" rx="1.6" fill="#14B8A6"/>
+          <rect x="24" y="11" width="3.2" height="17" rx="1.6" fill="#34D399"/>
+        </svg>
+
+        <div class="wordmark wordmark-light">
+          Crediq<span class="accent" style="color: #0d9488;">ly</span>
+        </div>
+      </div>
+
+      <div class="favicon-row">
+        <div class="fav-tab">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0B132B"/>
+            <path d="M 28 12 C 25.5 8.8 21.2 7 16.5 7 C 9.6 7 4.5 12.5 4.5 20 C 4.5 27.5 9.6 33 16.5 33 C 21.5 33 26 31 28.5 27.5" stroke="#3B82F6" stroke-width="4.5" stroke-linecap="round"/>
+            <rect x="12" y="20" width="4" height="8" rx="2" fill="#60A5FA"/>
+            <rect x="18" y="15" width="4" height="13" rx="2" fill="#14B8A6"/>
+            <rect x="24" y="10" width="4" height="18" rx="2" fill="#34D399"/>
+          </svg>
+          <span>Crediqly &mdash; Dark Tab</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 3: The Geometric FinTech Apex Prism (The modern gold standard) -->
+    <div class="card">
+      <h3>Concept 3: The FinTech Nexus (Interlocking Dynamic Growth Chevron &amp; Foundation Arc)</h3>
+      <p class="desc">A bold, solid-geometry emblem with dual intersecting facets: an authoritative foundation crescent embracing a 45° ascendant capital arrow with a forward-leaning credit trajectory.</p>
+      
+      <div class="preview-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <!-- Midnight obsidian squircle -->
+          <rect width="40" height="40" rx="10" fill="#0A0F1D"/>
+          <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.12)"/>
+          
+          <defs>
+            <linearGradient id="c3-crescent" x1="7" y1="31" x2="26" y2="9" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#2563EB"/>
+              <stop offset="0.7" stop-color="#0284C7"/>
+              <stop offset="1" stop-color="#0D9488"/>
+            </linearGradient>
+            <linearGradient id="c3-arrow" x1="17" y1="23" x2="31" y2="9" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0D9488"/>
+              <stop offset="0.6" stop-color="#10B981"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+            <linearGradient id="c3-dot" x1="28" y1="8" x2="31" y2="11" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#34D399"/>
+              <stop offset="1" stop-color="#6EE7B7"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Outer Dynamic 'C' Backbone with Precision Thickness -->
+          <path d="M 25 28.5 C 22.8 30.6 19.8 31.8 16.2 31.8 C 9.8 31.8 4.8 26.5 4.8 19.8 C 4.8 13.2 9.8 7.8 16.2 7.8 C 19.8 7.8 22.8 9.1 25 11.2" 
+                stroke="url(#c3-crescent)" stroke-width="4.2" stroke-linecap="round"/>
+          
+          <!-- Inner Ascendant Capital Vector (The Growth Engine) -->
+          <path d="M 16 24 L 27.5 12.5 M 27.5 12.5 L 20 12.5 M 27.5 12.5 L 27.5 20" 
+                stroke="url(#c3-arrow)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          
+          <!-- Readiness Beacon Anchor Dot -->
+          <circle cx="27.5" cy="12.5" r="2" fill="url(#c3-dot)"/>
+        </svg>
+
+        <div class="wordmark wordmark-dark">
+          Crediq<span class="accent">ly</span>
+        </div>
+      </div>
+
+      <div class="preview-row light-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0F172A"/>
+          <path d="M 25 28.5 C 22.8 30.6 19.8 31.8 16.2 31.8 C 9.8 31.8 4.8 26.5 4.8 19.8 C 4.8 13.2 9.8 7.8 16.2 7.8 C 19.8 7.8 22.8 9.1 25 11.2" 
+                stroke="url(#c3-crescent)" stroke-width="4.2" stroke-linecap="round"/>
+          <path d="M 16 24 L 27.5 12.5 M 27.5 12.5 L 20 12.5 M 27.5 12.5 L 27.5 20" 
+                stroke="url(#c3-arrow)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="27.5" cy="12.5" r="2" fill="url(#c3-dot)"/>
+        </svg>
+
+        <div class="wordmark wordmark-light">
+          Crediq<span class="accent" style="color: #0d9488;">ly</span>
+        </div>
+      </div>
+
+      <div class="favicon-row">
+        <div class="fav-tab">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0A0F1D"/>
+            <path d="M 25 28.5 C 22.8 30.6 19.8 31.8 16.2 31.8 C 9.8 31.8 4.8 26.5 4.8 19.8 C 4.8 13.2 9.8 7.8 16.2 7.8 C 19.8 7.8 22.8 9.1 25 11.2" stroke="#0EA5E9" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 16 24 L 27.5 12.5 M 27.5 12.5 L 20 12.5 M 27.5 12.5 L 27.5 20" stroke="#10B981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Crediqly &mdash; Dark Tab</span>
+        </div>
+        <div class="fav-tab fav-tab-light">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0F172A"/>
+            <path d="M 25 28.5 C 22.8 30.6 19.8 31.8 16.2 31.8 C 9.8 31.8 4.8 26.5 4.8 19.8 C 4.8 13.2 9.8 7.8 16.2 7.8 C 19.8 7.8 22.8 9.1 25 11.2" stroke="#0EA5E9" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 16 24 L 27.5 12.5 M 27.5 12.5 L 20 12.5 M 27.5 12.5 L 27.5 20" stroke="#10B981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Crediqly &mdash; Light Tab</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 4: Solid FinTech Emblem (High-Impact Minimalist Monogram) -->
+    <div class="card">
+      <h3>Concept 4: Solid FinTech Apex (Solid Monogram Glyph)</h3>
+      <p class="desc">A solid geometric glyph where the "C" and ascending financial chart become one unified, solid architectural silhouette. Zero stroke fragility, maximum icon clarity at 16x16.</p>
+      
+      <div class="preview-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0B132B"/>
+          <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255,255,255,0.12)"/>
+          
+          <defs>
+            <linearGradient id="c4-grad" x1="8" y1="32" x2="32" y2="8" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1E40AF"/>
+              <stop offset="0.35" stop-color="#0284C7"/>
+              <stop offset="0.75" stop-color="#0D9488"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+            <linearGradient id="c4-pillar" x1="20" y1="28" x2="30" y2="10" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0D9488"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Outer dynamic C form -->
+          <path d="M 28 13 C 25.5 9.5 21 8 16.5 8 C 10 8 5 13 5 20 C 5 27 10 32 16.5 32 C 21.5 32 26 29.8 28.5 26.5" 
+                stroke="url(#c4-grad)" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- Solid Rising Chevron / Arrowhead -->
+          <path d="M 20 20 L 29 11 M 29 11 H 21.5 M 29 11 V 18.5" 
+                stroke="url(#c4-pillar)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Center Solid Beacon -->
+          <circle cx="16.5" cy="20" r="2.2" fill="#38BDF8"/>
+        </svg>
+
+        <div class="wordmark wordmark-dark">
+          Crediq<span class="accent">ly</span>
+        </div>
+      </div>
+
+      <div class="preview-row light-row">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#0F172A"/>
+          <path d="M 28 13 C 25.5 9.5 21 8 16.5 8 C 10 8 5 13 5 20 C 5 27 10 32 16.5 32 C 21.5 32 26 29.8 28.5 26.5" 
+                stroke="url(#c4-grad)" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M 20 20 L 29 11 M 29 11 H 21.5 M 29 11 V 18.5" 
+                stroke="url(#c4-pillar)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="20" r="2.2" fill="#38BDF8"/>
+        </svg>
+
+        <div class="wordmark wordmark-light">
+          Crediq<span class="accent" style="color: #0d9488;">ly</span>
+        </div>
+      </div>
+
+      <div class="favicon-row">
+        <div class="fav-tab">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#0B132B"/>
+            <path d="M 28 13 C 25.5 9.5 21 8 16.5 8 C 10 8 5 13 5 20 C 5 27 10 32 16.5 32 C 21.5 32 26 29.8 28.5 26.5" stroke="#38BDF8" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M 20 20 L 29 11 M 29 11 H 21.5 M 29 11 V 18.5" stroke="#34D399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Crediqly &mdash; Dark Tab</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </body>
 </html>

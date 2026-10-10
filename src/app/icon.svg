@@ -1,0 +1,37 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cq-bg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="cq-arc" x1="7.5" y1="31" x2="26" y2="7.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <linearGradient id="cq-growth" x1="18" y1="22" x2="28.5" y2="11.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0D9488" />
+      <stop offset="50%" stop-color="#14B8A6" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+  </defs>
+
+  <rect width="40" height="40" rx="10" fill="url(#cq-bg)" />
+  <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="rgba(255, 255, 255, 0.16)" stroke-width="1" />
+
+  <!-- Foundation 'C' Arc -->
+  <path d="M 26 27.5 C 23.5 30.5 19.8 31.8 15.5 30.5 C 10.5 29 7.5 24.2 7.5 19 C 7.5 13.8 10.5 9 15.5 7.5 C 19.8 6.2 23.5 7.5 26 10.5" 
+        stroke="url(#cq-arc)" 
+        stroke-width="3.8" 
+        stroke-linecap="round" />
+
+  <!-- Ascendant Growth Arrow -->
+  <path d="M 18 22 L 28.5 11.5 M 28.5 11.5 L 21 11.5 M 28.5 11.5 L 28.5 19" 
+        stroke="url(#cq-growth)" 
+        stroke-width="3.6" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Milestone Beacon Dot -->
+  <circle cx="28.5" cy="11.5" r="1.8" fill="#34D399" />
+</svg>
