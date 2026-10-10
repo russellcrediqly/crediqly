@@ -175,11 +175,11 @@ export default function AdminPaymentsPage() {
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
-          <span className="text-xs text-slate-400 uppercase font-semibold">Pro Subscriptions ($39)</span>
+          <span className="text-xs text-slate-400 uppercase font-semibold">Foundation Subscriptions ($47.99)</span>
           <div className="text-2xl font-black text-brand-300 mt-1">
             ${(proRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">Recurring Pro revenue</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">Recurring Foundation revenue</p>
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
@@ -191,11 +191,11 @@ export default function AdminPaymentsPage() {
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
-          <span className="text-xs text-slate-400 uppercase font-semibold">Advisory Retainers ($149)</span>
+          <span className="text-xs text-slate-400 uppercase font-semibold">Guided Retainers ($147.99)</span>
           <div className="text-2xl font-black text-purple-400 mt-1">
             ${(advisoryMonthlyRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">Monthly advisory tiers</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">Monthly Guided tiers</p>
         </Card>
       </div>
 
@@ -232,9 +232,11 @@ export default function AdminPaymentsPage() {
               className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
             >
               <option value="all">All Products</option>
-              <option value="subscription">Crediqly Pro ($39/mo)</option>
-              <option value="advisory_setup">Advisory Setup ($499)</option>
-              <option value="advisory_subscription">Advisory Monthly ($149/mo)</option>
+              <option value="subscription">Foundation ($47.99/mo)</option>
+              <option value="guided_subscription">Guided Monthly ($147.99/mo)</option>
+              <option value="intensive">Guided 12-Month ($997)</option>
+              <option value="advisory_setup">Legacy Advisory Setup ($499)</option>
+              <option value="advisory_subscription">Legacy Advisory Monthly ($147.99/mo)</option>
               <option value="consultation">Historical Consult ($99)</option>
             </select>
           </div>
@@ -259,16 +261,25 @@ export default function AdminPaymentsPage() {
             <tbody className="divide-y divide-slate-800/60">
               {filtered.length > 0 ? (
                 filtered.map((p) => {
+                  const isIntensive = p.paymentType === 'intensive' || p.paymentType === 'guided_onetime';
+                  const isGuided = p.paymentType === 'guided_subscription';
+                  const isFoundation = p.paymentType === 'foundation_subscription';
                   const isAdvisorySetup = p.paymentType === 'advisory_setup';
                   const isAdvisorySub = p.paymentType === 'advisory_subscription';
                   const isPro = p.paymentType === 'subscription';
 
-                  const planLabel = isAdvisorySetup
-                    ? 'Premium Advisory Setup'
+                  const planLabel = isIntensive
+                    ? 'Guided 12-Month Program ($997)'
+                    : isGuided
+                    ? 'Guided Monthly ($147.99/mo)'
+                    : isFoundation
+                    ? 'Foundation Monthly ($47.99/mo)'
+                    : isAdvisorySetup
+                    ? 'Legacy Advisory Setup ($499)'
                     : isAdvisorySub
-                    ? 'Premium Advisory Monthly'
+                    ? 'Legacy Advisory Monthly ($149)'
                     : isPro
-                    ? 'Crediqly Pro Monthly'
+                    ? 'Foundation Monthly ($47.99/mo)'
                     : 'Consultation Session (Historical)';
 
                   return (

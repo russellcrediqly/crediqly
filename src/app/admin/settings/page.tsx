@@ -284,7 +284,7 @@ export default function AdminSettingsPage() {
               <Badge variant="info" className="text-[10px]">Major Priority</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Verify API connectivity, Price IDs ($39 Pro, $499 Setup, $149 Advisory), and Webhook status.
+              Verify API connectivity, Price IDs (Foundation $47.99, Guided $147.99, Guided 12-Month $997), and Webhook status.
             </p>
           </div>
         </div>

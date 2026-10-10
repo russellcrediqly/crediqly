@@ -44,13 +44,15 @@ export const MilestoneEducationModal: React.FC<MilestoneEducationModalProps> = (
   onToggleComplete,
   onAskAI,
 }) => {
-  const { isPro, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
   if (!isOpen || !milestone) return null;
 
-  const isLocked = !isPro && milestone.stageId > 1;
+  const isLocked = !hasFoundation && milestone.stageId > 1;
 
   const handleAskAIClick = async () => {
     if (onAskAI) {
@@ -181,28 +183,28 @@ export const MilestoneEducationModal: React.FC<MilestoneEducationModalProps> = (
             </div>
           </div>
 
-          {/* Pro Milestone Lock Notice */}
+          {/* Foundation Milestone Lock Notice */}
           {isLocked && (
             <div className="p-4 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 via-white to-brand-50/40 space-y-2.5">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-amber-700" />
                 <span className="text-xs font-bold text-amber-950 uppercase tracking-wider">
-                  Pro Guided Milestone
+                  Foundation Guided Milestone
                 </span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Upgrade to Crediqly Pro ($39/mo) to unlock complete step-by-step reporting vendor guides, store cards, and revolving lines.
+                Upgrade to Crediqly Foundation ($47.99/mo) to unlock complete step-by-step reporting vendor guides, store cards, and revolving lines.
               </p>
               <Button
                 size="sm"
                 variant="primary"
                 onClick={() => {
                   onClose();
-                  upgradeToPro();
+                  handleUpgrade();
                 }}
                 className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1"
               >
-                <span>Upgrade to Pro</span>
+                <span>Upgrade to Foundation</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </div>

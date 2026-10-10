@@ -73,7 +73,10 @@ import { getPersonalizedFundingMatches } from '@/lib/funding/personalizedMatches
 export default function FundingPage() {
   const { user } = useAuth();
   const { business } = useBusiness();
-  const { isPro, upgradeToPro, upgradeToAdvisory } = useSubscription();
+  const { isFoundation, isPro, upgradeToFoundation, upgradeToPro, upgradeToGuided, upgradeToAdvisory } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleFoundationUpgrade = upgradeToFoundation || upgradeToPro;
+  const handleGuidedUpgrade = upgradeToGuided || upgradeToAdvisory;
   const { sections, settings } = usePlatformSections();
 
   const [loading, setLoading] = useState(true);
@@ -416,10 +419,10 @@ export default function FundingPage() {
                   variant="primary"
                   size="md"
                   onClick={() => {
-                    if (isPro) {
+                    if (hasFoundation) {
                       setIsPrequalOpen(true);
                     } else {
-                      upgradeToPro();
+                      handleFoundationUpgrade();
                     }
                   }}
                   className="bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-xs gap-2 shadow-xs py-3"
@@ -472,9 +475,9 @@ export default function FundingPage() {
           </div>
 
           {/* ================================================================= */}
-          {/* 2. FREE TIER PROMOTION SHOWCASE vs ACTIVE PRO FULL MARKETPLACE    */}
+          {/* 2. FREE TIER PROMOTION SHOWCASE vs ACTIVE FOUNDATION MARKETPLACE   */}
           {/* ================================================================= */}
-          {!isPro ? (
+          {!hasFoundation ? (
             <div className="space-y-6">
               {/* Premium & Advisory Promotion Showcase */}
               <div className="rounded-3xl border-2 border-brand-300 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/40 p-6 sm:p-8 shadow-md">
@@ -492,16 +495,16 @@ export default function FundingPage() {
 
                   {/* Dual Tier Comparison */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 text-left">
-                    {/* Option 1: Pro */}
+                    {/* Option 1: Foundation */}
                     <div className="p-5 rounded-2xl bg-white border-2 border-brand-200 shadow-sm space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-brand-700">DIY Platform</span>
+                          <span className="text-xs font-bold uppercase text-brand-700">Self-Directed</span>
                           <span className="text-lg font-black text-slate-900">
-                            $39<span className="text-xs font-normal text-slate-500">/mo</span>
+                            $47.99<span className="text-xs font-normal text-slate-500">/mo</span>
                           </span>
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Crediqly Pro</h3>
+                        <h3 className="text-base font-extrabold text-slate-900">Foundation Plan</h3>
                         <ul className="text-xs text-slate-600 space-y-2 pt-1">
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -532,61 +535,60 @@ export default function FundingPage() {
                       <Button
                         variant="primary"
                         size="md"
-                        onClick={upgradeToPro}
+                        onClick={handleFoundationUpgrade}
                         className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
                       >
-                        <span>Upgrade to Pro — $39/mo</span>
+                        <span>Upgrade to Foundation — $47.99/mo</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
 
-                    {/* Option 2: Advisory */}
+                    {/* Option 2: Guided */}
                     <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-950 text-white border border-purple-500/30 shadow-md space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-purple-300">Done-For-You</span>
+                          <span className="text-xs font-bold uppercase text-purple-300">Expert Guidance</span>
                           <span className="text-lg font-black text-white">
-                            $499 <span className="text-xs font-normal text-purple-300">+ $149/mo</span>
+                            $147.99<span className="text-xs font-normal text-purple-300">/mo</span>
                           </span>
                         </div>
-                        <h3 className="text-base font-extrabold text-white">Done-For-You Premium Advisory</h3>
+                        <h3 className="text-base font-extrabold text-white">Guided Plan (Most Popular)</h3>
                         <ul className="text-xs text-slate-200 space-y-2 pt-1">
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                             <span>
-                              <strong>Everything in Pro included</strong> with full platform access
+                              <strong>Everything in Foundation included</strong> with full platform access
                             </span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                             <span>
-                              <strong>Dedicated Funding Advisor</strong> assigned to your business
+                              <strong>1 Monthly Personal Strategy Meeting</strong> with credit specialist
                             </span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                             <span>
-                              <strong>Concierge Document Pack Preparation</strong> (financials, bank records)
+                              <strong>Priority Support &amp; Document Review</strong> prior to application
                             </span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                             <span>
-                              <strong>1-on-1 Monthly Strategy Sessions</strong> before submitting applications
+                              <strong>Guided Underwriting Strategy</strong> for maximum qualification
                             </span>
                           </li>
                         </ul>
                       </div>
-                      <Link href="/advisory">
-                        <Button
-                          variant="primary"
-                          size="md"
-                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
-                        >
-                          <span>Explore Premium Advisory</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={() => handleGuidedUpgrade('monthly')}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
+                      >
+                        <span>Upgrade to Guided — $147.99/mo</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -633,15 +635,15 @@ export default function FundingPage() {
                             Direct Application &amp; Lender Criteria Locked
                           </span>
                           <span className="text-[11px] text-slate-200 block">
-                            Upgrade to Pro or Advisory to unlock full details
+                            Upgrade to Foundation or Guided to unlock full details
                           </span>
                         </div>
                         <Button
                           size="sm"
-                          onClick={upgradeToPro}
+                          onClick={handleFoundationUpgrade}
                           className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1 shadow-xs px-4"
                         >
-                          <span>Unlock with Pro</span>
+                          <span>Unlock with Foundation</span>
                           <ArrowRight className="w-3 h-3" />
                         </Button>
                       </div>
@@ -1024,7 +1026,7 @@ export default function FundingPage() {
           {/* ================================================================= */}
           {activeTab === 'top_matches' && (
             <div className="space-y-6">
-              <FundingMatchesForYouCard matches={personalizedFundingMatches} isPro={isPro} />
+              <FundingMatchesForYouCard matches={personalizedFundingMatches} isPro={hasFoundation} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {topMatches.map((match) => (
@@ -1160,7 +1162,7 @@ export default function FundingPage() {
           {/* ================================================================= */}
           <ProGate
             featureName="Lender Underwriting Matrix & Capital Preparation Engine"
-            description="Access our proprietary lender approval criteria database, bank underwriting ratios, and institutional capital readiness checklists with Crediqly Pro."
+            description="Access our proprietary lender approval criteria database, bank underwriting ratios, and institutional capital readiness checklists with Foundation."
           >
             <Card className="border-brand-200 bg-white shadow-xs overflow-hidden">
               <div className="bg-brand-50/60 p-4 sm:p-5 border-b border-brand-100 flex items-center justify-between">
@@ -1177,7 +1179,7 @@ export default function FundingPage() {
                     </p>
                   </div>
                 </div>
-                <Badge variant="info">Pro Unlocked</Badge>
+                <Badge variant="info">Foundation Unlocked</Badge>
               </div>
               <CardContent className="p-5 space-y-4 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

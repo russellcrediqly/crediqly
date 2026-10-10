@@ -242,22 +242,22 @@ export default function AdminCustomersPage() {
         <Card className="bg-slate-950 border-slate-800 text-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>Crediqly Pro</span>
+              <span>Foundation</span>
               <Sparkles className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-2xl font-black text-emerald-400 mt-1">{stats.pro}</p>
-            <span className="text-[11px] text-slate-500">$39/mo subscribers</span>
+            <span className="text-[11px] text-slate-500">$47.99/mo subscribers</span>
           </CardContent>
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>Premium Advisory</span>
+              <span>Guided</span>
               <TrendingUp className="w-4 h-4 text-indigo-400" />
             </div>
             <p className="text-2xl font-black text-indigo-400 mt-1">{stats.advisory}</p>
-            <span className="text-[11px] text-slate-500">$499 + $149/mo retainers</span>
+            <span className="text-[11px] text-slate-500">$147.99/mo retainers</span>
           </CardContent>
         </Card>
       </div>
@@ -313,8 +313,8 @@ export default function AdminCustomersPage() {
               >
                 <option value="all">All Plans</option>
                 <option value="free">Free ($0)</option>
-                <option value="pro">Pro ($39/mo)</option>
-                <option value="premium_advisory">Premium Advisory</option>
+                <option value="pro">Foundation ($47.99/mo)</option>
+                <option value="premium_advisory">Guided ($147.99/mo)</option>
               </select>
             </div>
 
@@ -392,15 +392,15 @@ export default function AdminCustomersPage() {
               ) : (
                 filteredCustomers.map((c) => {
                   const planBadge =
-                    c.plan === 'premium_advisory' || c.isAdvisory ? (
+                    c.plan === 'guided' || c.plan === 'premium_advisory' || c.isAdvisory ? (
                       <Badge variant="info" className="bg-indigo-950 text-indigo-300 border-indigo-800 font-bold gap-1">
                         <Sparkles className="w-3 h-3 text-indigo-400" />
-                        <span>Advisory</span>
+                        <span>Guided ($147.99)</span>
                       </Badge>
-                    ) : c.plan === 'pro' ? (
+                    ) : c.plan === 'foundation' || c.plan === 'pro' ? (
                       <Badge variant="success" className="bg-emerald-950 text-emerald-300 border-emerald-800 font-bold gap-1">
                         <CreditCard className="w-3 h-3 text-emerald-400" />
-                        <span>Pro ($39)</span>
+                        <span>Foundation ($47.99)</span>
                       </Badge>
                     ) : (
                       <Badge variant="neutral" className="bg-slate-800 text-slate-400 border-slate-700">

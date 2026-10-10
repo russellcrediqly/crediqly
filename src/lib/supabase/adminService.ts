@@ -282,9 +282,9 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
   const completedRoadmapTasks = Math.max(14, completedProfiles * 5);
 
   const freeUsers = users.filter((u) => u.plan === 'free' || (!u.plan && !u.isAdvisory)).length;
-  const proUsers = users.filter((u) => u.plan === 'pro').length;
-  const advisoryUsers = users.filter((u) => u.plan === 'premium_advisory' || u.isAdvisory).length;
-  const mrr = proUsers * 39 + advisoryUsers * 149;
+  const proUsers = users.filter((u) => u.plan === 'pro' || u.plan === 'foundation').length;
+  const advisoryUsers = users.filter((u) => u.plan === 'guided' || u.plan === 'premium_advisory' || u.isAdvisory).length;
+  const mrr = Math.round(proUsers * 47.99 + advisoryUsers * 147.99);
 
   return {
     totalUsers,

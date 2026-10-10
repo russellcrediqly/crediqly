@@ -29,7 +29,7 @@ export interface AdminUserListItem {
   fundingReadinessLevel?: string;
 
   // Plan, Subscription & Operations
-  plan?: 'free' | 'pro' | 'premium_advisory';
+  plan?: 'free' | 'foundation' | 'guided' | 'pro' | 'premium_advisory';
   subscriptionStatus?: string;
   isAdvisory?: boolean;
   advisoryStatus?: string;

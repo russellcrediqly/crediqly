@@ -23,7 +23,8 @@ interface SubscriptionContextType {
   verifyCheckoutSession: (sessionId: string) => Promise<void>;
   // Upgrades
   upgradeToFoundation: () => Promise<void>;
-  upgradeToGuided: () => Promise<void>;
+  upgradeToGuided: (billing?: 'monthly' | 'one_time') => Promise<void>;
+  upgradeToGuidedOneTime: () => Promise<void>;
   requestIntensive: () => Promise<void>;
   upgradeToPro: () => Promise<void>; // Backwards-compatible alias for upgradeToFoundation
   upgradeToAdvisory: () => Promise<void>; // Backwards-compatible alias for upgradeToGuided
@@ -111,7 +112,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const isPro = isFoundation;
   const isAdvisory = isGuided;
 
-  // Trigger Plan 2: Foundation checkout ($39.99/mo)
+  // Trigger Plan 2: Foundation checkout ($47.99/mo)
   const upgradeToFoundation = async () => {
     if (!user?.id) {
       window.location.href = '/signup';
@@ -143,8 +144,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Trigger Plan 3: Guided checkout ($149.99/mo)
-  const upgradeToGuided = async () => {
+  // Trigger Plan 3: Guided checkout ($147.99/mo monthly or $997 one-time)
+  const upgradeToGuided = async (billing: 'monthly' | 'one_time' = 'monthly') => {
     if (!user?.id) {
       window.location.href = '/signup';
       return;
@@ -158,6 +159,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           userId: user.id,
           customerEmail: user.email,
           plan: 'guided',
+          billing,
         }),
       });
 
@@ -175,35 +177,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Trigger Funding Readiness Intensive checkout ($999 one-time)
+  // Trigger Plan 3: Guided 12-Month Program ($997 one-time)
+  const upgradeToGuidedOneTime = async () => {
+    return upgradeToGuided('one_time');
+  };
+
+  // Trigger Guided 12-Month Program checkout ($997 one-time, backwards compatibility alias)
   const requestIntensive = async () => {
-    if (!user?.id) {
-      window.location.href = '/signup';
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/stripe/checkout-intensive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          customerEmail: user.email,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else if (data.notConfigured) {
-        alert('Stripe payments are currently in setup mode on this server. Please contact support.');
-      } else {
-        throw new Error(data.error || 'Failed to start Funding Readiness Intensive checkout.');
-      }
-    } catch (err: any) {
-      console.error('Request Funding Readiness Intensive error:', err);
-      alert(err.message || 'Unable to proceed to checkout. Please try again.');
-    }
+    return upgradeToGuided('one_time');
   };
 
   // Open Stripe Customer Portal
@@ -241,6 +222,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         verifyCheckoutSession,
         upgradeToFoundation,
         upgradeToGuided,
+        upgradeToGuidedOneTime,
         requestIntensive,
         upgradeToPro: upgradeToFoundation,
         upgradeToAdvisory: upgradeToGuided,

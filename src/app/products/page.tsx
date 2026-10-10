@@ -52,7 +52,8 @@ const CATEGORY_TABS: { key: string; label: string }[] = [
 
 function CreditProductsContent() {
   const { user } = useAuth();
-  const { isPro } = useSubscription();
+  const { isFoundation, isPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
   const { business, loading: businessLoading } = useBusiness();
   const { roadmap, loading: roadmapLoading } = useRoadmap();
   const { sections } = usePlatformSections();
@@ -342,7 +343,7 @@ function CreditProductsContent() {
                 product={prod}
                 onOpenDetail={handleOpenDetail}
                 onVisitProvider={handleVisitProvider}
-                isPro={isPro}
+                isPro={hasFoundation}
               />
             ))}
           </div>
@@ -363,11 +364,11 @@ function CreditProductsContent() {
         </div>
 
         {/* PRO GATE FOR ADVANCED VENDORS & REVOLVING LINES */}
-        {!isPro && (
+        {!hasFoundation && (
           <ProGate
             compact
             featureName="Tier 2 & Tier 3 Vendor Tradelines & High-Limit Business Accounts"
-            description="Unlock advanced vendor accounts, revolving credit lines, and full bureau reporting profiles with Crediqly Pro."
+            description="Unlock advanced vendor accounts, revolving credit lines, and full bureau reporting profiles with Crediqly Foundation."
           />
         )}
 
@@ -405,7 +406,7 @@ function CreditProductsContent() {
                 {CATEGORY_TABS.map((tab) => {
                   const isActive = activeCategory === tab.key;
                   const isTabLocked =
-                    !isPro &&
+                    !hasFoundation &&
                     (tab.key === 'business_credit_cards' ||
                       tab.key === 'business_banking' ||
                       tab.key === 'business_loans');
@@ -438,7 +439,7 @@ function CreditProductsContent() {
             </div>
 
             {/* Dedicated Category Pro Lock Notice */}
-            {!isPro &&
+            {!hasFoundation &&
               (activeCategory === 'business_credit_cards' ||
                 activeCategory === 'business_banking' ||
                 activeCategory === 'business_loans') && (
@@ -450,7 +451,7 @@ function CreditProductsContent() {
                       ? 'Commercial Business Banking Directory'
                       : 'Commercial Loans & Capital Facilities'
                   }
-                  description="Upgrade to Crediqly Pro or Premium Advisory to access underwriting matrices, higher limits, and direct application links."
+                  description="Upgrade to Foundation or Guided to access underwriting matrices, higher limits, and direct application links."
                 />
               )}
 
@@ -490,7 +491,7 @@ function CreditProductsContent() {
                     product={prod}
                     onOpenDetail={handleOpenDetail}
                     onVisitProvider={handleVisitProvider}
-                    isPro={isPro}
+                    isPro={hasFoundation}
                   />
                 ))}
               </div>

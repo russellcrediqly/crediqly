@@ -64,7 +64,21 @@ export default function DashboardPage() {
   const { business } = useBusiness();
   const { roadmap, completedTasks, toggleTaskCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
-  const { isPro, isAdvisory, upgradeToPro, openCustomerPortal, refreshSubscription, verifyCheckoutSession } = useSubscription();
+  const {
+    isFoundation,
+    isGuided,
+    isPro,
+    isAdvisory,
+    upgradeToFoundation,
+    upgradeToGuided,
+    requestIntensive,
+    openCustomerPortal,
+    refreshSubscription,
+    verifyCheckoutSession,
+  } = useSubscription();
+
+  const hasFoundation = isFoundation || isPro;
+  const hasGuided = isGuided || isAdvisory;
   const [upgradedNotice, setUpgradedNotice] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
 
@@ -183,8 +197,10 @@ export default function DashboardPage() {
       business,
       completedTasks,
       fundingProducts,
-      subscriptionTier: isAdvisory ? 'Premium Advisory' : isPro ? 'Pro' : 'Free',
-      isAdvisory,
+      subscriptionTier: hasGuided ? 'Guided' : hasFoundation ? 'Foundation' : 'Free',
+      isAdvisory: hasGuided,
+      isGuided: hasGuided,
+      isFoundation: hasFoundation,
       roadmap,
     });
   }, [
@@ -312,10 +328,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-white tracking-tight">
-                    Crediqly Pro Activated
+                    Plan Activated
                   </h4>
                   <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                    Full commercial credit building roadmap stages, verified reporting tradelines, and advanced funding readiness are unlocked.
+                    Full commercial credit building roadmap stages, verified reporting tradelines, and funding readiness intelligence are unlocked.
                   </p>
                 </div>
               </div>
@@ -343,14 +359,14 @@ export default function DashboardPage() {
                     status={isProfileComplete ? 'Verified' : 'Needs Attention'}
                     size="sm"
                   />
-                  {isAdvisory && (
+                  {hasGuided && (
                     <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
-                      Advisory Member
+                      Guided Member
                     </span>
                   )}
-                  {isPro && !isAdvisory && (
+                  {hasFoundation && !hasGuided && (
                     <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
-                      Pro Member
+                      Foundation Member
                     </span>
                   )}
                 </div>
@@ -585,7 +601,7 @@ export default function DashboardPage() {
               <WhatShouldIDoNextCard
                 actions={topRecommendedActions}
                 onToggleComplete={toggleTaskCompletion}
-                isPro={isPro}
+                isPro={hasFoundation}
               />
             </div>
           )}
@@ -676,7 +692,7 @@ export default function DashboardPage() {
               ) : (
                 <FundingMatchesForYouCard
                   matches={personalizedFundingMatches}
-                  isPro={isPro}
+                  isPro={hasFoundation}
                 />
               )}
             </div>

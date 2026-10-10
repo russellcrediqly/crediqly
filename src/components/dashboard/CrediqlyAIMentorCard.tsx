@@ -46,7 +46,10 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
   className = '',
   initialPrompt,
 }) => {
-  const { isPro, isAdvisory, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, isGuided, isAdvisory, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const hasGuided = isGuided || isAdvisory;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const [question, setQuestion] = useState(initialPrompt || '');
   const [loading, setLoading] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -57,7 +60,7 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
   const [activeTab, setActiveTab] = useState<'advisor' | 'prep'>('advisor');
   const [copiedQuestions, setCopiedQuestions] = useState(false);
 
-  const isLimitReached = !isPro && !isAdvisory && questionsCount >= FREE_QUESTION_LIMIT;
+  const isLimitReached = !hasFoundation && !hasGuided && questionsCount >= FREE_QUESTION_LIMIT;
   const remainingQuestions = Math.max(0, FREE_QUESTION_LIMIT - questionsCount);
   const score = context.fundingReadinessScore || 0;
 
@@ -165,14 +168,14 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
                 ASK YOUR CREDIQLY MENTOR
               </span>
 
-              {isAdvisory ? (
+              {hasGuided ? (
                 <span className="text-xs font-black text-purple-900 bg-purple-100 border border-purple-200 px-3 py-0.5 rounded-full flex items-center gap-1">
                   <UserCheck className="w-3.5 h-3.5 text-purple-700" />
-                  <span>Your AI Advisor + Human Advisory</span>
+                  <span>Your AI Advisor + Guided Human Advisory</span>
                 </span>
-              ) : isPro ? (
+              ) : hasFoundation ? (
                 <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  ⭐ Pro Unlimited Access
+                  ⭐ Foundation Unlimited Access
                 </span>
               ) : (
                 <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
@@ -289,17 +292,17 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
                     Free Inquiries Completed
                   </h4>
                   <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                    Upgrade to Crediqly Pro to unlock unlimited real-time AI guidance, underwriting explanations, and direct funding preparation analysis.
+                    Upgrade to Crediqly Foundation to unlock unlimited real-time AI guidance, underwriting explanations, and direct funding preparation analysis.
                   </p>
                 </div>
                 <div className="pt-1 flex items-center justify-center gap-3 flex-wrap">
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={upgradeToPro}
+                    onClick={handleUpgrade}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold gap-1.5 shadow-xs"
                   >
-                    <span>Upgrade to Pro — $39/mo</span>
+                    <span>Upgrade to Foundation — $47.99/mo</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                   <Link href="/pricing">

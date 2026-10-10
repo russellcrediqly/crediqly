@@ -194,7 +194,7 @@ function ConsultationInner() {
     if (!user?.id) return;
 
     if (!isAdvisory) {
-      setFormError('1-on-1 advisory meetings are an exclusive benefit of Premium Advisory. Please upgrade to schedule a session.');
+      setFormError('1-on-1 advisory meetings are an exclusive benefit of the Guided plan. Please upgrade to schedule a session.');
       return;
     }
 
@@ -306,16 +306,16 @@ function ConsultationInner() {
             <div className="relative z-10 max-w-2xl space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-xs font-semibold tracking-wide border border-brand-500/30">
                 <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                <span>{isAdvisory ? 'Premium Advisory Member' : 'Dedicated Commercial Advisory'}</span>
+                <span>{isAdvisory ? 'Guided Member' : 'Dedicated Commercial Strategy'}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
                 {isAdvisory
-                  ? 'Book Your Monthly Advisory Meeting'
+                  ? 'Book Your Monthly Strategy Meeting'
                   : 'Need help with your business credit or funding strategy?'}
               </h1>
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                 {isAdvisory
-                  ? 'Your Premium Advisory membership includes a dedicated 1-on-1 monthly strategy meeting ($0 fee). Select your preferred date and time to meet with your commercial advisor.'
+                  ? 'Your Guided membership includes a dedicated 1-on-1 monthly strategy meeting ($0 fee). Select your preferred date and time to meet with your commercial advisor.'
                   : settings?.messaging?.consultationMessage ||
                     'Request a consultation with the Crediqly team for personalized guidance.'}
               </p>
@@ -423,7 +423,7 @@ function ConsultationInner() {
             </Card>
           )}
 
-          {/* FOR NON-ADVISORY USERS: ENCOURAGING ADVISORY UPGRADE CARD */}
+          {/* FOR NON-GUIDED USERS: ENCOURAGING GUIDED UPGRADE CARD */}
           {!isAdvisory && (
             <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 shadow-md">
               <CardContent className="p-6 sm:p-8 space-y-6">
@@ -431,13 +431,13 @@ function ConsultationInner() {
                   <div className="space-y-1">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">
                       <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>Crediqly Premium Advisory</span>
+                      <span>Crediqly Guided Plan</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-black text-slate-900">
                       Dedicated 1-on-1 Monthly Strategy Meetings
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
-                      1-on-1 strategy meetings are part of our full Done-For-You / Done-With-You advisory service. Free and Pro tiers provide self-guided roadmaps; Premium Advisory pairs you with a dedicated commercial advisor.
+                      1-on-1 strategy meetings are included with our Guided plan. Free and Foundation tiers provide self-directed roadmaps; Guided pairs you with a dedicated commercial advisor for 1 strategy meeting per month and priority support.
                     </p>
                   </div>
                   <Button
@@ -445,7 +445,7 @@ function ConsultationInner() {
                     onClick={() => router.push('/advisory')}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shrink-0 gap-2"
                   >
-                    <span>Explore Advisory</span>
+                    <span>Explore Guided & Intensive</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
@@ -457,7 +457,7 @@ function ConsultationInner() {
                     </div>
                     <h3 className="text-sm font-bold text-slate-900">1 Monthly Strategy Call</h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      45-minute structured advisory call every month ($0 booking fee) to review progress and prioritize next actions.
+                      45-minute structured strategy session every month ($0 booking fee) to review progress and prioritize next actions.
                     </p>
                   </div>
 
@@ -465,7 +465,7 @@ function ConsultationInner() {
                     <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900">Done-For-You Sequencing</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Expert-Guided Strategy</h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
                       Step-by-step guidance on which vendor, retail, and fleet accounts to establish in exact sequence.
                     </p>
@@ -475,18 +475,18 @@ function ConsultationInner() {
                     <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900">Full Pro Access Included</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Full Foundation Access Included</h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      All Pro tools, calculators, personalized roadmap milestones, and funding matches are included free.
+                      All Tier 1–4 tradelines, personalized action plan, underwriting matrices, and funding matches included.
                     </p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <span className="text-xs font-bold text-slate-900">Transparent Pricing</span>
+                    <span className="text-xs font-bold text-slate-900">Guided Membership</span>
                     <p className="text-xs text-slate-500">
-                      $499 one-time setup + $149/month ongoing retainer. Cancel or pause anytime.
+                      $147.99/month (or $997 for 12 months). Includes 1 personal strategy meeting per month, sequencing guidance, and priority support.
                     </p>
                   </div>
                   <Button
@@ -513,10 +513,10 @@ function ConsultationInner() {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900">
-                      Schedule Your Monthly Advisory Meeting
+                      Schedule Your Monthly Strategy Meeting
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Included with your Premium Advisory membership ($0 fee)
+                      Included with your Guided membership ($0 fee)
                     </p>
                   </div>
                 </div>
@@ -546,11 +546,11 @@ function ConsultationInner() {
                     <input
                       type="text"
                       readOnly
-                      value="Premium Advisory Monthly Meeting (Included - $0)"
+                      value="Guided Strategy Monthly Meeting (Included - $0)"
                       className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 font-semibold cursor-not-allowed"
                     />
                     <p className="text-[11px] text-slate-500">
-                      Your recurring retainer includes 1 dedicated monthly advisory session ($0 fee).
+                      Your Guided membership includes 1 dedicated monthly strategy session ($0 fee).
                     </p>
                   </div>
 
@@ -618,12 +618,12 @@ function ConsultationInner() {
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-sm text-slate-900">
-                          Included In Your Premium Advisory Membership ($0)
+                          Included In Your Guided Membership ($0)
                         </span>
                         <Badge variant="info">45 Minutes</Badge>
                       </div>
                       <p className="text-slate-600 text-[11px] leading-relaxed">
-                        Your active Done-For-You Advisory membership includes 1 dedicated monthly advisory meeting at no additional charge. We will review your tradeline sequence, funding readiness, and strategic next steps.
+                        Your active Guided membership includes 1 dedicated monthly strategy meeting at no additional charge. We will review your tradeline sequence, funding readiness, and strategic next steps.
                       </p>
                     </div>
                   </div>
@@ -705,7 +705,7 @@ function ConsultationInner() {
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       {isAdvisory
                         ? 'Book your included monthly 1-on-1 strategy call with a Crediqly commercial credit advisor.'
-                        : '1-on-1 monthly meetings are included in Crediqly Premium Advisory for tailored human guidance.'}
+                        : '1-on-1 monthly meetings are included in Crediqly Guided for tailored human guidance.'}
                     </p>
                   </div>
                   <div className="pt-2">
@@ -727,7 +727,7 @@ function ConsultationInner() {
                         className="text-xs gap-1.5"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Explore Premium Advisory</span>
+                        <span>Explore Guided &amp; Intensive</span>
                       </Button>
                     )}
                   </div>

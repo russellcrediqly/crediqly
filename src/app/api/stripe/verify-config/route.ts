@@ -63,25 +63,25 @@ export async function GET() {
       id: STRIPE_CONFIG.foundationPriceId,
       configured: Boolean(STRIPE_CONFIG.foundationPriceId),
       valid: false,
-      expected: '$39.99/month recurring',
+      expected: '$47.99/month recurring',
     },
     guided: {
       id: STRIPE_CONFIG.guidedPriceId,
       configured: Boolean(STRIPE_CONFIG.guidedPriceId),
       valid: false,
-      expected: '$149.99/month recurring',
+      expected: '$147.99/month recurring',
     },
     intensive: {
       id: STRIPE_CONFIG.intensivePriceId,
       configured: Boolean(STRIPE_CONFIG.intensivePriceId),
       valid: false,
-      expected: '$999.00 one-time',
+      expected: '$997.00 one-time',
     },
     pro: {
       id: STRIPE_CONFIG.foundationPriceId,
       configured: Boolean(STRIPE_CONFIG.foundationPriceId),
       valid: false,
-      expected: '$39.99/month recurring',
+      expected: '$47.99/month recurring',
     },
     advisorySetup: {
       id: STRIPE_CONFIG.advisorySetupPriceId,
@@ -93,12 +93,12 @@ export async function GET() {
       id: STRIPE_CONFIG.guidedPriceId,
       configured: Boolean(STRIPE_CONFIG.guidedPriceId),
       valid: false,
-      expected: '$149.99/month recurring',
+      expected: '$147.99/month recurring',
     },
   };
 
   if (apiStatus === 'working' && stripe) {
-    // Validate Foundation Price ($39.99/mo or legacy $39/mo)
+    // Validate Foundation Price ($47.99/mo)
     if (STRIPE_CONFIG.foundationPriceId) {
       try {
         const p = await stripe.prices.retrieve(STRIPE_CONFIG.foundationPriceId);
@@ -106,11 +106,11 @@ export async function GET() {
         const interval = p.recurring?.interval;
         prices.foundation.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
         prices.pro.actual = prices.foundation.actual;
-        if ((amount === 3999 || amount === 3900) && interval === 'month') {
+        if ((amount === 4799 || amount === 3999) && interval === 'month') {
           prices.foundation.valid = true;
           prices.pro.valid = true;
         } else {
-          prices.foundation.error = `Price exists but does not match expected $39.99/month (Found: ${prices.foundation.actual})`;
+          prices.foundation.error = `Price exists but does not match expected $47.99/month (Found: ${prices.foundation.actual})`;
           prices.pro.error = prices.foundation.error;
         }
       } catch (err: any) {
@@ -122,7 +122,7 @@ export async function GET() {
       prices.pro.error = prices.foundation.error;
     }
 
-    // Validate Guided Price ($149.99/mo or legacy $149/mo)
+    // Validate Guided Price ($147.99/mo)
     if (STRIPE_CONFIG.guidedPriceId) {
       try {
         const p = await stripe.prices.retrieve(STRIPE_CONFIG.guidedPriceId);
@@ -130,14 +130,14 @@ export async function GET() {
         const interval = p.recurring?.interval;
         prices.guided.actual = `$${(amount / 100).toFixed(2)}${interval ? `/${interval}` : ''}`;
         prices.advisoryMonthly.actual = prices.guided.actual;
-        if ((amount === 14999 || amount === 14900) && interval === 'month') {
+        if ((amount === 14799 || amount === 14999) && interval === 'month') {
           prices.guided.valid = true;
           prices.advisoryMonthly.valid = true;
         } else if (p.type === 'one_time') {
           prices.guided.error = `Price is configured as one-time instead of monthly recurring.`;
           prices.advisoryMonthly.error = prices.guided.error;
         } else {
-          prices.guided.error = `Price exists but does not match expected $149.99/month (Found: ${prices.guided.actual})`;
+          prices.guided.error = `Price exists but does not match expected $147.99/month (Found: ${prices.guided.actual})`;
           prices.advisoryMonthly.error = prices.guided.error;
         }
       } catch (err: any) {
@@ -149,22 +149,22 @@ export async function GET() {
       prices.advisoryMonthly.error = prices.guided.error;
     }
 
-    // Validate Intensive Price ($999 one-time)
+    // Validate Guided 12-Month Program / Intensive Price ($997 one-time)
     if (STRIPE_CONFIG.intensivePriceId) {
       try {
         const p = await stripe.prices.retrieve(STRIPE_CONFIG.intensivePriceId);
         const amount = p.unit_amount || 0;
         prices.intensive.actual = `$${(amount / 100).toFixed(2)} one-time`;
-        if (amount === 99900 && p.type === 'one_time') {
+        if ((amount === 99700 || amount === 99900) && p.type === 'one_time') {
           prices.intensive.valid = true;
         } else {
-          prices.intensive.error = `Price exists but does not match expected $999.00 one-time (Found: ${prices.intensive.actual})`;
+          prices.intensive.error = `Price exists but does not match expected $997.00 one-time (Found: ${prices.intensive.actual})`;
         }
       } catch (err: any) {
         prices.intensive.error = `Price ID ${STRIPE_CONFIG.intensivePriceId} not found in Stripe account: ${err.message}`;
       }
     } else {
-      prices.intensive.error = 'STRIPE_INTENSIVE_PRICE_ID environment variable is optional (dynamic checkout supported).';
+      prices.intensive.error = 'STRIPE_GUIDED_ONETIME_PRICE_ID environment variable is optional (dynamic checkout supported).';
     }
   }
 
@@ -235,27 +235,27 @@ export async function GET() {
     },
     {
       id: 'foundation_price',
-      label: 'Crediqly Foundation Price ($39.99/mo)',
+      label: 'Crediqly Foundation Price ($47.99/mo)',
       status: prices.foundation.valid ? 'pass' : prices.foundation.configured ? 'fail' : 'warning',
       detail: prices.foundation.valid
-        ? 'VERIFIED ✓ ($39.99/month recurring)'
+        ? 'VERIFIED ✓ ($47.99/month recurring)'
         : prices.foundation.error || 'NOT CONFIGURED: Price ID required (dynamic fallback active)',
     },
     {
       id: 'guided_price',
-      label: 'Crediqly Guided Price ($149.99/mo)',
+      label: 'Crediqly Guided Price ($147.99/mo)',
       status: prices.guided.valid ? 'pass' : prices.guided.configured ? 'fail' : 'warning',
       detail: prices.guided.valid
-        ? 'VERIFIED ✓ ($149.99/month recurring)'
+        ? 'VERIFIED ✓ ($147.99/month recurring)'
         : prices.guided.error || 'NOT CONFIGURED: Price ID required (dynamic fallback active)',
     },
     {
       id: 'intensive_price',
-      label: 'Funding Readiness Intensive ($999 one-time)',
+      label: 'Guided 12-Month Program ($997 one-time)',
       status: prices.intensive.valid ? 'pass' : 'warning',
       detail: prices.intensive.valid
-        ? 'VERIFIED ✓ ($999.00 one-time payment)'
-        : 'CONFIGURED via Dynamic Product ($999.00 one-time)',
+        ? 'VERIFIED ✓ ($997.00 one-time payment)'
+        : 'CONFIGURED via Dynamic Product ($997.00 one-time)',
     },
     {
       id: 'webhook_secret',

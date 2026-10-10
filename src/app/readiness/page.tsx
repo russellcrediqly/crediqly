@@ -49,7 +49,9 @@ import { ActivityLogItem, ProgressHistoryItem } from '@/types/progress';
 function ReadinessPageContent() {
   const { user } = useAuth();
   const { business, loading: businessLoading } = useBusiness();
-  const { isPro, isAdvisory, upgradeToPro } = useSubscription();
+  const { isFoundation, isGuided, isPro, isAdvisory, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasAccess = isFoundation || isGuided || isPro || isAdvisory;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const { roadmap, loading: roadmapLoading } = useRoadmap();
   const { sections } = usePlatformSections();
   const router = useRouter();
@@ -264,8 +266,8 @@ function ReadinessPageContent() {
           <Button
             type="button"
             onClick={() => {
-              if (!isPro && !isAdvisory) {
-                upgradeToPro();
+              if (!hasAccess) {
+                handleUpgrade();
               } else {
                 window.print();
               }
@@ -273,7 +275,7 @@ function ReadinessPageContent() {
             variant="outline"
             size="sm"
             className={`text-xs font-bold gap-1.5 shadow-2xs ${
-              !isPro && !isAdvisory
+              !hasAccess
                 ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
                 : 'border-slate-300 text-slate-700 bg-white hover:bg-slate-50'
             }`}
@@ -281,7 +283,7 @@ function ReadinessPageContent() {
             {!isPro && !isAdvisory ? (
               <>
                 <Lock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Export Dossier (Pro)</span>
+                <span>Export Dossier (Foundation)</span>
               </>
             ) : (
               <>
@@ -665,10 +667,10 @@ function ReadinessPageContent() {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Lock className="w-3 h-3" />
-                    Tier 2 • Pro Roadmap
+                    Tier 2 • Foundation Roadmap
                   </span>
                   <Badge variant="warning" className="text-[10px]">
-                    {isPro ? 'Unlocked' : 'Pro Only'}
+                    {hasAccess ? 'Unlocked' : 'Foundation Only'}
                   </Badge>
                 </div>
                 <h4 className="text-xs font-bold text-white">
@@ -678,17 +680,17 @@ function ReadinessPageContent() {
                   Establish 3-5 Tier 1 reporting vendor accounts with major bureaus to trigger an official Dun & Bradstreet PAYDEX score.
                 </p>
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                  {isPro ? (
+                  {hasAccess ? (
                     <Link href="/roadmap" className="text-xs font-bold text-brand-300 hover:text-white flex items-center gap-1">
-                      <span>View Pro Checklist</span>
+                      <span>View Roadmap Checklist</span>
                       <ArrowRight className="w-3 h-3" />
                     </Link>
                   ) : (
                     <button
-                      onClick={upgradeToPro}
+                      onClick={handleUpgrade}
                       className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1"
                     >
-                      <span>Unlock with Pro ($39/mo)</span>
+                      <span>Unlock with Foundation ($47.99/mo)</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   )}
@@ -739,7 +741,7 @@ function ReadinessPageContent() {
                     Prefer expert guidance instead of doing everything alone?
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-                    Premium Advisory pairs you with a dedicated specialist who audits your profile, reviews your milestone progress, and helps you prioritize your next steps.
+                    Guided Advisory pairs you with a dedicated specialist who audits your profile, reviews your milestone progress, and helps you prioritize your next steps.
                   </p>
                 </div>
               </div>
@@ -747,7 +749,7 @@ function ReadinessPageContent() {
               <div className="shrink-0 flex items-center gap-3">
                 <Link href="/advisory">
                   <Button className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold gap-1.5 shadow-sm whitespace-nowrap">
-                    <span>Explore Advisory</span>
+                    <span>Explore Guided &amp; Intensive</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 </Link>

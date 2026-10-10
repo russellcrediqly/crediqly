@@ -315,20 +315,27 @@ export default function AdminCustomerDetailPage() {
   const recommendedProducts = getRecommendedProducts(bizProfile, roadmap, allProducts);
 
   // Plan detection
-  const isAdvisory =
+  const isGuided =
+    userDetail.subscription?.planId === 'guided' ||
+    userDetail.subscription?.planId?.toLowerCase().includes('guided') ||
     userDetail.subscription?.planId === 'advisory' ||
     userDetail.subscription?.planId?.toLowerCase().includes('advisory') ||
     userDetail.consultations?.some((c) => c.consultationType === 'Premium Advisory Monthly Meeting');
 
-  const isPro =
-    !isAdvisory &&
-    (userDetail.subscription?.planId === 'pro' ||
+  const isFoundation =
+    !isGuided &&
+    (userDetail.subscription?.planId === 'foundation' ||
+      userDetail.subscription?.planId?.toLowerCase().includes('foundation') ||
+      userDetail.subscription?.planId === 'pro' ||
       userDetail.subscription?.planId?.toLowerCase().includes('pro'));
 
-  const planLabel = isAdvisory ? 'Premium Advisory' : isPro ? 'Crediqly Pro' : 'Free Tier';
-  const planBadgeClass = isAdvisory
+  const isAdvisory = isGuided;
+  const isPro = isFoundation;
+
+  const planLabel = isGuided ? 'Guided Plan' : isFoundation ? 'Foundation Plan' : 'Free Tier';
+  const planBadgeClass = isGuided
     ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
-    : isPro
+    : isFoundation
     ? 'bg-brand-500/20 text-brand-300 border-brand-500/40'
     : 'bg-slate-800 text-slate-300 border-slate-700';
 
@@ -998,10 +1005,10 @@ export default function AdminCustomerDetailPage() {
               <span className="text-[11px] text-slate-400 uppercase font-semibold">Active Plan</span>
               <div className="text-xl font-black text-white">{planLabel}</div>
               <p className="text-xs text-slate-400 pt-1">
-                {isAdvisory
-                  ? '$499 Setup + $149/mo Advisory Tier'
-                  : isPro
-                  ? '$39/mo Crediqly Pro Tier'
+                {isGuided
+                  ? '$147.99/mo (or $997 12-mo) Guided Tier'
+                  : isFoundation
+                  ? '$47.99/mo Foundation Tier'
                   : 'Free Tier ($0/mo)'}
               </p>
             </div>
@@ -1091,7 +1098,7 @@ export default function AdminCustomerDetailPage() {
             <CardTitle className="text-base font-bold text-white flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-purple-400" />
-                <span>Section 6: Premium Advisory & Consultation Records</span>
+                <span>Section 6: Guided Advisory &amp; Consultation Records</span>
               </span>
               <Link href="/admin/consultations">
                 <Button size="sm" variant="outline" className="text-xs border-slate-700 bg-slate-900 text-slate-300">

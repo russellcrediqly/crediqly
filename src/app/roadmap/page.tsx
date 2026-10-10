@@ -72,7 +72,9 @@ function CreditRoadmapContent() {
     actionRecords,
   } = useRoadmap();
   const { sections } = usePlatformSections();
-  const { isPro, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const searchParams = useSearchParams();
 
   // Active stage filter: 'all' | '1' | '2' | '3' | '4' | '5' | 'completed'
@@ -372,7 +374,7 @@ function CreditRoadmapContent() {
         )}
 
         {/* Free Tier Promotional Banner */}
-        {!isPro && (
+        {!hasFoundation && (
           <div className="rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/30 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2">
@@ -381,33 +383,33 @@ function CreditRoadmapContent() {
                   Free Tier Active
                 </span>
                 <span className="text-xs text-slate-500 font-semibold">
-                  Stage 1 Establish Free • Stages 2–5 Guided in Pro
+                  Stage 1 Establish Free • Stages 2–5 Guided in Foundation
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-slate-900">
                 Unlock Complete 5-Stage Guided Business Credit Building
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Free accounts can build their Foundation profile and open commercial accounts. Upgrade to <strong>Crediqly Pro ($39/mo)</strong> or <strong>Done-For-You Advisory ($499 + $149/mo)</strong> to unlock Tier-1 reporting vendor guides, store cards, revolving lines, and direct funding matching.
+                Free accounts can build their Foundation profile and open commercial accounts. Upgrade to <strong>Foundation ($47.99/mo)</strong> or <strong>Guided ($147.99/mo)</strong> to unlock Tier-1 reporting vendor guides, store cards, revolving lines, and direct funding matching.
               </p>
             </div>
             <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
               <Button
                 variant="primary"
                 size="sm"
-                onClick={upgradeToPro}
+                onClick={handleUpgrade}
                 className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1 shadow-xs px-4"
               >
-                <span>Upgrade to Pro ($39/mo)</span>
+                <span>Upgrade to Foundation ($47.99/mo)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
-              <Link href="/advisory">
+              <Link href="/pricing">
                 <Button
                   variant="outline"
                   size="sm"
                   className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold"
                 >
-                  <span>Explore Advisory</span>
+                  <span>Explore Guided ($147.99/mo)</span>
                 </Button>
               </Link>
             </div>

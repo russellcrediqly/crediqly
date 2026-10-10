@@ -32,8 +32,10 @@ export const FundingForecastCard: React.FC<FundingForecastCardProps> = ({
   className = '',
   isPro: propIsPro,
 }) => {
-  const { isPro: contextIsPro, upgradeToPro } = useSubscription();
-  const isPro = propIsPro !== undefined ? propIsPro : contextIsPro;
+  const { isFoundation, isPro: contextIsPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || contextIsPro;
+  const isPro = propIsPro !== undefined ? propIsPro : hasFoundation;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   // --------------------------------------------------------------------------
   // INSUFFICIENT DATA / UNAVAILABLE STATE
   // --------------------------------------------------------------------------
@@ -219,21 +221,21 @@ export const FundingForecastCard: React.FC<FundingForecastCardProps> = ({
             </div>
             <div className="space-y-1.5 max-w-md mx-auto">
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800">
-                <span>🔒 Pro Feature</span>
+                <span>🔒 Foundation Feature</span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                 Unlock 90-Day Cash-Flow Scenario Simulation
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Upgrade to Crediqly Pro to view month-by-month cash burn projections, deficit horizon detection, and custom liquidity scenarios.
+                Upgrade to Crediqly Foundation to view month-by-month cash burn projections, deficit horizon detection, and custom liquidity scenarios.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
               <Button
-                onClick={() => upgradeToPro()}
+                onClick={() => handleUpgrade()}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-xs gap-1.5 w-full sm:w-auto"
               >
-                <span>Upgrade to Pro — $39/mo</span>
+                <span>Upgrade to Foundation — $47.99/mo</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
               <Link href="/pricing">

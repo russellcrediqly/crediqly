@@ -26,8 +26,7 @@ const plans = [
   {
     name: 'Foundation',
     tagline: 'Build it yourself. Know exactly what to do.',
-    price: '$39.99',
-    regularPrice: '$49.99',
+    price: '$47.99',
     billing: '/month',
     badge: 'Most Popular',
     featured: true,
@@ -45,8 +44,7 @@ const plans = [
   {
     name: 'Guided',
     tagline: 'Build your business credit with expert guidance.',
-    price: '$149.99',
-    regularPrice: '$199.99',
+    price: '$147.99',
     billing: '/month',
     badge: null,
     featured: false,
@@ -116,13 +114,6 @@ export const PricingPreview: React.FC = () => {
                   </span>
                   <span className="text-sm text-slate-500 font-medium">{plan.billing}</span>
                 </div>
-                {plan.regularPrice && (
-                  <p className="text-xs text-slate-600">
-                    Regular price{' '}
-                    <span className="line-through text-slate-600">{plan.regularPrice}/mo</span>
-                    {' '}· Limited time promo
-                  </p>
-                )}
               </div>
 
               {/* Features */}
@@ -153,18 +144,18 @@ export const PricingPreview: React.FC = () => {
           ))}
         </div>
 
-        {/* Intensive upsell — separate, not a fourth plan card */}
+        {/* Guided Option B — 12-Month Program (separate billing option, not a fourth plan card) */}
         <div className="max-w-3xl mx-auto rounded-2xl border border-white/8 bg-white/2 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">High-Touch Premium Service</p>
-            <h3 className="text-lg font-bold text-white">Funding Readiness Intensive</h3>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Guided Program · Option B</p>
+            <h3 className="text-lg font-bold text-white">Guided 12-Month Program</h3>
             <p className="text-sm text-slate-400 max-w-md">
-              Personalized expert help preparing your full funding readiness package — one-time, done with you. Ideal for businesses actively pursuing commercial financing.
+              Full 12-month Guided access with monthly 1-on-1 strategy sessions, fundability audit, application sequencing, and priority support. One-time payment with no auto-renewal.
             </p>
           </div>
           <div className="space-y-3 shrink-0 text-center sm:text-right">
             <div>
-              <span className="text-2xl font-bold text-white">$999</span>
+              <span className="text-2xl font-bold text-white">$997</span>
               <span className="text-sm text-slate-500 ml-1.5">one-time</span>
             </div>
             <Link href="/advisory">
@@ -172,7 +163,7 @@ export const PricingPreview: React.FC = () => {
                 size="sm"
                 className="bg-white/8 hover:bg-white/12 text-white border border-white/10 font-medium text-sm px-5 py-2.5 rounded-xl whitespace-nowrap"
               >
-                Learn About This Service
+                Learn About Guided Program
               </Button>
             </Link>
           </div>

@@ -48,7 +48,9 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
   isProfileComplete,
   compact = false,
 }) => {
-  const { isPro, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
 
   if (!fundingResult || !isProfileComplete) {
     return (
@@ -211,8 +213,8 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
   // Sort gaps by deficit: highest gap first (lowest percentage)
   const sortedGaps = [...allGaps].sort((a, b) => a.percentage - b.percentage);
 
-  // Free users see the top 2 gaps; Pro users see all 4
-  const displayedGaps = isPro ? sortedGaps : sortedGaps.slice(0, 2);
+  // Free users see the top 2 gaps; Foundation users see all 4
+  const displayedGaps = hasFoundation ? sortedGaps : sortedGaps.slice(0, 2);
 
   return (
     <Card className="border-slate-200 bg-white shadow-xs overflow-hidden">
@@ -355,7 +357,7 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
         </div>
 
         {/* Free Preview Unlock Prompt (Phase 6 & 7) */}
-        {!isPro && (
+        {!hasFoundation && (
           <div className="p-4 sm:p-5 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-purple-50/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -366,17 +368,17 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
                   Unlock Full Institutional Gap Analysis &amp; Underwriting Ratios
                 </span>
                 <span className="text-xs text-slate-600 block">
-                  Free accounts preview 2 foundation gaps. Upgrade to view DSCR benchmarks, complete 4-category analysis, or let our advisors resolve gaps for you.
+                  Free accounts preview 2 foundation gaps. Upgrade to view DSCR benchmarks, complete 4-category analysis, or let our advisors guide you.
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
               <Button
                 size="sm"
-                onClick={upgradeToPro}
+                onClick={handleUpgrade}
                 className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white gap-1 shadow-xs px-3"
               >
-                <span>Crediqly Pro ($39/mo)</span>
+                <span>Crediqly Foundation ($47.99/mo)</span>
                 <ArrowRight className="w-3 h-3" />
               </Button>
               <Link href="/advisory">
@@ -385,7 +387,7 @@ export const FundingGapAnalysis: React.FC<FundingGapAnalysisProps> = ({
                   variant="outline"
                   className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold px-3"
                 >
-                  <span>Done-For-You Advisory</span>
+                  <span>Guided Advisory</span>
                 </Button>
               </Link>
             </div>

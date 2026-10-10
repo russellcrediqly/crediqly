@@ -712,7 +712,7 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                     {!isPro && !isAdvisory && activeMilestone.category !== 'foundation' ? (
                       <>
                         <Lock className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-                        <span>Unlock Milestone (Pro)</span>
+                        <span>Unlock Milestone (Foundation)</span>
                       </>
                     ) : (
                       <>
@@ -1071,7 +1071,7 @@ export const GuidedJourneyCard: React.FC<GuidedJourneyCardProps> = ({
                                   {!isPro && !isAdvisory && def.category !== 'foundation' ? (
                                     <>
                                       <Lock className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                                      <span>Unlock Pro</span>
+                                      <span>Unlock Foundation</span>
                                     </>
                                   ) : (
                                     <>

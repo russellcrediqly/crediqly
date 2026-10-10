@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { Lock, Sparkles, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { useSubscription } from '@/context/SubscriptionContext';
 
 interface ProGateProps {
@@ -22,13 +21,15 @@ export const ProGate: React.FC<ProGateProps> = ({
   children,
   previewContent,
   featureName = 'Premium Commercial Tools',
-  description = 'Upgrade to Crediqly Pro to unlock this feature, full vendor net-30 accounts, and personalized funding recommendations.',
+  description = 'Upgrade to Foundation to unlock this feature, full vendor net-30 accounts, and personalized funding recommendations.',
   bullets,
   compact = false,
   blurPreview = false,
-  ctaText = 'Upgrade to Pro — $39/mo',
+  ctaText = 'Upgrade to Foundation — $47.99/mo',
 }) => {
-  const { isPro, loading, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, loading, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasAccess = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
 
   if (loading) {
     return (
@@ -38,7 +39,7 @@ export const ProGate: React.FC<ProGateProps> = ({
     );
   }
 
-  if (isPro) {
+  if (hasAccess) {
     return <>{children}</>;
   }
 
@@ -51,12 +52,12 @@ export const ProGate: React.FC<ProGateProps> = ({
           </div>
           <div className="truncate">
             <span className="text-xs font-bold text-slate-900 block truncate">{featureName}</span>
-            <span className="text-[11px] text-slate-500 block truncate">Available on Crediqly Pro ($39/mo)</span>
+            <span className="text-[11px] text-slate-500 block truncate">Available on Foundation ($47.99/mo)</span>
           </div>
         </div>
         <Button
           size="sm"
-          onClick={upgradeToPro}
+          onClick={handleUpgrade}
           className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shrink-0 gap-1 shadow-xs"
         >
           <span>Upgrade</span>
@@ -83,7 +84,7 @@ export const ProGate: React.FC<ProGateProps> = ({
           </div>
           <div className="space-y-1 max-w-md">
             <h4 className="text-base font-bold text-slate-900">
-              Unlock with Crediqly Pro
+              Unlock with Foundation
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
               {description}
@@ -93,7 +94,7 @@ export const ProGate: React.FC<ProGateProps> = ({
             <Button
               variant="primary"
               size="sm"
-              onClick={upgradeToPro}
+              onClick={handleUpgrade}
               className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-sm"
             >
               <span>{ctaText}</span>
@@ -121,7 +122,7 @@ export const ProGate: React.FC<ProGateProps> = ({
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-brand-50 border border-brand-200 text-brand-800 text-[11px] font-bold tracking-wide uppercase">
             <Sparkles className="w-3 h-3 text-brand-600" />
-            <span>Crediqly Pro Feature</span>
+            <span>Foundation Feature</span>
           </div>
           <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
             Unlock {featureName}
@@ -146,10 +147,10 @@ export const ProGate: React.FC<ProGateProps> = ({
           <Button
             variant="primary"
             size="md"
-            onClick={upgradeToPro}
+            onClick={handleUpgrade}
             className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-2 shadow-sm"
           >
-            <span>Upgrade to Pro — $39/mo</span>
+            <span>Upgrade to Foundation — $47.99/mo</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
 
@@ -172,4 +173,3 @@ export const ProGate: React.FC<ProGateProps> = ({
     </div>
   );
 };
-

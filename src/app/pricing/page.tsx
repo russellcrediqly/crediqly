@@ -31,8 +31,23 @@ import { CrediqlyLogo } from '@/components/common/CrediqlyLogo';
 
 export default function PricingPage() {
   const { user } = useAuth();
-  const { isPro, isAdvisory, upgradeToPro, upgradeToAdvisory, openCustomerPortal } = useSubscription();
+  const {
+    isFoundation,
+    isGuided,
+    isPro,
+    isAdvisory,
+    upgradeToFoundation,
+    upgradeToGuided,
+    upgradeToGuidedOneTime,
+    requestIntensive,
+    openCustomerPortal,
+  } = useSubscription();
   const [canceledNotice, setCanceledNotice] = useState(false);
+  const [guidedBilling, setGuidedBilling] = useState<'monthly' | 'one_time'>('monthly');
+
+  // Active status checks (supporting backward compatibility)
+  const hasFoundation = isFoundation || isPro;
+  const hasGuided = isGuided || isAdvisory;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -47,71 +62,71 @@ export default function PricingPage() {
     {
       feature: '21-Point Business Profile Compliance Audit',
       free: true,
-      pro: true,
-      advisory: true,
+      foundation: true,
+      guided: true,
       category: 'Foundation',
     },
     {
       feature: 'Funding Readiness Score & Factor Analysis',
       free: 'Basic (3 Factors)',
-      pro: 'Full (6 Factors + Gaps)',
-      advisory: 'Full + Advisor Review',
+      foundation: 'Full (6 Factors + Gaps)',
+      guided: 'Full + Advisor Review',
       category: 'Foundation',
     },
     {
       feature: 'Interactive Business Credit Roadmap',
       free: 'Tier 1 Foundational Only',
-      pro: 'Complete 4-Tier Interactive',
-      advisory: 'Complete 4-Tier + Custom Plan',
+      foundation: 'Complete 4-Tier Interactive',
+      guided: 'Complete 4-Tier + Custom Plan',
       category: 'Roadmap & Credit',
     },
     {
       feature: 'Vendor Tradelines & Net-30 Catalogs',
       free: 'Starter (3 Vendors)',
-      pro: 'Full Catalog (Tiers 1, 2, 3)',
-      advisory: 'Full Catalog + Tailored Recommendations',
+      foundation: 'Full Catalog (Tiers 1, 2, 3)',
+      guided: 'Full Catalog + Tailored Recommendations',
       category: 'Roadmap & Credit',
     },
     {
       feature: 'Commercial Banks Directory & Criteria',
       free: false,
-      pro: true,
-      advisory: true,
+      foundation: true,
+      guided: true,
       category: 'Roadmap & Credit',
     },
     {
       feature: 'Personalized Funding Matches Engine',
       free: 'Basic Category Previews',
-      pro: 'Full Opportunity Matches',
-      advisory: 'Full Matches + Application Prep',
+      foundation: 'Full Opportunity Matches',
+      guided: 'Full Matches + Application Prep',
       category: 'Funding Intelligence',
     },
     {
       feature: 'Funding Application Tracker',
       free: true,
-      pro: true,
-      advisory: true,
+      foundation: true,
+      guided: true,
       category: 'Funding Intelligence',
     },
     {
       feature: 'Crediqly AI Mentor Access',
       free: false,
-      pro: true,
-      advisory: true,
+      foundation: true,
+      guided: true,
       category: 'Guidance & Support',
     },
     {
-      feature: '1-on-1 Milestone Strategy Reviews',
+      feature: '1-on-1 Monthly Strategy Meeting',
       free: false,
-      pro: false,
-      advisory: true,
+      foundation: false,
+      guided: true,
       category: 'Guidance & Support',
     },
     {
-      feature: 'Concierge Application Document Preparation',
+      feature: 'Priority Support & Guided Strategy Review',
       free: false,
-      pro: false,
-      advisory: true,
+      foundation: false,
+      guided: true,
       category: 'Guidance & Support',
     },
   ];
@@ -174,47 +189,31 @@ export default function PricingPage() {
       name: 'Free',
       price: '$0',
       cadence: 'forever',
-      description: '21-Point compliance audit & baseline readiness scorecard',
+      subtext: 'No credit card required',
+      description: 'Basic business profile, baseline readiness assessment, and personalized roadmap preview',
       tag: 'Starter',
       badgeClass: 'bg-white/10 text-slate-200 border-white/20',
       highlight: false,
     },
     {
-      name: 'Pro',
-      price: '$39',
+      name: 'Foundation',
+      price: '$47.99',
       cadence: '/mo',
-      description: 'Complete 4-tier interactive roadmap, tradelines & AI mentor',
-      tag: 'Most Popular',
-      badgeClass: 'bg-brand-500 text-white border-brand-400',
-      highlight: true,
-    },
-    {
-      name: 'Guided',
-      price: '$99',
-      cadence: '/mo',
-      description: 'Priority milestones & structured credit-building acceleration',
-      tag: 'Guided',
+      subtext: 'Recurring monthly subscription',
+      description: 'Build independently: full readiness assessment, complete 4-tier roadmap, tradelines & AI mentor',
+      tag: 'Self-Directed',
       badgeClass: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       highlight: false,
     },
     {
-      name: 'Advisory',
-      price: '$149',
+      name: 'Guided',
+      price: '$147.99',
       cadence: '/mo',
-      subtext: '+ setup fee',
-      description: 'Dedicated 1-on-1 strategy call & custom readiness preparation',
-      tag: '1-on-1 Advisory',
-      badgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
-      highlight: false,
-    },
-    {
-      name: 'Concierge',
-      price: '$299',
-      cadence: '/mo',
-      description: 'White-glove application document prep & continuous liaison',
-      tag: 'VIP Concierge',
-      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
-      highlight: false,
+      subtext: 'Or $997 one-time for 12 months',
+      description: 'Expert guidance: personal monthly strategy meeting, application sequencing & priority support',
+      tag: 'Most Popular',
+      badgeClass: 'bg-brand-500 text-white border-brand-400',
+      highlight: true,
     },
   ];
 
@@ -287,7 +286,7 @@ export default function PricingPage() {
             Choose the level of guidance your business needs.
           </h1>
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            Start free with foundational compliance audits, build your commercial credit profile with DIY Pro, or get dedicated 1-on-1 advisory support.
+            Start free with foundational compliance audits, build your commercial credit profile with DIY Foundation, or get dedicated expert Guided support.
           </p>
 
           {/* Trust Highlights Strip */}
@@ -311,7 +310,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* 3 Choices Grid: Free, Pro, Premium Advisory */}
+        {/* 3 Choices Grid: Free, Foundation, Guided */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
           {/* 1. FREE PLAN */}
           <Card className="border-slate-200 bg-white shadow-xs rounded-3xl flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -319,44 +318,44 @@ export default function PricingPage() {
               <div className="space-y-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-slate-900">Free Starter</h3>
+                    <h3 className="text-xl font-black text-slate-900">Free</h3>
                     <Badge variant="neutral" className="text-xs uppercase font-extrabold px-2.5 py-0.5">
-                      Starter
+                      Discovery
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-bold">
-                    Build your compliance foundation
+                    Explore Crediqly and discover your readiness
                   </p>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Audit your commercial entity standing and discover your core readiness areas.
+                    Audit your commercial entity standing and discover your baseline funding potential.
                   </p>
                 </div>
 
                 <div className="flex items-baseline gap-1 pt-2">
                   <span className="text-4xl font-black text-slate-900">$0</span>
-                  <span className="text-xs font-bold text-slate-400">/ month forever</span>
+                  <span className="text-xs font-bold text-slate-400">/ forever</span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-600">
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>21-Point Compliance Audit</strong> (EIN, SOS, banking check)</span>
+                    <span><strong>21-Point Business Profile Audit</strong> (EIN, SOS, status)</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Basic Readiness Scorecard</strong> (Profile &amp; entity age)</span>
+                    <span><strong>Baseline Readiness Assessment</strong> (0–100 score preview)</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Tier 1 Milestone Tasks</strong> to establish commercial presence</span>
+                    <span><strong>Business Credit Roadmap Preview</strong> (Stage 1 tasks)</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Funding Application Tracker</strong> (log provider submissions)</span>
+                    <span><strong>Funding Readiness Insights</strong> (pre-qualification preview)</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Zero credit card required to start</span>
+                    <span>No credit card required to start</span>
                   </div>
                 </div>
               </div>
@@ -368,7 +367,7 @@ export default function PricingPage() {
                       variant="outline"
                       className="w-full text-xs font-bold text-slate-800 hover:text-slate-900 hover:bg-slate-50 border-slate-300"
                     >
-                      {isAdvisory ? 'Included in Advisory' : isPro ? 'Included in Pro' : 'Current Active Plan'}
+                      {hasGuided ? 'Included in Guided' : hasFoundation ? 'Included in Foundation' : 'Current Active Plan'}
                     </Button>
                   </Link>
                 ) : (
@@ -377,7 +376,7 @@ export default function PricingPage() {
                       variant="outline"
                       className="w-full text-xs font-bold text-slate-800 hover:text-slate-900 hover:bg-slate-50 border-slate-300"
                     >
-                      Get Started Free
+                      Start Free Journey
                     </Button>
                   </Link>
                 )}
@@ -385,31 +384,33 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          {/* 2. PRO PLAN ($39/mo) — RECOMMENDED / HIGHLIGHTED */}
-          <Card className="border-2 border-brand-500 bg-white shadow-xl rounded-3xl relative flex flex-col justify-between overflow-hidden ring-4 ring-brand-500/15 transform lg:-translate-y-2 transition-transform">
-            <div className="bg-gradient-to-r from-brand-600 to-indigo-600 text-white text-center py-2 text-xs font-black uppercase tracking-widest shadow-xs">
-              ⚡ Most Popular — Recommended
-            </div>
+          {/* 2. FOUNDATION PLAN ($47.99/mo) */}
+          <Card className="border-slate-200 bg-white shadow-md rounded-3xl flex flex-col justify-between hover:shadow-lg transition-shadow">
             <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-slate-900">Crediqly Pro</h3>
+                    <h3 className="text-xl font-black text-slate-900">Foundation</h3>
                     <Badge variant="info" className="text-xs uppercase font-extrabold px-2.5 py-0.5">
                       DIY Roadmap
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-brand-700 leading-relaxed font-bold">
-                    Complete DIY Roadmap &amp; Tradeline Engine
+                    Build it yourself. Manage your funding-readiness journey independently.
                   </p>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Stop guessing what to do next. Unlock your complete 4-tier interactive roadmap and verified tradeline catalog.
+                    Follow an actionable step-by-step roadmap, track genuine progress, and access relevant financial products.
                   </p>
                 </div>
 
-                <div className="flex items-baseline gap-1 pt-2">
-                  <span className="text-4xl font-black text-slate-900">$39</span>
-                  <span className="text-xs font-bold text-slate-400">/ month</span>
+                <div className="space-y-0.5 pt-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-4xl font-black text-slate-900">$47.99</span>
+                    <span className="text-xs font-bold text-slate-400">/ month</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Recurring monthly subscription · Cancel anytime
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-600">
@@ -419,157 +420,292 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Complete 4-Tier Interactive Roadmap</strong> with all milestone checklists</span>
+                    <span><strong>Full Funding-Readiness Assessment</strong> &amp; genuine progress tracking</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Full Tradeline Catalog</strong>: Net-30 vendor accounts &amp; Tier 2/3 cards</span>
+                    <span><strong>Personalized Roadmap</strong> with actionable milestones &amp; next steps</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Commercial Banks Directory</strong> with criteria &amp; fee comparisons</span>
+                    <span><strong>Relevant Tradeline &amp; Financial-Product</strong> recommendations (Tiers 1, 2 &amp; 3)</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Crediqly AI Mentor</strong>: Data-aware roadmap &amp; funding explanations</span>
+                    <span><strong>Funding-Readiness Score</strong> &amp; factor gap breakdowns</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong>Personalized Funding Matches</strong> tailored to real data</span>
+                    <span><strong>Core Self-Service Platform Tools</strong> &amp; AI Mentor guidance</span>
                   </div>
                 </div>
               </div>
 
               <div className="pt-6 space-y-2">
-                {isAdvisory ? (
+                {hasGuided ? (
                   <Button
                     variant="outline"
                     onClick={openCustomerPortal}
                     className="w-full text-xs font-bold border-brand-300 text-brand-800 bg-brand-50 hover:bg-brand-100"
                   >
-                    Included in Advisory
+                    Included in Guided
                   </Button>
-                ) : isPro ? (
+                ) : hasFoundation ? (
                   <Button
                     variant="outline"
                     onClick={openCustomerPortal}
                     className="w-full text-xs font-bold border-brand-300 text-brand-800 bg-brand-50 hover:bg-brand-100"
                   >
-                    Manage Subscription
+                    Manage Foundation Plan
                   </Button>
                 ) : user ? (
                   <Button
                     variant="primary"
-                    onClick={upgradeToPro}
+                    onClick={upgradeToFoundation}
                     className="w-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
                   >
-                    <span>Upgrade to Pro — $39/mo</span>
+                    <span>Upgrade to Foundation — $47.99/mo</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 ) : (
-                  <Link href="/signup" className="block w-full">
+                  <Link href="/signup?plan=foundation" className="block w-full">
                     <Button
                       variant="primary"
                       className="w-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
                     >
-                      <span>Start Pro — $39/mo</span>
+                      <span>Start Foundation</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 )}
                 <span className="text-[11px] text-slate-500 text-center block">
-                  Billed monthly. Cancel anytime in 1-click customer portal.
+                  Billed monthly. Cancel anytime in 1 click.
                 </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* 3. PREMIUM ADVISORY ($499 setup + $149/mo) */}
-          <Card className="border-slate-800 bg-gradient-to-b from-slate-900 via-slate-950 to-indigo-950 text-white shadow-xl rounded-3xl flex flex-col justify-between overflow-hidden">
-            <div className="bg-indigo-900/60 text-indigo-200 text-center py-2 text-xs font-black uppercase tracking-widest border-b border-white/10">
-              VIP Concierge Guidance
+          {/* 3. GUIDED PLAN — MOST POPULAR (Monthly $147.99/mo or 12-Month $997 One-Time) */}
+          <Card className="border-2 border-brand-500 bg-white shadow-xl rounded-3xl relative flex flex-col justify-between overflow-hidden ring-4 ring-brand-500/15 transform lg:-translate-y-2 transition-transform">
+            <div className="bg-gradient-to-r from-brand-600 to-indigo-600 text-white text-center py-2 text-xs font-black uppercase tracking-widest shadow-xs">
+              ⚡ Most Popular — Expert Guidance
             </div>
             <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-white">Premium Advisory</h3>
-                    <Badge variant="info" className="text-xs uppercase font-extrabold bg-indigo-500/30 text-indigo-300 border-indigo-400/40">
-                      1-on-1 Guidance
+                    <h3 className="text-xl font-black text-slate-900">Guided</h3>
+                    <Badge variant="info" className="text-xs uppercase font-extrabold px-2.5 py-0.5">
+                      Expert Guided
                     </Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-indigo-200 leading-relaxed font-bold">
-                    Hands-on credit builder advisory
+                  <p className="text-xs sm:text-sm text-brand-700 leading-relaxed font-bold">
+                    Personalized guidance alongside the complete platform.
                   </p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Personalized strategy sessions and dedicated guidance for growing businesses.
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Designed for founders who want strategic consultations, application sequencing, and priority expert support.
                   </p>
                 </div>
 
-                <div className="flex items-baseline gap-1 pt-2">
-                  <span className="text-4xl font-black text-white">$499</span>
-                  <span className="text-xs font-bold text-slate-300">setup + $149/mo</span>
+                {/* Billing Selector for Option A (Monthly) vs Option B (12-Month Program) */}
+                <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold w-full">
+                  <button
+                    type="button"
+                    onClick={() => setGuidedBilling('monthly')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg transition-all text-center ${
+                      guidedBilling === 'monthly'
+                        ? 'bg-white text-brand-900 shadow-xs font-black'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Monthly ($147.99/mo)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGuidedBilling('one_time')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg transition-all text-center ${
+                      guidedBilling === 'one_time'
+                        ? 'bg-white text-indigo-900 shadow-xs font-black'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    12-Month ($997)
+                  </button>
                 </div>
 
-                <div className="pt-4 border-t border-white/10 space-y-3 text-xs text-slate-300">
+                <div className="space-y-0.5 pt-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-4xl font-black text-slate-900">
+                      {guidedBilling === 'monthly' ? '$147.99' : '$997'}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      {guidedBilling === 'monthly' ? '/ month' : 'one-time (12 months)'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {guidedBilling === 'monthly'
+                      ? 'Recurring monthly subscription · Cancel anytime'
+                      : 'Defined 12-month Guided program · No automatic renewal'}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-600">
                   <div className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Everything in Pro included</strong> with premium priority</span>
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>Everything in Foundation included</strong></span>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>1-on-1 Onboarding Strategy Call</strong> with dedicated specialist</span>
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>Deeper Business Fundability Analysis</strong> &amp; underwriting audit</span>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Custom funding-readiness preparation</strong> &amp; application audit</span>
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>1 Scheduled Strategy Consultation per month</strong> with credit specialist</span>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span><strong>Ongoing milestone progress reviews</strong> &amp; next-step identification</span>
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>Funding Preparation &amp; Application-Sequencing</strong> guidance</span>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <span>Responsible support: realistic preparation with zero false approval promises</span>
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>Personalized Progress Reviews</strong> &amp; document preparation</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span><strong>Clearly Defined Priority Support</strong> with expedited turnaround</span>
                   </div>
                 </div>
               </div>
 
               <div className="pt-6 space-y-2">
-                {isAdvisory ? (
+                {hasGuided ? (
                   <Button
-                    variant="outline-white"
+                    variant="outline"
                     onClick={openCustomerPortal}
-                    className="w-full text-xs font-bold border-indigo-400/50 text-white bg-indigo-950/80 hover:bg-indigo-900"
+                    className="w-full text-xs font-bold border-brand-300 text-brand-800 bg-brand-50 hover:bg-brand-100"
                   >
-                    Active Advisory Retainer
+                    Manage Guided Plan
                   </Button>
                 ) : user ? (
                   <Button
                     variant="primary"
-                    onClick={upgradeToAdvisory}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
+                    onClick={() => upgradeToGuided(guidedBilling)}
+                    className="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
                   >
-                    <span>Join Premium Advisory — $499 + $149/mo</span>
+                    <span>
+                      {guidedBilling === 'monthly'
+                        ? 'Upgrade to Guided — $147.99/mo'
+                        : 'Enroll in Guided 12-Month — $997'}
+                    </span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 ) : (
-                  <Link href="/signup" className="block w-full">
+                  <Link href={`/signup?plan=guided&billing=${guidedBilling}`} className="block w-full">
                     <Button
                       variant="primary"
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
+                      className="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-black shadow-md gap-1.5 py-3"
                     >
-                      <span>Join Premium Advisory — $499 + $149/mo</span>
+                      <span>
+                        {guidedBilling === 'monthly'
+                          ? 'Get Guided — $147.99/mo'
+                          : 'Get Guided 12-Month — $997'}
+                      </span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 )}
-                <span className="text-[11px] text-slate-400 text-center block">
-                  Billed monthly + setup fee. Cancel anytime in customer portal.
+                <span className="text-[11px] text-slate-500 text-center block">
+                  {guidedBilling === 'monthly'
+                    ? 'Billed monthly. Cancel anytime in 1 click.'
+                    : '12-month program. No automatic renewal. Access reverts to Free after 12 months.'}
                 </span>
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* GUIDED OPTION B: 12-MONTH PROGRAM HIGHLIGHT (NOT a fourth package) */}
+        <div className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white p-7 sm:p-10 shadow-xl space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-white/10 pb-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Guided Program · Option B (One-Time Payment)</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Guided 12-Month Program — $997 One Time
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Covers a defined 12-month Guided program for business owners who prefer an upfront single payment instead of monthly billing. Includes the same complete Guided features and support entitlements: 1 scheduled personal strategy meeting per month, deeper fundability analysis, sequencing guidance, and priority support for 12 months. No automatic renewal.
+              </p>
+            </div>
+
+            <div className="text-left lg:text-right shrink-0 space-y-1">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block">Guided 12-Month Option</span>
+              <div className="flex items-baseline gap-1 lg:justify-end">
+                <span className="text-4xl font-black text-white">$997</span>
+                <span className="text-xs font-bold text-slate-400">one-time</span>
+              </div>
+              <span className="text-[11px] text-indigo-300 font-semibold block">Covers 12 months · No automatic renewal</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-300">
+            <div className="space-y-1.5 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-400" />
+                <span>Full Underwriting &amp; Fundability Analysis</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                Deep analysis of your commercial bureau filings, bank statements, entity standing, and fundability gaps.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <Target className="w-4 h-4 text-teal-400" />
+                <span>Application-Sequencing Guidance</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                Expert roadmap and sequencing to avoid unnecessary inquiries and optimize application timing across lenders.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <Headphones className="w-4 h-4 text-brand-400" />
+                <span>Monthly Consultations &amp; Priority Support</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                1 scheduled strategy meeting per month (up to 12 sessions) and dedicated priority response from certified specialists.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span className="text-xs text-slate-400">
+              ⚡ Covers a defined 12-month Guided program. Does not auto-renew. Access reverts to Free after 12 months unless renewed. We never guarantee loan approval.
+            </span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Link href="/advisory" className="w-full sm:w-auto">
+                <Button
+                  variant="outline-white"
+                  size="md"
+                  className="w-full sm:w-auto text-xs font-bold border-white/20 text-white hover:bg-white/10"
+                >
+                  Learn About Guided Program
+                </Button>
+              </Link>
+              <Button
+                size="md"
+                onClick={() => upgradeToGuided('one_time')}
+                className="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold gap-2 shadow-lg"
+              >
+                <span>Enroll in 12-Month Guided ($997)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* COMPETITOR VALUE COMPARISON */}
@@ -693,10 +829,10 @@ export default function PricingPage() {
                     <td className="p-4 sm:p-5 text-center bg-brand-50/80 border-x-2 border-brand-500/40">
                       <div className="inline-flex flex-col items-center">
                         <span className="text-lg sm:text-xl font-black text-brand-700 tracking-tight">
-                          From $39/mo
+                          From $47.99/mo
                         </span>
                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full mt-1 border border-emerald-200">
-                          $0 Free Starter Available
+                          $0 Free Available
                         </span>
                       </div>
                     </td>
@@ -739,11 +875,11 @@ export default function PricingPage() {
                   Our Plans
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-2 max-w-5xl mx-auto">
                 {ourPlanSpectrum.map((plan, idx) => (
                   <div
                     key={idx}
-                    className={`rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all relative ${
+                    className={`rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all relative ${
                       plan.highlight
                         ? 'bg-gradient-to-b from-brand-600 via-brand-700 to-indigo-700 text-white border-2 border-brand-300 shadow-xl shadow-brand-500/20 ring-2 ring-brand-400/30 transform lg:-translate-y-1'
                         : 'bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10'
@@ -782,43 +918,57 @@ export default function PricingPage() {
                       {plan.name === 'Free' ? (
                         user ? (
                           <Link href="/dashboard" className="block w-full text-center py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all">
-                            Current Active Plan
+                            {hasGuided || hasFoundation ? 'Included' : 'Current Plan'}
                           </Link>
                         ) : (
                           <Link href="/signup" className="block w-full text-center py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all">
                             Start Free →
                           </Link>
                         )
-                      ) : plan.name === 'Pro' ? (
+                      ) : plan.name === 'Foundation' ? (
                         user ? (
-                          <button
-                            onClick={upgradeToPro}
-                            className="block w-full text-center py-2 px-3 rounded-xl bg-white text-brand-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all"
-                          >
-                            Upgrade Pro →
-                          </button>
+                          hasFoundation ? (
+                            <button
+                              onClick={openCustomerPortal}
+                              className="block w-full text-center py-2 px-3 rounded-xl bg-white text-brand-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all"
+                            >
+                              Manage Plan
+                            </button>
+                          ) : (
+                            <button
+                              onClick={upgradeToFoundation}
+                              className="block w-full text-center py-2 px-3 rounded-xl bg-white text-brand-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all"
+                            >
+                              Upgrade Foundation →
+                            </button>
+                          )
                         ) : (
-                          <Link href="/signup" className="block w-full text-center py-2 px-3 rounded-xl bg-white text-brand-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all">
-                            Start Pro →
-                          </Link>
-                        )
-                      ) : plan.name === 'Advisory' ? (
-                        user ? (
-                          <button
-                            onClick={upgradeToAdvisory}
-                            className="block w-full text-center py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black shadow-sm transition-all"
-                          >
-                            Join Advisory →
-                          </button>
-                        ) : (
-                          <Link href="/signup" className="block w-full text-center py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black shadow-sm transition-all">
-                            Join Advisory →
+                          <Link href="/signup?plan=foundation" className="block w-full text-center py-2 px-3 rounded-xl bg-white text-brand-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all">
+                            Start Foundation →
                           </Link>
                         )
                       ) : (
-                        <div className="py-2 px-3 rounded-xl bg-white/5 text-center text-xs font-bold text-slate-300 border border-white/10">
-                          {plan.name} Pathway
-                        </div>
+                        user ? (
+                          hasGuided ? (
+                            <button
+                              onClick={openCustomerPortal}
+                              className="block w-full text-center py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black shadow-sm transition-all"
+                            >
+                              Manage Plan
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => upgradeToGuided('monthly')}
+                              className="block w-full text-center py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black shadow-sm transition-all"
+                            >
+                              Join Guided →
+                            </button>
+                          )
+                        ) : (
+                          <Link href="/signup?plan=guided" className="block w-full text-center py-2 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black shadow-sm transition-all">
+                            Join Guided →
+                          </Link>
+                        )
                       )}
                     </div>
                   </div>
@@ -855,13 +1005,13 @@ export default function PricingPage() {
                       Platform Capability
                     </th>
                     <th className="p-4 sm:p-5 text-xs font-black uppercase tracking-wider text-slate-700 text-center w-1/5">
-                      Free Starter
+                      Free ($0)
                     </th>
                     <th className="p-4 sm:p-5 text-xs font-black uppercase tracking-wider text-brand-700 text-center w-1/5 bg-brand-50/40">
-                      Pro ($39/mo)
+                      Foundation ($47.99/mo)
                     </th>
                     <th className="p-4 sm:p-5 text-xs font-black uppercase tracking-wider text-indigo-900 text-center w-1/5">
-                      Advisory ($499+$149)
+                      Guided ($147.99/mo)
                     </th>
                   </tr>
                 </thead>
@@ -883,25 +1033,25 @@ export default function PricingPage() {
                         )}
                       </td>
                       <td className="p-4 sm:p-5 text-center font-bold text-brand-900 bg-brand-50/20">
-                        {typeof row.pro === 'boolean' ? (
-                          row.pro ? (
+                        {typeof row.foundation === 'boolean' ? (
+                          row.foundation ? (
                             <Check className="w-4 h-4 text-brand-600 mx-auto" />
                           ) : (
                             <span className="text-slate-300 font-bold">—</span>
                           )
                         ) : (
-                          <span className="text-xs font-bold text-brand-800">{row.pro}</span>
+                          <span className="text-xs font-bold text-brand-800">{row.foundation}</span>
                         )}
                       </td>
                       <td className="p-4 sm:p-5 text-center font-bold text-indigo-950">
-                        {typeof row.advisory === 'boolean' ? (
-                          row.advisory ? (
+                        {typeof row.guided === 'boolean' ? (
+                          row.guided ? (
                             <Check className="w-4 h-4 text-indigo-600 mx-auto" />
                           ) : (
                             <span className="text-slate-300 font-bold">—</span>
                           )
                         ) : (
-                          <span className="text-xs font-bold text-indigo-900">{row.advisory}</span>
+                          <span className="text-xs font-bold text-indigo-900">{row.guided}</span>
                         )}
                       </td>
                     </tr>

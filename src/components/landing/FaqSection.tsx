@@ -28,7 +28,7 @@ const faqs = [
   {
     question: 'What is the difference between Foundation and Guided?',
     answer:
-      'Foundation ($39.99/mo) gives you full platform access: all 4 roadmap stages, complete tradeline directories, bank underwriting guidelines, AI Mentor, and 17+ lender marketplace. Guided ($149.99/mo) adds a monthly personal strategy session with an expert, priority support, and guided strategy review to keep you accountable and on track.',
+      'Foundation ($47.99/mo) gives you full platform access: all 4 roadmap stages, complete tradeline directories, bank underwriting guidelines, AI Mentor, and 17+ lender marketplace. Guided ($147.99/mo monthly, or $997 one-time for 12 months) adds a monthly personal strategy session with an expert, priority support, and application-sequencing guidance to keep you accountable and on track.',
   },
   {
     question: 'Does Crediqly guarantee loan approvals or credit score improvements?',

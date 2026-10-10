@@ -15,7 +15,10 @@ export interface BuildContextOptions {
   business: BusinessProfile | null | undefined;
   completedTasks?: string[];
   fundingProducts?: FundingProduct[];
-  subscriptionTier?: 'Free' | 'Pro' | 'Premium Advisory';
+  subscriptionTier?: 'Free' | 'Foundation' | 'Guided' | 'Intensive' | 'Pro' | 'Premium Advisory';
+  isFoundation?: boolean;
+  isPro?: boolean;
+  isGuided?: boolean;
   isAdvisory?: boolean;
   roadmap?: any;
 }
@@ -37,8 +40,8 @@ export function buildSafeCustomerAIContext(options: BuildContextOptions): SafeCu
     business,
     completedTasks = business?.completedDbTasks || [],
     fundingProducts = [],
-    subscriptionTier = options.isAdvisory ? 'Premium Advisory' : 'Free',
-    isAdvisory = subscriptionTier === 'Premium Advisory',
+    subscriptionTier = options.isGuided || options.isAdvisory ? 'Guided' : 'Free',
+    isAdvisory = Boolean(options.isGuided || options.isAdvisory || subscriptionTier === 'Guided' || subscriptionTier === 'Premium Advisory'),
     roadmap,
   } = options;
 

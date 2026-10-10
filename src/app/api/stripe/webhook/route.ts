@@ -91,17 +91,28 @@ export async function POST(req: Request) {
         const consultationId = session.metadata?.consultationId;
 
         if (userId) {
-          // Handle Funding Readiness Intensive ($999 One-Time)
-          if (paymentType === 'intensive') {
+          // Handle Guided 12-Month Program ($997 One-Time)
+          if (paymentType === 'intensive' || paymentType === 'guided_onetime') {
+            const now = new Date();
+            const oneYearLater = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
             await recordPayment({
               userId,
               stripeCustomerId: session.customer as string,
               stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: session.amount_total || 99900,
+              amount: session.amount_total || 99700,
               currency: session.currency || 'usd',
-              paymentType: 'intensive',
+              paymentType: 'guided_onetime',
               status: 'paid',
+            });
+            await upsertSubscription({
+              userId,
+              plan: 'guided',
+              status: 'active',
+              stripeCustomerId: session.customer as string,
+              currentPeriodStart: now.toISOString(),
+              currentPeriodEnd: oneYearLater.toISOString(),
+              cancelAtPeriodEnd: true,
             });
             break;
           }
@@ -114,7 +125,7 @@ export async function POST(req: Request) {
               stripeCustomerId: session.customer as string,
               stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: session.amount_total || 14999,
+              amount: session.amount_total || 14799,
               currency: session.currency || 'usd',
               paymentType: 'guided_subscription',
               status: 'paid',
@@ -136,7 +147,7 @@ export async function POST(req: Request) {
               stripeCustomerId: session.customer as string,
               stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: (session.payment_intent as string) || undefined,
-              amount: session.amount_total || (isConsultation ? 9900 : 3999),
+              amount: session.amount_total || (isConsultation ? 9900 : 4799),
               currency: session.currency || 'usd',
               paymentType: isConsultation ? 'consultation' : 'foundation_subscription',
               status: 'paid',
@@ -254,21 +265,21 @@ export async function POST(req: Request) {
         }
 
         if (userId) {
-          const isAdvisory = planMeta === 'advisory' || planMeta === 'premium_advisory';
+          const isGuided = planMeta === 'guided' || planMeta === 'advisory' || planMeta === 'premium_advisory';
           await recordPayment({
             userId,
             stripeCustomerId: customerId,
             stripeCheckoutSessionId: `inv_${invoice.id}`,
             stripePaymentIntentId: (invoice.payment_intent as string) || undefined,
-            amount: invoice.amount_paid || (isAdvisory ? 14900 : 3900),
+            amount: invoice.amount_paid || (isGuided ? 14799 : 4799),
             currency: invoice.currency || 'usd',
-            paymentType: isAdvisory ? 'advisory_subscription' : 'subscription',
+            paymentType: isGuided ? 'guided_subscription' : 'foundation_subscription',
             status: 'paid',
           });
 
           await upsertSubscription({
             userId,
-            plan: isAdvisory ? 'premium_advisory' : 'pro',
+            plan: isGuided ? 'guided' : 'foundation',
             status: 'active',
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
@@ -289,9 +300,9 @@ export async function POST(req: Request) {
             userId,
             stripeCustomerId: customerId,
             stripeCheckoutSessionId: `inv_fail_${invoice.id}`,
-            amount: invoice.amount_due || 3900,
+            amount: invoice.amount_due || 4799,
             currency: invoice.currency || 'usd',
-            paymentType: 'subscription',
+            paymentType: 'foundation_subscription',
             status: 'failed',
           });
 

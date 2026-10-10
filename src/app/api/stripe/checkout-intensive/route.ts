@@ -25,19 +25,19 @@ export async function POST(req: Request) {
 
     const baseUrl = getAppBaseUrl(req);
 
-    // Build line item: $999 one-time payment (NOT a recurring subscription)
-    const lineItems: any[] = STRIPE_CONFIG.intensivePriceId
-      ? [{ price: STRIPE_CONFIG.intensivePriceId, quantity: 1 }]
+    // Build line item: $997 one-time payment for 12-month Guided Program (NOT recurring)
+    const lineItems: any[] = STRIPE_CONFIG.guidedOneTimePriceId
+      ? [{ price: STRIPE_CONFIG.guidedOneTimePriceId, quantity: 1 }]
       : [
           {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Funding Readiness Intensive',
+                name: 'Crediqly Guided — 12-Month Program',
                 description:
-                  'Comprehensive business analysis, commercial fundability review, tradeline strategy, application sequencing, personalized action plan, and 1-on-1 strategy session.',
+                  '12 months of full Guided platform access, personalized strategy consultations, funding preparation & sequencing guidance, and dedicated priority support. One-time payment, no auto-renewal.',
               },
-              unit_amount: STRIPE_CONFIG.intensivePriceCents, // 99900 cents ($999.00 one-time)
+              unit_amount: STRIPE_CONFIG.guidedOneTimePriceCents, // 99700 cents ($997.00 one-time)
             },
             quantity: 1,
           },
@@ -54,8 +54,12 @@ export async function POST(req: Request) {
       metadata: {
         userId,
         crediqly_user_id: userId,
-        paymentType: 'intensive',
-        service: 'Funding Readiness Intensive',
+        plan: 'guided',
+        crediqly_plan: 'guided',
+        paymentType: 'guided_onetime',
+        billing: 'one_time',
+        duration_months: '12',
+        service: 'Crediqly Guided 12-Month Program',
       },
       billing_address_collection: 'auto',
     });

@@ -130,7 +130,7 @@ export interface SafeCustomerAIContext {
   previousCustomerActions?: string[];
 
   // 7. SUBSCRIPTION TIER
-  subscriptionTier?: 'Free' | 'Pro' | 'Premium Advisory';
+  subscriptionTier?: 'Free' | 'Foundation' | 'Guided' | 'Intensive' | 'Pro' | 'Premium Advisory';
 
   // 8. ADVISORY CONTEXT (For Premium Advisory Members)
   advisoryContext?: {

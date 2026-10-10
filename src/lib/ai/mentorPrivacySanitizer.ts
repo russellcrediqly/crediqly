@@ -202,7 +202,7 @@ export function sanitizeCustomerContext(
       : [],
 
     // 7. Subscription Tier
-    subscriptionTier: ['Free', 'Pro', 'Premium Advisory'].includes(ctx.subscriptionTier as any)
+    subscriptionTier: ['Free', 'Foundation', 'Guided', 'Intensive', 'Pro', 'Premium Advisory'].includes(ctx.subscriptionTier as any)
       ? ctx.subscriptionTier
       : 'Free',
 

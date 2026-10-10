@@ -42,13 +42,15 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
   isPro: propIsPro,
 }) => {
   const { user } = useAuth();
-  const { isPro: contextIsPro, upgradeToPro } = useSubscription();
-  const isPro = propIsPro !== undefined ? propIsPro : contextIsPro;
+  const { isFoundation, isPro: contextIsPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || contextIsPro;
+  const isPro = propIsPro !== undefined ? propIsPro : hasFoundation;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const { strongMatch, possibleMatch, improveReadinessMatch, complianceNotice } = matches;
 
   const handleOutboundClick = (item: PersonalizedFundingTier) => {
     if (!isPro) {
-      upgradeToPro();
+      handleUpgrade();
       return;
     }
     if (item.productId) {
@@ -97,14 +99,14 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
             </span>
             <span className="hidden md:inline text-slate-300">•</span>
             <span className="hidden md:inline text-slate-500">
-              Unlock complete lender directory &amp; criteria with Pro
+              Unlock complete lender directory &amp; criteria with Foundation
             </span>
           </div>
           <Link
             href="/pricing"
             className="font-bold text-brand-700 hover:text-brand-800 inline-flex items-center gap-1 shrink-0"
           >
-            <span>Unlock All 10+ with Pro 🔒</span>
+            <span>Unlock All 10+ with Foundation 🔒</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -112,7 +114,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
         <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900 font-medium">
           <span className="flex items-center gap-2">
             <span>⭐</span>
-            <span>Pro Member: Complete commercial funding directory &amp; direct criteria unlocked.</span>
+            <span>Foundation Member: Complete commercial funding directory &amp; direct criteria unlocked.</span>
           </span>
           <Link href="/funding" className="text-emerald-700 hover:text-emerald-800 font-bold inline-flex items-center gap-1 shrink-0">
             <span>Browse Full Directory</span>
@@ -223,7 +225,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                     {!isPro ? (
                       <>
                         <Lock className="w-3.5 h-3.5" />
-                        <span>Unlock Direct Application (Pro)</span>
+                        <span>Unlock Direct Application (Foundation)</span>
                       </>
                     ) : (
                       <>
@@ -313,7 +315,7 @@ export const FundingMatchesForYouCard: React.FC<FundingMatchesForYouCardProps> =
                     {!isPro ? (
                       <>
                         <Lock className="w-3.5 h-3.5" />
-                        <span>Unlock Direct Application (Pro)</span>
+                        <span>Unlock Direct Application (Foundation)</span>
                       </>
                     ) : (
                       <>

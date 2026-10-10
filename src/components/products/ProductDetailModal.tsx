@@ -32,9 +32,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   if (!isOpen || !product) return null;
 
-  const { isPro, upgradeToPro } = useSubscription();
+  const { isFoundation, isPro, upgradeToFoundation, upgradeToPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
   const isProLocked =
-    !isPro &&
+    !hasFoundation &&
     (product.category === 'net_60' ||
       product.category === 'business_credit_cards' ||
       product.category === 'business_banking' ||
@@ -230,12 +232,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               size="md"
               onClick={() => {
                 onClose();
-                upgradeToPro();
+                handleUpgrade();
               }}
               className="gap-2 shadow-xs text-xs font-bold px-4 bg-brand-600 hover:bg-brand-500 text-white"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Unlock with Pro / Advisory ($39/mo)</span>
+              <span>Unlock with Foundation ($47.99/mo)</span>
             </Button>
           ) : (
             <a

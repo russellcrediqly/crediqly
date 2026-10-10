@@ -83,8 +83,8 @@ export default function AdminBillingPage() {
     );
   }
 
-  const proMrr = (metrics?.activeProCustomers || 0) * 39;
-  const advisoryMrr = (metrics?.activeAdvisoryCustomers || 0) * 149;
+  const proMrr = Math.round((metrics?.activeProCustomers || 0) * 47.99);
+  const advisoryMrr = Math.round((metrics?.activeAdvisoryCustomers || 0) * 147.99);
   const totalMrrVal = proMrr + advisoryMrr;
 
   const mrr = totalMrrVal.toLocaleString('en-US', {
@@ -139,7 +139,7 @@ export default function AdminBillingPage() {
             Billing & Revenue Center
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Track customer subscriptions ($39/mo Pro), Done-For-You Premium Advisory ($499 + $149/mo), and monetization telemetry.
+            Track customer subscriptions ($47.99/mo Foundation), Guided ($147.99/mo), and Guided 12-Month ($997).
           </p>
         </div>
 
@@ -187,17 +187,17 @@ export default function AdminBillingPage() {
             <div className="mt-3">
               <span className="text-2xl sm:text-3xl font-black text-white">{mrr}</span>
               <span className="text-xs text-slate-400 block mt-0.5">
-                ${proMrr} Pro + ${advisoryMrr} Advisory
+                ${proMrr} Foundation + ${advisoryMrr} Guided
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Premium Advisory Retainer */}
+        {/* Guided Retainer */}
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Advisory ($149/mo)</span>
+              <span className="text-xs font-semibold text-slate-400">Guided ($147.99/mo)</span>
               <div className="w-8 h-8 rounded-lg bg-indigo-950/60 text-indigo-400 flex items-center justify-center border border-indigo-900/60">
                 <Headphones className="w-4 h-4" />
               </div>
@@ -214,11 +214,11 @@ export default function AdminBillingPage() {
           </CardContent>
         </Card>
 
-        {/* Active Pro Subscribers */}
+        {/* Active Foundation Subscribers */}
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Pro ($39/mo)</span>
+              <span className="text-xs font-semibold text-slate-400">Foundation ($47.99/mo)</span>
               <div className="w-8 h-8 rounded-lg bg-brand-950/60 text-brand-400 flex items-center justify-center border border-brand-900/60">
                 <Sparkles className="w-4 h-4" />
               </div>
@@ -327,10 +327,26 @@ export default function AdminBillingPage() {
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-              <span className="text-slate-400 block text-[11px]">Pro Subscription Pricing</span>
+              <span className="text-slate-400 block text-[11px]">Foundation Plan Pricing</span>
               <div className="flex items-center gap-1.5 font-mono text-white">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>$39.00 / month (USD)</span>
+                <span>$47.99 / month (USD)</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Guided Plan Retainer</span>
+              <div className="flex items-center gap-1.5 font-mono text-white">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                <span>$147.99 / month (USD)</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <span className="text-slate-400 block text-[11px]">Guided 12-Month Program</span>
+              <div className="flex items-center gap-1.5 font-mono text-white">
+                <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                <span>$997.00 one-time (USD)</span>
               </div>
             </div>
 
@@ -339,22 +355,6 @@ export default function AdminBillingPage() {
               <div className="flex items-center gap-1.5 font-mono text-white">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>$99.00 / session (USD)</span>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-              <span className="text-slate-400 block text-[11px]">Advisory Setup Fee</span>
-              <div className="flex items-center gap-1.5 font-mono text-white">
-                <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                <span>$499.00 one-time (USD)</span>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-              <span className="text-slate-400 block text-[11px]">Advisory Monthly Retainer</span>
-              <div className="flex items-center gap-1.5 font-mono text-white">
-                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                <span>$149.00 / month (USD)</span>
               </div>
             </div>
           </div>
@@ -469,13 +469,13 @@ export default function AdminBillingPage() {
                           {sub.userId.substring(0, 16)}...
                         </td>
                         <td className="py-3.5 px-4 font-bold uppercase">
-                          {sub.plan === 'premium_advisory' ? (
+                          {sub.plan === 'guided' || sub.plan === 'premium_advisory' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-950 text-indigo-300 border border-indigo-700">
-                              Advisory Retainer
+                              Guided ($147.99)
                             </span>
-                          ) : sub.plan === 'pro' ? (
+                          ) : sub.plan === 'foundation' || sub.plan === 'pro' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-brand-950 text-brand-300 border border-brand-800">
-                              Pro ($39/mo)
+                              Foundation ($47.99)
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300">
@@ -562,10 +562,14 @@ export default function AdminBillingPage() {
                               ? 'bg-sky-950 text-sky-300 border border-sky-800'
                               : 'bg-brand-950 text-brand-300 border border-brand-800'
                           }`}>
-                            {pay.paymentType === 'advisory_setup'
-                              ? 'Advisory Setup ($499)'
-                              : pay.paymentType === 'advisory_subscription'
-                              ? 'Advisory Retainer ($149)'
+                            {pay.paymentType === 'intensive' || pay.paymentType === 'guided_onetime'
+                              ? 'Guided 12-Mo ($997)'
+                              : pay.paymentType === 'guided_subscription' || pay.paymentType === 'advisory_subscription'
+                              ? 'Guided Sub ($147.99)'
+                              : pay.paymentType === 'foundation_subscription' || pay.paymentType === 'subscription'
+                              ? 'Foundation Sub ($47.99)'
+                              : pay.paymentType === 'advisory_setup'
+                              ? 'Legacy Setup ($499)'
                               : pay.paymentType}
                           </span>
                         </td>

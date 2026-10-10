@@ -122,7 +122,11 @@ export default function MonthlyCheckInPage() {
   const { user } = useAuth();
   const { business, saveBusinessProfile } = useBusiness();
   const { roadmap, toggleTaskCompletion, refreshRoadmap } = useRoadmap();
-  const { isPro, upgradeToPro, upgradeToAdvisory } = useSubscription();
+  const { isFoundation, isGuided, isPro, isAdvisory, upgradeToFoundation, upgradeToPro, upgradeToGuided, upgradeToAdvisory } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const hasGuided = isGuided || isAdvisory;
+  const handleFoundationUpgrade = upgradeToFoundation || upgradeToPro;
+  const handleGuidedUpgrade = upgradeToGuided || upgradeToAdvisory;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -324,13 +328,13 @@ export default function MonthlyCheckInPage() {
           </div>
 
           {/* FREE TIER PROMOTIONAL GATE FOR MONTHLY CHECK-IN */}
-          {!isPro ? (
+          {!hasFoundation ? (
             <div className="space-y-6">
               <div className="rounded-3xl border-2 border-brand-300 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/40 p-6 sm:p-8 shadow-md">
                 <div className="max-w-2xl mx-auto text-center space-y-4">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Monthly Check-In — Premium &amp; Advisory Feature</span>
+                    <span>Monthly Check-In — Foundation &amp; Guided Feature</span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                     Calibrate Your Credit Standing Monthly
@@ -340,16 +344,16 @@ export default function MonthlyCheckInPage() {
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 text-left">
-                    {/* Crediqly Pro */}
+                    {/* Foundation */}
                     <div className="p-5 rounded-2xl bg-white border-2 border-brand-200 shadow-sm space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase text-brand-700">Self-Directed</span>
                           <span className="text-lg font-black text-slate-900">
-                            $39<span className="text-xs font-normal text-slate-500">/mo</span>
+                            $47.99<span className="text-xs font-normal text-slate-500">/mo</span>
                           </span>
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Crediqly Pro</h3>
+                        <h3 className="text-base font-extrabold text-slate-900">Foundation Plan</h3>
                         <ul className="text-xs text-slate-600 space-y-2 pt-1">
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -368,49 +372,48 @@ export default function MonthlyCheckInPage() {
                       <Button
                         variant="primary"
                         size="md"
-                        onClick={upgradeToPro}
+                        onClick={handleFoundationUpgrade}
                         className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
                       >
-                        <span>Unlock with Pro ($39/mo)</span>
+                        <span>Unlock with Foundation ($47.99/mo)</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
 
-                    {/* Premium Advisory */}
+                    {/* Guided */}
                     <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-brand-50/50 border-2 border-purple-200 shadow-sm space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-purple-700">Done-For-You</span>
+                          <span className="text-xs font-bold uppercase text-purple-700">Expert Guidance</span>
                           <span className="text-lg font-black text-slate-900">
-                            $499 <span className="text-xs font-normal text-slate-500">+ $149/mo</span>
+                            $147.99<span className="text-xs font-normal text-slate-500">/mo</span>
                           </span>
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Premium Advisory</h3>
+                        <h3 className="text-base font-extrabold text-slate-900">Guided Plan (Most Popular)</h3>
                         <ul className="text-xs text-slate-600 space-y-2 pt-1">
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                            <span>Dedicated credit strategist reviews &amp; files check-in for you</span>
+                            <span>Dedicated credit strategist reviews &amp; files check-in with you</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                            <span>Direct lender introductions &amp; personalized capital packaging</span>
+                            <span>1-on-1 Monthly Strategy Meeting for capital packaging</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                            <span>Full white-glove credit building &amp; bureau dispute support</span>
+                            <span>Priority support and custom underwriting document review</span>
                           </li>
                         </ul>
                       </div>
-                      <Link href="/advisory">
-                        <Button
-                          variant="primary"
-                          size="md"
-                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
-                        >
-                          <span>Explore Premium Advisory</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={() => handleGuidedUpgrade('monthly')}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 mt-2 gap-1.5 shadow-xs"
+                      >
+                        <span>Upgrade to Guided ($147.99/mo)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>

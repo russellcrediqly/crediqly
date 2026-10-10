@@ -397,7 +397,7 @@ export default function AdminStripeSettingsPage() {
               : 'INCOMPLETE'}
           </div>
           <p className="text-[11px] text-slate-400">
-            Pro ($39) • Advisory Setup ($499) • Retainer ($149)
+            Foundation ($47.99) • Guided ($147.99) • Guided 12-Month ($997)
           </p>
         </Card>
 
@@ -640,10 +640,10 @@ export default function AdminStripeSettingsPage() {
                           : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.foundation?.valid || data?.prices.pro.valid ? 'Active ✓' : 'Dynamic $39.99'}
+                      {data?.prices.foundation?.valid || data?.prices.pro.valid ? 'Active ✓' : 'Dynamic $47.99'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-400 block">$39.99/mo ($49.99 reg)</span>
+                  <span className="text-[10px] font-bold text-emerald-400 block">$47.99/mo recurring</span>
                   <input
                     type="text"
                     placeholder="price_..."
@@ -657,7 +657,7 @@ export default function AdminStripeSettingsPage() {
                 {/* 2. Guided Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-purple-300">Guided Plan (Most Popular)</label>
+                    <label className="text-xs font-semibold text-purple-300">Guided Plan (Monthly)</label>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                         data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid
@@ -665,10 +665,10 @@ export default function AdminStripeSettingsPage() {
                           : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'Active ✓' : 'Dynamic $149.99'}
+                      {data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'Active ✓' : 'Dynamic $147.99'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-400 block">$149.99/mo ($199.99 reg)</span>
+                  <span className="text-[10px] font-bold text-purple-400 block">$147.99/mo recurring</span>
                   <input
                     type="text"
                     placeholder="price_..."
@@ -679,10 +679,10 @@ export default function AdminStripeSettingsPage() {
                   <p className="text-[10px] text-slate-500">STRIPE_GUIDED_PRICE_ID</p>
                 </div>
 
-                {/* 3. Intensive Price ID */}
+                {/* 3. Intensive / Guided One-Time Price ID */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-amber-300">Funding Readiness Intensive</label>
+                    <label className="text-xs font-semibold text-amber-300">Guided 12-Month (One-Time)</label>
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                         data?.prices.intensive?.valid
@@ -690,10 +690,10 @@ export default function AdminStripeSettingsPage() {
                           : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {data?.prices.intensive?.valid ? 'Active ✓' : 'Dynamic $999'}
+                      {data?.prices.intensive?.valid ? 'Active ✓' : 'Dynamic $997'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-400 block">$999.00 one-time</span>
+                  <span className="text-[10px] font-bold text-amber-400 block">$997.00 one-time (12 Months)</span>
                   <input
                     type="text"
                     placeholder="price_..."
@@ -701,7 +701,7 @@ export default function AdminStripeSettingsPage() {
                     onChange={(e) => setForm({ ...form, intensivePriceId: e.target.value })}
                     className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">STRIPE_INTENSIVE_PRICE_ID</p>
+                  <p className="text-[10px] text-slate-500">STRIPE_GUIDED_ONETIME_PRICE_ID / INTENSIVE</p>
                 </div>
               </div>
             </div>
@@ -765,13 +765,13 @@ export default function AdminStripeSettingsPage() {
                     Crediqly Foundation Subscription
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                    $39.99 / month (offer)
+                    $47.99 / month (offer)
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
                     {data?.prices.foundation?.id || data?.prices.pro.id || <span className="text-emerald-400">Dynamic product fallback</span>}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.foundation?.actual || data?.prices.pro.actual || '$39.99/mo (dynamic)'}
+                    {data?.prices.foundation?.actual || data?.prices.pro.actual || '$47.99/mo (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant={data?.prices.foundation?.valid || data?.prices.pro.valid ? 'success' : 'info'} className="text-[10px]">
@@ -786,7 +786,7 @@ export default function AdminStripeSettingsPage() {
                     Crediqly Guided Subscription
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-purple-400">
-                    $149.99 / month (offer)
+                    $147.99 / month (offer)
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
                     {data?.prices.guided?.id || data?.prices.advisoryMonthly.id || (
@@ -794,7 +794,7 @@ export default function AdminStripeSettingsPage() {
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.guided?.actual || data?.prices.advisoryMonthly.actual || '$149.99/mo (dynamic)'}
+                    {data?.prices.guided?.actual || data?.prices.advisoryMonthly.actual || '$147.99/mo (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant={data?.prices.guided?.valid || data?.prices.advisoryMonthly.valid ? 'success' : 'info'} className="text-[10px]">
@@ -803,21 +803,21 @@ export default function AdminStripeSettingsPage() {
                   </td>
                 </tr>
 
-                {/* Funding Readiness Intensive */}
+                {/* Guided 12-Month / Intensive */}
                 <tr className="hover:bg-slate-900/30">
                   <td className="py-3.5 px-4 font-semibold text-white">
-                    Funding Readiness Intensive
+                    Guided 12-Month Program (One-Time)
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
-                    $999.00 one-time
+                    $997.00 one-time
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
                     {data?.prices.intensive?.id || (
-                      <span className="text-amber-400">Dynamic product ($999 one-time)</span>
+                      <span className="text-amber-400">Dynamic product ($997 one-time)</span>
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-300">
-                    {data?.prices.intensive?.actual || '$999.00 one-time (dynamic)'}
+                    {data?.prices.intensive?.actual || '$997.00 one-time (dynamic)'}
                   </td>
                   <td className="py-3.5 px-4">
                     <Badge variant="success" className="text-[10px]">

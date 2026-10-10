@@ -355,7 +355,7 @@ export default function AdminOverviewPage() {
               <Badge variant="success" className="text-[10px]">Live Telemetry</Badge>
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              Customer subscription distributions across Free, Pro ($39/mo), and Done-For-You Advisory ($499 + $149/mo).
+              Customer subscription distributions across Free, Foundation ($47.99/mo), and Guided ($147.99/mo).
             </div>
           </div>
         </div>
@@ -367,12 +367,12 @@ export default function AdminOverviewPage() {
           </div>
 
           <div className="px-3 py-1.5 rounded-xl bg-brand-950/40 border border-brand-800/60 text-center">
-            <span className="text-[10px] text-brand-300 block uppercase font-medium">Pro ($39/mo)</span>
+            <span className="text-[10px] text-brand-300 block uppercase font-medium">Foundation ($47.99/mo)</span>
             <span className="text-sm font-extrabold text-brand-300">{stats?.proUsers ?? 0}</span>
           </div>
 
           <div className="px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-800/60 text-center">
-            <span className="text-[10px] text-purple-300 block uppercase font-medium">Advisory ($149/mo)</span>
+            <span className="text-[10px] text-purple-300 block uppercase font-medium">Guided ($147.99/mo)</span>
             <span className="text-sm font-extrabold text-purple-300">{stats?.advisoryUsers ?? 0}</span>
           </div>
 
@@ -410,7 +410,7 @@ export default function AdminOverviewPage() {
                     <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
                       Billing & Revenue
                     </h4>
-                    <p className="text-[11px] text-slate-400">Pro ($39/mo) & Advisory ($499+$149)</p>
+                    <p className="text-[11px] text-slate-400">Foundation ($47.99) &amp; Guided ($147.99)</p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors" />

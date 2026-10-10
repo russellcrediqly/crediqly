@@ -55,17 +55,21 @@ export const stripe = new Proxy({} as Stripe, {
 });
 
 export const STRIPE_CONFIG = {
-  // Plan 2: Foundation ($39.99/mo promotional offer, $49.99/mo regular)
+  // Plan 2: Foundation ($47.99/mo recurring)
   get foundationPriceId() {
     return cleanKey(process.env.STRIPE_FOUNDATION_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID);
   },
-  // Plan 3: Guided ($149.99/mo promotional offer, $199.99/mo regular)
+  // Plan 3: Guided Monthly ($147.99/mo recurring)
   get guidedPriceId() {
     return cleanKey(process.env.STRIPE_GUIDED_PRICE_ID || process.env.STRIPE_ADVISORY_MONTHLY_PRICE_ID);
   },
-  // Premium Service: Funding Readiness Intensive ($999 one-time)
+  // Plan 3: Guided 12-Month Program ($997 one-time payment)
+  get guidedOneTimePriceId() {
+    return cleanKey(process.env.STRIPE_GUIDED_ONETIME_PRICE_ID || process.env.STRIPE_INTENSIVE_PRICE_ID);
+  },
+  // Legacy / compatibility alias for 12-month Guided program
   get intensivePriceId() {
-    return cleanKey(process.env.STRIPE_INTENSIVE_PRICE_ID);
+    return cleanKey(process.env.STRIPE_GUIDED_ONETIME_PRICE_ID || process.env.STRIPE_INTENSIVE_PRICE_ID);
   },
   // Legacy price ID accessors maintained for backward compatibility
   get proPriceId() {
@@ -84,18 +88,17 @@ export const STRIPE_CONFIG = {
     return cleanKey(process.env.STRIPE_WEBHOOK_SECRET);
   },
 
-  // Authoritative price amounts in cents
-  foundationPriceCents: 3999, // $39.99/month promotional/current offer
-  foundationRegularPriceCents: 4999, // $49.99/month regular/reference
-  guidedPriceCents: 14999, // $149.99/month promotional/current offer
-  guidedRegularPriceCents: 19999, // $199.99/month regular/reference
-  intensivePriceCents: 99900, // $999.00 one-time payment
+  // Authoritative approved price amounts in cents
+  foundationPriceCents: 4799, // $47.99/month recurring
+  guidedPriceCents: 14799, // $147.99/month recurring
+  guidedOneTimePriceCents: 99700, // $997.00 one-time (12-month program)
+  intensivePriceCents: 99700, // $997.00 compatibility alias
 
   // Legacy cents aliases
-  proPriceCents: 3999, // $39.99
+  proPriceCents: 4799, // $47.99
   consultationPriceCents: 9900, // $99.00
   advisorySetupPriceCents: 49900, // $499.00
-  advisoryMonthlyPriceCents: 14999, // $149.99
+  advisoryMonthlyPriceCents: 14799, // $147.99
 };
 
 /**

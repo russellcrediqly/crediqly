@@ -60,24 +60,39 @@ export async function POST(req: Request) {
 
     const paymentType = session.metadata?.paymentType;
 
-    // Handle Funding Readiness Intensive ($999 one-time payment)
-    if (paymentType === 'intensive') {
+    // Handle Guided 12-Month Program ($997 one-time payment)
+    if (paymentType === 'guided_onetime' || paymentType === 'intensive') {
       const customerId = typeof session.customer === 'string' ? session.customer : (session.customer as any)?.id;
+      const now = new Date();
+      const oneYearLater = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+      const updatedSub = await upsertSubscription({
+        userId: targetUserId,
+        plan: 'guided',
+        status: 'active',
+        stripeCustomerId: customerId,
+        currentPeriodStart: now.toISOString(),
+        currentPeriodEnd: oneYearLater.toISOString(),
+        cancelAtPeriodEnd: true,
+      });
+
       await recordPayment({
         userId: targetUserId,
         stripeCustomerId: customerId,
         stripeCheckoutSessionId: session.id,
         stripePaymentIntentId: (session.payment_intent as string) || undefined,
-        amount: session.amount_total || 99900,
+        amount: session.amount_total || 99700,
         currency: session.currency || 'usd',
-        paymentType: 'intensive',
+        paymentType: 'guided_onetime',
         status: 'paid',
       });
 
       return NextResponse.json({
         success: true,
-        service: 'Funding Readiness Intensive',
-        status: 'paid',
+        plan: 'guided',
+        service: 'Crediqly Guided — 12-Month Program',
+        status: 'active',
+        subscription: updatedSub,
       });
     }
 
@@ -109,7 +124,7 @@ export async function POST(req: Request) {
       stripeCustomerId: customerId,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: (session.payment_intent as string) || undefined,
-      amount: session.amount_total || (isGuided ? 14999 : 3999),
+      amount: session.amount_total || (isGuided ? 14799 : 4799),
       currency: session.currency || 'usd',
       paymentType: isGuided ? 'guided_subscription' : 'foundation_subscription',
       status: 'paid',

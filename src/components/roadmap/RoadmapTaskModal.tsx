@@ -42,7 +42,9 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
   onSetStatus,
   actionRecord,
 }) => {
-  const { isPro, upgradeToPro, upgradeToAdvisory } = useSubscription();
+  const { isFoundation, isPro, isGuided, isAdvisory, upgradeToFoundation, upgradeToPro, upgradeToGuided, upgradeToAdvisory } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const handleUpgrade = upgradeToFoundation || upgradeToPro;
 
   if (!isOpen || !task) return null;
 
@@ -54,7 +56,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
     ? 'in_progress'
     : 'not_started';
 
-  const isLocked = !isPro && task.stage !== 'foundation';
+  const isLocked = !hasFoundation && task.stage !== 'foundation';
 
   const priorityColor =
     task.priority === 'high'
@@ -65,7 +67,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
 
   const handleStatusChange = (status: 'not_started' | 'in_progress' | 'completed') => {
     if (isLocked) {
-      upgradeToPro();
+      handleUpgrade();
       return;
     }
     if (onSetStatus) {
@@ -143,7 +145,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                     Stage Locked — Pro &amp; Advisory Milestone
                   </h4>
                   <p className="text-[11px] text-slate-600">
-                    Tier 2/3 Store Cards, Revolving Lines, and Commercial Milestones require Crediqly Pro or Premium Advisory.
+                    Tier 2/3 Store Cards, Revolving Lines, and Commercial Milestones require Crediqly Foundation or Guided.
                   </p>
                 </div>
               </div>
@@ -152,11 +154,11 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                   size="sm"
                   onClick={() => {
                     onClose();
-                    upgradeToPro();
+                    handleUpgrade();
                   }}
                   className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1 shadow-2xs h-8 px-3"
                 >
-                  <span>Crediqly Pro ($39/mo)</span>
+                  <span>Crediqly Foundation ($47.99/mo)</span>
                   <ArrowRight className="w-3 h-3" />
                 </Button>
                 <Link href="/advisory" onClick={onClose}>
@@ -165,7 +167,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                     variant="outline"
                     className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs font-bold gap-1 h-8 px-3"
                   >
-                    <span>Done-For-You Advisory</span>
+                    <span>Guided Advisory</span>
                   </Button>
                 </Link>
               </div>
@@ -262,7 +264,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 text-brand-700" />
                     <span className="text-xs font-bold text-slate-900">
-                      Your next recommended action steps are available in Pro
+                      Your next recommended action steps are available in Foundation
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -273,11 +275,11 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                       size="sm"
                       onClick={() => {
                         onClose();
-                        upgradeToPro();
+                        handleUpgrade();
                       }}
                       className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs w-full sm:w-auto"
                     >
-                      <span>Upgrade to Pro — $39/mo</span>
+                      <span>Upgrade to Foundation — $47.99/mo</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                     <span className="text-[11px] text-slate-500">Cancel anytime • Instant access</span>
@@ -371,7 +373,7 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                   size="sm"
                   className="text-xs font-bold border-purple-300 text-purple-700 hover:bg-purple-50"
                 >
-                  <span>Done-For-You Advisory</span>
+                  <span>Guided Advisory</span>
                 </Button>
               </Link>
               <Button
@@ -379,12 +381,12 @@ export const RoadmapTaskModal: React.FC<RoadmapTaskModalProps> = ({
                 size="sm"
                 onClick={() => {
                   onClose();
-                  upgradeToPro();
+                  handleUpgrade();
                 }}
                 className="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-1.5 shadow-xs"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Unlock with Pro ($39/mo)</span>
+                <span>Unlock with Foundation ($47.99/mo)</span>
               </Button>
             </div>
           ) : (

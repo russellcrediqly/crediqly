@@ -33,7 +33,21 @@ function AdvisoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { subscription, isAdvisory, isPro, loading, upgradeToAdvisory, openCustomerPortal } = useSubscription();
+  const {
+    subscription,
+    isAdvisory,
+    isGuided,
+    isPro,
+    isFoundation,
+    loading,
+    upgradeToGuided,
+    upgradeToAdvisory,
+    requestIntensive,
+    openCustomerPortal,
+  } = useSubscription();
+
+  const hasGuided = isGuided || isAdvisory;
+  const handleGuidedUpgrade = upgradeToGuided || upgradeToAdvisory;
 
   const [onboardingNotice, setOnboardingNotice] = useState(false);
   const [canceledNotice, setCanceledNotice] = useState(false);
@@ -49,7 +63,7 @@ function AdvisoryContent() {
   if (loading) {
     return (
       <div className="py-20 flex justify-center">
-        <LoadingState message="Loading Premium Advisory details..." />
+        <LoadingState message="Loading Advisory &amp; Intensive details..." />
       </div>
     );
   }
@@ -65,10 +79,10 @@ function AdvisoryContent() {
             </div>
             <div className="space-y-1">
               <h4 className="font-black text-sm text-emerald-950">
-                Welcome to Crediqly Premium Advisory!
+                Welcome to Crediqly Advisory &amp; Intensive!
               </h4>
               <p className="text-emerald-700 leading-relaxed">
-                Your setup payment ($499) and monthly advisory retainer ($149/mo) have been confirmed. Your dedicated commercial credit specialist will review your business profile and reach out to schedule your initial strategy deep dive.
+                Your payment has been confirmed. Your dedicated commercial credit specialist will review your business profile and reach out to schedule your strategy deep dive.
               </p>
             </div>
           </div>
@@ -104,8 +118,8 @@ function AdvisoryContent() {
         </div>
       )}
 
-      {/* Active Advisory Customer Status Card */}
-      {isAdvisory && (
+      {/* Active Guided / Advisory Customer Status Card */}
+      {hasGuided && (
         <Card className="border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-950/20 via-white to-teal-50/40 shadow-md overflow-hidden">
           <CardContent className="p-6 sm:p-8 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-100 pb-5">
@@ -116,12 +130,12 @@ function AdvisoryContent() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                      Premium Advisory Active
+                      Guided Membership Active
                     </h2>
                     <Badge variant="success">Enrolled</Badge>
                   </div>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    $149/month recurring retainer • Onboarding & setup completed ($499)
+                    $147.99/month recurring • Expert Guided Tier
                   </p>
                 </div>
               </div>
@@ -173,53 +187,62 @@ function AdvisoryContent() {
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-xs font-bold tracking-wide border border-brand-500/30">
             <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-            <span>Done-For-You & Done-With-You Commercial Guidance</span>
+            <span>High-Touch Services &amp; Personal Strategy</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-            Crediqly Premium Advisory
+            Guided Strategy &amp; 12-Month Program
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Get dedicated personal guidance on building strong commercial credit and preparing for bank funding, backed by ongoing specialist review.
+            Get personalized expert help preparing your business for funding. Fast-track your commercial underwriting dossier with hands-on credit specialist guidance.
           </p>
 
           {/* Pricing Highlight Pill */}
           <div className="pt-2 flex flex-wrap items-baseline gap-3 text-white">
             <div className="flex items-baseline gap-1.5 bg-white/10 px-4 py-2 rounded-2xl border border-white/15 backdrop-blur-xs">
-              <span className="text-2xl sm:text-3xl font-black text-white">$499</span>
-              <span className="text-xs text-slate-300">one-time setup fee</span>
+              <span className="text-2xl sm:text-3xl font-black text-white">$147.99</span>
+              <span className="text-xs text-slate-300">/ month Guided Plan</span>
             </div>
-            <span className="text-sm font-bold text-brand-400">+</span>
+            <span className="text-sm font-bold text-brand-400">or</span>
             <div className="flex items-baseline gap-1.5 bg-white/10 px-4 py-2 rounded-2xl border border-white/15 backdrop-blur-xs">
-              <span className="text-2xl sm:text-3xl font-black text-white">$149</span>
-              <span className="text-xs text-slate-300">/ month recurring</span>
+              <span className="text-2xl sm:text-3xl font-black text-white">$997</span>
+              <span className="text-xs text-slate-300">12-Month Program (one-time)</span>
             </div>
           </div>
 
-          {!isAdvisory && (
-            <div className="pt-3 flex flex-wrap items-center gap-3">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={upgradeToAdvisory}
-                className="bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-bold shadow-lg gap-2"
-              >
-                <span>Enroll in Premium Advisory</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+          <div className="pt-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => handleGuidedUpgrade('monthly')}
+              className="bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-bold shadow-lg gap-2"
+            >
+              <span>Join Guided Monthly ($147.99/mo)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
 
-              <Link href="/pricing">
-                <Button
-                  variant="outline"
-                  size="md"
-                  className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs sm:text-sm"
-                >
-                  Compare All Plans
-                </Button>
-              </Link>
-            </div>
-          )}
+            {!hasGuided && (
+              <Button
+                variant="outline"
+                size="md"
+                onClick={requestIntensive}
+                className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs sm:text-sm"
+              >
+                <span>Guided 12-Month ($997 One-Time)</span>
+              </Button>
+            )}
+
+            <Link href="/pricing">
+              <Button
+                variant="outline"
+                size="md"
+                className="border-slate-700 text-slate-400 hover:bg-slate-800 text-xs sm:text-sm"
+              >
+                Compare Plans
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -227,7 +250,7 @@ function AdvisoryContent() {
       <div className="space-y-6">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-            What&apos;s Included in Premium Advisory
+            What&apos;s Included in Advisory &amp; Guided Services
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             A comprehensive hybrid of automated software, personal strategy, and ongoing review.
@@ -236,15 +259,15 @@ function AdvisoryContent() {
 
         {/* Dual Pillar Comparison: Setup vs Monthly */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* 1. Setup & Onboarding Blueprint ($499) */}
+          {/* 1. Guided 12-Month Program ($997 One-Time) */}
           <Card className="border-brand-200/90 bg-white shadow-xs">
             <div className="bg-brand-50/70 p-4 border-b border-brand-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-brand-600" />
-                <h3 className="text-sm font-bold text-slate-900">Initial Setup & Onboarding</h3>
+                <h3 className="text-sm font-bold text-slate-900">Guided 12-Month Program</h3>
               </div>
               <span className="text-xs font-black text-brand-700 bg-brand-100/70 px-2.5 py-0.5 rounded-full">
-                $499 One-Time
+                $997 One-Time
               </span>
             </div>
             <CardContent className="p-5 space-y-3.5 text-xs text-slate-600">
@@ -261,9 +284,9 @@ function AdvisoryContent() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">Credit & Funding Readiness Analysis</span>
+                  <span className="font-bold text-slate-900 block">Complete Readiness Dossier Preparation</span>
                   <span className="text-[11px] text-slate-500">
-                    Evaluation of bureau reporting, bank rating baselines, and cash-flow benchmarks.
+                    Full compilation of underwriting baselines, bureau filings, and bank rating benchmarks.
                   </span>
                 </div>
               </div>
@@ -271,7 +294,7 @@ function AdvisoryContent() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">Tailored Milestone Roadmap</span>
+                  <span className="font-bold text-slate-900 block">Tailored Capital Milestone Roadmap</span>
                   <span className="text-[11px] text-slate-500">
                     Custom-sequenced step-by-step action plan designed for your specific entity.
                   </span>
@@ -281,31 +304,31 @@ function AdvisoryContent() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">Initial 1-on-1 Strategy Session</span>
+                  <span className="font-bold text-slate-900 block">12 Months of Monthly Consultations &amp; Support</span>
                   <span className="text-[11px] text-slate-500">
-                    Dedicated onboarding session to align on capital targets and timelines.
+                    Monthly private sessions (up to 12) and priority support throughout the defined 12-month program.
                   </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 2. Ongoing Advisory Retainer ($149/mo) */}
+          {/* 2. Ongoing Guided Strategy ($147.99/mo) */}
           <Card className="border-emerald-200/90 bg-white shadow-xs">
             <div className="bg-emerald-50/70 p-4 border-b border-emerald-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-slate-900">Ongoing Advisory Support</h3>
+                <h3 className="text-sm font-bold text-slate-900">Ongoing Guided Strategy</h3>
               </div>
               <span className="text-xs font-black text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-full">
-                $149 / Month
+                $147.99 / Month
               </span>
             </div>
             <CardContent className="p-5 space-y-3.5 text-xs text-slate-600">
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">One 1-on-1 Advisory Session Monthly</span>
+                  <span className="font-bold text-slate-900 block">1 Personal Strategy Meeting Per Month</span>
                   <span className="text-[11px] text-slate-500">
                     Scheduled monthly strategy session to review new tradelines and lending timing.
                   </span>
@@ -315,9 +338,9 @@ function AdvisoryContent() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">Full Crediqly Pro Software Access</span>
+                  <span className="font-bold text-slate-900 block">Full Foundation Software Access</span>
                   <span className="text-[11px] text-slate-500">
-                    Includes all Tier 1–3 tradelines, underwriting matrices, and premium software tools.
+                    Includes all Tier 1–4 tradelines, personalized action plan, and AI mentor guidance.
                   </span>
                 </div>
               </div>
@@ -335,7 +358,7 @@ function AdvisoryContent() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-slate-900 block">Priority Advisory Queue</span>
+                  <span className="font-bold text-slate-900 block">Priority Support Queue</span>
                   <span className="text-[11px] text-slate-500">
                     Fast-response advisor communication whenever questions arise.
                   </span>
@@ -372,15 +395,15 @@ function AdvisoryContent() {
           <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
             03
           </div>
-          <h4 className="font-bold text-slate-900">Monthly 1-on-1 Advisory Meeting</h4>
+          <h4 className="font-bold text-slate-900">Monthly 1-on-1 Strategy Meeting</h4>
           <p className="text-slate-500 text-[11px] leading-relaxed">
             One 45-minute scheduled private meeting per month to calibrate progress and adjust strategy.
           </p>
         </div>
       </div>
 
-      {/* Enrollment Call to Action (for non-advisory members) */}
-      {!isAdvisory && (
+      {/* Enrollment Call to Action (for non-guided members) */}
+      {!hasGuided && (
         <Card className="border-brand-200 bg-gradient-to-br from-brand-50/50 to-white shadow-sm text-center">
           <CardContent className="p-6 sm:p-8 space-y-4 max-w-xl mx-auto">
             <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center mx-auto shadow-xs">
@@ -388,20 +411,29 @@ function AdvisoryContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg sm:text-xl font-black text-slate-900">
-                Ready for Dedicated Commercial Advisory?
+                Ready for Dedicated Commercial Guidance?
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                $499 one-time onboarding setup fee + $149/month recurring advisory retainer. Cancel anytime through the self-service customer portal.
+                Join the Guided plan ($147.99/mo) for monthly 1-on-1 strategy meetings and priority support, or choose the defined 12-Month Guided Program ($997 one-time) for a full year of dedicated guidance.
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
                 variant="primary"
                 size="md"
-                onClick={upgradeToAdvisory}
+                onClick={() => handleGuidedUpgrade('monthly')}
                 className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold gap-2"
               >
-                <span>Enroll in Premium Advisory</span>
+                <span>Enroll in Guided ($147.99/mo)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={requestIntensive}
+                className="w-full sm:w-auto border-brand-300 text-brand-700 hover:bg-brand-50 text-xs font-bold gap-2"
+              >
+                <span>Guided 12-Month ($997 One-Time)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -416,7 +448,7 @@ function AdvisoryContent() {
           <span>Important Advisory Disclaimer</span>
         </div>
         <p>
-          Crediqly Premium Advisory provides educational, strategic, and preparation services for business credit and funding readiness. Crediqly does not guarantee loan approvals, funding amounts, interest rates, or credit score increases. Crediqly is not a bank, direct lender, credit repair organization, or underwriting agency. All credit granting decisions are made solely by independent financial institutions.
+          Crediqly Guided and Intensive Advisory provides educational, strategic, and preparation services for business credit and funding readiness. Crediqly does not guarantee loan approvals, funding amounts, interest rates, or credit score increases. Crediqly is not a bank, direct lender, credit repair organization, or underwriting agency. All credit granting decisions are made solely by independent financial institutions.
         </p>
       </div>
     </div>
@@ -430,7 +462,7 @@ export default function AdvisoryPage() {
         <Suspense
           fallback={
             <div className="min-h-[400px] flex items-center justify-center">
-              <LoadingState message="Loading Premium Advisory..." />
+              <LoadingState message="Loading Guided Advisory..." />
             </div>
           }
         >
