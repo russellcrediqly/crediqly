@@ -165,21 +165,21 @@ export default function AdminOverviewPage() {
           </Button>
 
           <Link href="/admin/banks">
-            <Button size="sm" variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs gap-1.5">
+            <Button size="sm" variant="outline" className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 hover:text-white text-xs gap-1.5 font-bold shadow-xs">
               <Landmark className="w-3.5 h-3.5 text-cyan-400" />
               <span>Banks ({activeBanksCount})</span>
             </Button>
           </Link>
 
           <Link href="/admin/funding">
-            <Button size="sm" variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs gap-1.5">
+            <Button size="sm" variant="outline" className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 hover:text-white text-xs gap-1.5 font-bold shadow-xs">
               <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
               <span>Funding ({activeFundingCount})</span>
             </Button>
           </Link>
 
           <Link href="/admin/consultations">
-            <Button size="sm" variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs gap-1.5">
+            <Button size="sm" variant="outline" className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 hover:text-white text-xs gap-1.5 font-bold shadow-xs">
               <Calendar className="w-3.5 h-3.5 text-amber-400" />
               <span>Consultations ({pendingConsultationsCount})</span>
             </Button>

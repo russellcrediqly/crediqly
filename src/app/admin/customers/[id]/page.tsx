@@ -1101,7 +1101,7 @@ export default function AdminCustomerDetailPage() {
                 <span>Section 6: Guided Advisory &amp; Consultation Records</span>
               </span>
               <Link href="/admin/consultations">
-                <Button size="sm" variant="outline" className="text-xs border-slate-700 bg-slate-900 text-slate-300">
+                <Button size="sm" variant="outline" className="text-xs border-slate-700 bg-slate-900 text-white hover:text-white hover:bg-slate-800 font-bold shadow-xs">
                   Open Advisory Central
                 </Button>
               </Link>
@@ -1197,7 +1197,7 @@ export default function AdminCustomerDetailPage() {
                 <span>Section 7: Tracked Funding Applications</span>
               </span>
               <Link href="/admin/funding-applications">
-                <Button size="sm" variant="outline" className="text-xs border-slate-700 bg-slate-900 text-slate-300">
+                <Button size="sm" variant="outline" className="text-xs border-slate-700 bg-slate-900 text-white hover:text-white hover:bg-slate-800 font-bold shadow-xs">
                   Open Funding Central
                 </Button>
               </Link>

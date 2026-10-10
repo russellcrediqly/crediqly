@@ -207,8 +207,8 @@ export default function DashboardPage() {
     business,
     completedTasks,
     fundingProducts,
-    isPro,
-    isAdvisory,
+    hasFoundation,
+    hasGuided,
     roadmap,
   ]);
 

@@ -35,9 +35,9 @@ export const Button: React.FC<ButtonProps> = ({
     brand:
       'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus-visible:ring-brand-500 shadow-xs font-semibold',
     secondary:
-      'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 active:bg-slate-100 focus-visible:ring-slate-400 shadow-2xs font-semibold',
+      'bg-white text-slate-800 border border-slate-200 hover:bg-slate-100 hover:text-slate-950 hover:border-slate-300 active:bg-slate-200 focus-visible:ring-slate-400 shadow-2xs font-bold',
     outline:
-      'border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-400 active:bg-slate-100 focus-visible:ring-slate-400 shadow-2xs font-semibold',
+      'border border-slate-300 bg-white text-slate-800 hover:text-slate-950 hover:bg-slate-100 hover:border-slate-400 active:bg-slate-200 focus-visible:ring-slate-400 shadow-2xs font-bold',
     'outline-white':
       'border border-white/60 bg-white/20 text-white hover:bg-white/30 hover:border-white/80 active:bg-white/35 focus-visible:ring-white shadow-2xs font-semibold backdrop-blur-xs',
     'outline-inverted':

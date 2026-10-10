@@ -191,13 +191,18 @@ export const OFFICIAL_READINESS_MILESTONES: ReadinessMilestoneDefinition[] = [
     actionLabel: 'Explore Net-30 Vendors',
     actionHref: '/products?category=net_30',
     prerequisiteId: 'm_tier1_tradelines',
-    roadmapTaskKey: 'rec_credit_depth',
-    verifier: (p, tags) =>
-      p.businessCreditAccountCount === '1-3' ||
-      p.businessCreditAccountCount === '4+' ||
-      p.businessCreditAccountCount === '3+' ||
-      tags.has('rec_credit_depth') ||
-      tags.has('m_credit_depth'),
+    verifier: (p, tags) => {
+      const c = p.businessCreditAccountCount;
+      const validDepth =
+        c === '1-3' ||
+        c === '2-3' ||
+        c === '4-5' ||
+        c === '6-10' ||
+        c === '10+' ||
+        c === '4+' ||
+        c === '3+';
+      return validDepth || tags.has('rec_credit_depth') || tags.has('m_credit_depth');
+    },
   },
 
   // --------------------------------------------------------------------------
@@ -235,7 +240,12 @@ export const OFFICIAL_READINESS_MILESTONES: ReadinessMilestoneDefinition[] = [
     actionHref: '/learn',
     prerequisiteId: 'm_revolving_card',
     roadmapTaskKey: 'task_credit_utilization',
-    verifier: (_p, tags) => tags.has('task_credit_utilization') || tags.has('m_utilization_payment'),
+    verifier: (p, tags) =>
+      Boolean(
+        (p.hasBusinessCreditCard === 'yes' && (p.personalCreditRange?.includes('720') || p.personalCreditRange?.includes('680'))) ||
+        tags.has('task_credit_utilization') ||
+        tags.has('m_utilization_payment')
+      ),
   },
   {
     id: 'm_credit_monitoring',

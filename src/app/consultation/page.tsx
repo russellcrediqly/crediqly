@@ -348,10 +348,10 @@ function ConsultationInner() {
                 <Button
                   variant="outline"
                   onClick={() => router.push('/dashboard')}
-                  className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs sm:text-sm gap-2"
+                  className="bg-white hover:bg-slate-100 text-slate-900 hover:text-slate-950 border border-slate-200 text-xs sm:text-sm font-bold gap-2 shadow-sm transition-colors"
                 >
-                  <span>{isAdvisory ? 'Dashboard' : 'Continue DIY'}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-slate-900 hover:text-slate-950 font-bold">{isAdvisory ? 'Dashboard' : 'Continue DIY'}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-700" />
                 </Button>
               </div>
             </div>

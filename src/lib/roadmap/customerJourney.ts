@@ -1,6 +1,7 @@
 import type { BusinessProfile, ReadinessScoreResult } from '../../types/business';
 import type { FundingReadinessResult } from '../../types/funding';
-import { calculateProfileCompletion } from '../scoring/engine.ts';
+import { calculateProfileCompletion, calculateBusinessReadiness, calculateCreditReadiness } from '../scoring/engine.ts';
+import { calculateFundingReadiness } from '../readiness/fundingEngine.ts';
 
 export type JourneyStageStatus = 'completed' | 'in_progress' | 'upcoming';
 
@@ -51,11 +52,14 @@ export interface CustomerJourneyResult {
  */
 export function calculateCustomerJourney(
   business: Partial<BusinessProfile> | null,
-  businessReadiness: ReadinessScoreResult,
-  creditReadiness: ReadinessScoreResult,
-  fundingReadiness: FundingReadinessResult,
+  businessReadiness?: ReadinessScoreResult,
+  creditReadiness?: ReadinessScoreResult,
+  fundingReadiness?: FundingReadinessResult,
   trackedAppsCount: number = 0
 ): CustomerJourneyResult {
+  const bReadiness = businessReadiness || calculateBusinessReadiness(business);
+  const cReadiness = creditReadiness || calculateCreditReadiness(business);
+  const fReadiness = fundingReadiness || calculateFundingReadiness(business);
   const profileCompletion = calculateProfileCompletion(business);
   const isProfileComplete = Boolean(business?.profileCompleted || profileCompletion >= 100);
 
@@ -76,11 +80,11 @@ export function calculateCustomerJourney(
   const hasDuns = business?.hasDuns === 'yes';
   const hasCreditProfile = business?.hasBusinessCreditProfile === 'yes' || hasDuns;
   const hasReporting = business?.hasReportingAccounts === 'yes';
-  const stage2Complete = stage1Complete && (hasCreditProfile || hasReporting || creditReadiness.score >= 40);
+  const stage2Complete = stage1Complete && (hasCreditProfile || hasReporting || cReadiness.score >= 40);
   const stage2Progress = stage2Complete
     ? 100
     : stage1Complete
-    ? Math.min(90, Math.max(30, Math.round(creditReadiness.score * 0.9 + (hasReporting ? 25 : 0))))
+    ? Math.min(90, Math.max(30, Math.round(cReadiness.score * 0.9 + (hasReporting ? 25 : 0))))
     : 15;
 
   // --------------------------------------------------------------------------
@@ -91,19 +95,19 @@ export function calculateCustomerJourney(
     business?.businessCreditAccountCount === '4-5' ||
     business?.businessCreditAccountCount === '6-10' ||
     business?.businessCreditAccountCount === '10+';
-  const stage3Complete = stage2Complete && hasReporting && (hasCard || highAccountCount || creditReadiness.score >= 60);
+  const stage3Complete = stage2Complete && hasReporting && (hasCard || highAccountCount || cReadiness.score >= 60);
   const stage3Progress = stage3Complete
     ? 100
     : stage2Complete
-    ? Math.min(90, Math.max(25, Math.round(fundingReadiness.score * 0.85 + (hasCard ? 15 : 0))))
+    ? Math.min(90, Math.max(25, Math.round(fReadiness.score * 0.85 + (hasCard ? 15 : 0))))
     : 10;
 
   // --------------------------------------------------------------------------
   // STAGE 4: 04 FUNDING READY (Capital Target, Revenue Seasoning, 70+ Score)
   // --------------------------------------------------------------------------
-  const isFundingScoreReady = fundingReadiness.score >= 70 || ['Strong Readiness', 'Funding Ready'].includes(fundingReadiness.level);
+  const isFundingScoreReady = fReadiness.score >= 70 || ['Strong Readiness', 'Funding Ready'].includes(fReadiness.level);
   const stage4Complete = stage3Complete && isFundingScoreReady;
-  const stage4Progress = stage4Complete ? 100 : stage3Complete ? Math.min(95, fundingReadiness.score) : 10;
+  const stage4Progress = stage4Complete ? 100 : stage3Complete ? Math.min(95, fReadiness.score) : 10;
 
   // --------------------------------------------------------------------------
   // STAGE 5: 05 SCALE (Matched Capital, Comparison, Multi-Facility Growth)
@@ -254,7 +258,7 @@ export function calculateCustomerJourney(
   if (hasCreditProfile || hasDuns) completedMilestonesSummary.push('Bureau credit profile active');
   if (hasReporting) completedMilestonesSummary.push('Reporting tradelines established');
   if (hasCard) completedMilestonesSummary.push('Revolving commercial credit active');
-  if (fundingReadiness.score >= 50) completedMilestonesSummary.push('Readiness assessment baseline reached');
+  if (fReadiness.score >= 50) completedMilestonesSummary.push('Readiness assessment baseline reached');
 
   // If new user with few completed items, show foundational completions
   if (completedMilestonesSummary.length === 0) {

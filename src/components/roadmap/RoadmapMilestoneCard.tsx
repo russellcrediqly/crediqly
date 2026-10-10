@@ -45,8 +45,9 @@ export const RoadmapMilestoneCard: React.FC<RoadmapMilestoneCardProps> = ({
   onRequestReopen,
   onAskAI,
 }) => {
-  const { isPro } = useSubscription();
-  const isLocked = !isPro && milestone.stageId > 1;
+  const { isFoundation, isPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
+  const isLocked = !hasFoundation && milestone.stageId > 1;
 
   const targetKey = milestone.roadmapTaskKey || milestone.id;
 
@@ -126,11 +127,11 @@ export const RoadmapMilestoneCard: React.FC<RoadmapMilestoneCardProps> = ({
                   </span>
                 )}
 
-                {/* Pro Milestone notice */}
+                {/* Foundation Milestone notice */}
                 {isLocked && !isCompleted && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                     <Lock className="w-2.5 h-2.5 text-amber-600" />
-                    <span>Pro Milestone</span>
+                    <span>Foundation Milestone</span>
                   </span>
                 )}
 

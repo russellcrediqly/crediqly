@@ -362,7 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const destination = fullUser.role === 'admin'
           ? '/admin'
-          : '/dashboard';
+          : (isProfileComplete ? '/dashboard' : '/onboarding');
 
         return {
           user: fullUser,
@@ -424,7 +424,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const destination = mockUser.role === 'admin'
         ? '/admin'
-        : '/dashboard';
+        : (isCompleted ? '/dashboard' : '/onboarding');
 
       return {
         user: mockUser,

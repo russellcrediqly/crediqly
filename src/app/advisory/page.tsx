@@ -227,9 +227,9 @@ function AdvisoryContent() {
                 variant="outline"
                 size="md"
                 onClick={requestIntensive}
-                className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs sm:text-sm"
+                className="bg-white hover:bg-slate-100 text-slate-900 hover:text-slate-950 border border-slate-200 text-xs sm:text-sm font-bold shadow-sm transition-colors"
               >
-                <span>Guided 12-Month ($997 One-Time)</span>
+                <span className="text-slate-900 hover:text-slate-950 font-bold">Guided 12-Month ($997 One-Time)</span>
               </Button>
             )}
 
@@ -237,9 +237,9 @@ function AdvisoryContent() {
               <Button
                 variant="outline"
                 size="md"
-                className="border-slate-700 text-slate-400 hover:bg-slate-800 text-xs sm:text-sm"
+                className="bg-white hover:bg-slate-100 text-slate-900 hover:text-slate-950 border border-slate-200 text-xs sm:text-sm font-bold shadow-sm transition-colors"
               >
-                Compare Plans
+                <span className="text-slate-900 hover:text-slate-950 font-bold">Compare Plans</span>
               </Button>
             </Link>
           </div>
@@ -431,10 +431,10 @@ function AdvisoryContent() {
                 variant="outline"
                 size="md"
                 onClick={requestIntensive}
-                className="w-full sm:w-auto border-brand-300 text-brand-700 hover:bg-brand-50 text-xs font-bold gap-2"
+                className="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-900 hover:text-slate-950 border border-slate-300 text-xs font-bold gap-2 shadow-xs transition-colors"
               >
-                <span>Guided 12-Month ($997 One-Time)</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span className="text-slate-900 hover:text-slate-950 font-bold">Guided 12-Month ($997 One-Time)</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-700" />
               </Button>
             </div>
           </CardContent>

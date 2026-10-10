@@ -159,7 +159,7 @@ export async function getAdminUsers(filters?: Partial<AdminUserFilters>): Promis
         const s = scoreMap.get(p.user_id);
         const sub = subMap.get(p.user_id);
         const plan = (sub?.plan as any) || 'free';
-        const isAdvisory = plan === 'premium_advisory' && (sub?.status === 'active' || sub?.status === 'trialing');
+        const isAdvisory = (plan === 'guided' || plan === 'premium_advisory' || plan === 'intensive') && (sub?.status === 'active' || sub?.status === 'trialing');
         const userConsults = consultMap.get(p.user_id) || [];
         const latestConsult = userConsults[0];
         const userApps = appsMap.get(p.user_id) || [];
@@ -281,9 +281,9 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
   const affiliateClicks = clickStats.totalClicks;
   const completedRoadmapTasks = Math.max(14, completedProfiles * 5);
 
-  const freeUsers = users.filter((u) => u.plan === 'free' || (!u.plan && !u.isAdvisory)).length;
+  const freeUsers = users.filter((u) => u.plan === 'free' || (!u.plan && !u.isAdvisory && u.plan !== 'foundation' && u.plan !== 'pro')).length;
   const proUsers = users.filter((u) => u.plan === 'pro' || u.plan === 'foundation').length;
-  const advisoryUsers = users.filter((u) => u.plan === 'guided' || u.plan === 'premium_advisory' || u.isAdvisory).length;
+  const advisoryUsers = users.filter((u) => u.plan === 'guided' || u.plan === 'premium_advisory' || u.plan === 'intensive' || u.isAdvisory).length;
   const mrr = Math.round(proUsers * 47.99 + advisoryUsers * 147.99);
 
   return {

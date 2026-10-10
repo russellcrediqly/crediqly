@@ -54,7 +54,7 @@ interface NavItemDef {
   sublabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   sectionKey?: DashboardSectionKey;
-  proBadge?: 'Pro' | 'VIP';
+  proBadge?: 'Foundation' | 'Guided';
   subItems?: SubNavItemDef[];
 }
 
@@ -99,7 +99,7 @@ const NAV_GROUPS: NavGroupDef[] = [
         label: 'Products & Tradelines',
         icon: CreditCard,
         sectionKey: 'products',
-        proBadge: 'Pro',
+        proBadge: 'Foundation',
       },
     ],
   },
@@ -123,9 +123,9 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       {
         href: '/advisory',
-        label: 'Advisory & Concierge',
+        label: 'Guided Strategy',
         icon: Headphones,
-        proBadge: 'VIP',
+        proBadge: 'Guided',
       },
       {
         href: '/learn',
@@ -160,7 +160,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const { user, signOut } = useAuth();
   const { business } = useBusiness();
   const { sections } = usePlatformSections();
-  const { isPro, isAdvisory } = useSubscription();
+  const { isFoundation, isGuided, isPro, isAdvisory } = useSubscription();
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
@@ -506,20 +506,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             </Link>
 
             {/* Plan Tier Badge */}
-            {isAdvisory ? (
+            {isGuided ? (
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-800 border border-indigo-200">
-                Advisory
+                Guided
               </span>
-            ) : isPro ? (
+            ) : isFoundation ? (
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
-                Pro
+                Foundation
               </span>
             ) : (
               <Link
                 href="/pricing"
                 className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                <span>Free Tier</span>
+                <span>Free Plan</span>
                 <span className="text-[10px] text-brand-600 font-extrabold uppercase">Upgrade</span>
               </Link>
             )}

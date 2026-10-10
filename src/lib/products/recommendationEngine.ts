@@ -1,6 +1,7 @@
 import type { BusinessProfile } from '../../types/business.ts';
 import type { RoadmapResult } from '../roadmap/types.ts';
 import type { Product, RecommendedProduct, MatchLabel, MatchIndicator, BankingFitInfo } from '../../types/product.ts';
+import { DEFAULT_PRODUCTS } from './catalog.ts';
 
 /**
  * Normalizes provider name for robust deduplication across catalogs.
@@ -38,11 +39,12 @@ export function getNormalizedProviderKey(name: string, category: string, slug?: 
 export function getRecommendedProducts(
   business: Partial<BusinessProfile> | null,
   roadmap: RoadmapResult | null,
-  products: Product[],
+  products?: Product[] | null,
   fundingReadinessScore: number = 50
 ): RecommendedProduct[] {
   const p = business || {};
-  const activeProducts = products.filter((prod) => prod.status === 'active');
+  const activeProducts = (products && Array.isArray(products) && products.length > 0 ? products : DEFAULT_PRODUCTS)
+    .filter((prod) => prod.status === 'active');
 
   const hasEIN = p.hasEIN === 'yes';
   const hasBank = p.hasBusinessBankAccount === 'yes';

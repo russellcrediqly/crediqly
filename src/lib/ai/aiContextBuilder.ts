@@ -40,7 +40,9 @@ export function buildSafeCustomerAIContext(options: BuildContextOptions): SafeCu
     business,
     completedTasks = business?.completedDbTasks || [],
     fundingProducts = [],
-    subscriptionTier = options.isGuided || options.isAdvisory ? 'Guided' : 'Free',
+    subscriptionTier =
+      options.subscriptionTier ||
+      (options.isGuided || options.isAdvisory ? 'Guided' : options.isFoundation || options.isPro ? 'Foundation' : 'Free'),
     isAdvisory = Boolean(options.isGuided || options.isAdvisory || subscriptionTier === 'Guided' || subscriptionTier === 'Premium Advisory'),
     roadmap,
   } = options;

@@ -198,8 +198,8 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
           </div>
         </div>
 
-        {/* Premium Advisory Mode Switcher (If Advisory Tier) */}
-        {isAdvisory && (
+        {/* Guided Strategy Mode Switcher (If Guided Tier) */}
+        {hasGuided && (
           <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
             <button
               onClick={() => setActiveTab('advisor')}
@@ -548,9 +548,9 @@ export const CrediqlyAIMentorCard: React.FC<CrediqlyAIMentorCardProps> = ({
         )}
 
         {/* ================================================================= */}
-        {/* TAB 2: ADVISORY MEETING PREP (For Premium Advisory Members)        */}
+        {/* TAB 2: GUIDED STRATEGY MEETING PREP (For Guided Members)          */}
         {/* ================================================================= */}
-        {activeTab === 'prep' && isAdvisory && (
+        {activeTab === 'prep' && hasGuided && (
           <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-50/60 via-white to-white border-2 border-purple-200 shadow-xs space-y-6">
             <div className="flex items-center justify-between gap-3 border-b border-purple-100 pb-4">
               <div className="flex items-center gap-3">

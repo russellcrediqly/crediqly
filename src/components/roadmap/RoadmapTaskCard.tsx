@@ -34,9 +34,10 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
   onRequestReopen,
   isNextBest = false,
 }) => {
-  const { isPro } = useSubscription();
+  const { isFoundation, isPro } = useSubscription();
+  const hasFoundation = isFoundation || isPro;
   const isCompleted = task.status === 'completed';
-  const isLocked = !isPro && task.stage !== 'foundation';
+  const isLocked = !hasFoundation && task.stage !== 'foundation';
   const stageMeta = STAGE_DEFINITIONS[task.stage];
 
   const priorityColor =
@@ -122,7 +123,7 @@ export const RoadmapTaskCard: React.FC<RoadmapTaskCardProps> = ({
                 {isLocked && !isCompleted && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                     <Lock className="w-2.5 h-2.5 text-amber-600" />
-                    <span>Pro Milestone</span>
+                    <span>Foundation Milestone</span>
                   </span>
                 )}
               </div>
