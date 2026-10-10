@@ -1,6 +1,6 @@
 {
   "name": "crediqly",
-  "version": "3.8.143",
+  "version": "3.8.145",
   "private": true,
   "scripts": {
     "dev": "next dev",

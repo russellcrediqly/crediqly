@@ -4,21 +4,27 @@ import { INITIAL_CONTENT_PAGES } from '@/lib/content/initialContent';
 
 const CONTENT_STORAGE_KEY = 'crediqly_admin_content';
 
+let inMemoryContent: ContentPage[] = [...INITIAL_CONTENT_PAGES];
+
 function getLocalContent(): ContentPage[] {
-  if (typeof window === 'undefined') return INITIAL_CONTENT_PAGES;
+  if (typeof window === 'undefined') return [...inMemoryContent];
   try {
     const raw = localStorage.getItem(CONTENT_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        inMemoryContent = parsed;
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn('Failed to parse local content:', e);
   }
-  return INITIAL_CONTENT_PAGES;
+  return [...inMemoryContent];
 }
 
 function saveLocalContent(content: ContentPage[]): void {
+  inMemoryContent = [...content];
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(content));

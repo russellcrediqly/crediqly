@@ -40,6 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { useAuth } from '@/context/AuthContext';
 import {
   getAdminUserDetail,
   updateAdminUserStatus,
@@ -90,6 +91,8 @@ export default function AdminCustomerDetailPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params?.id as string;
+  const { user: currentAdmin } = useAuth();
+  const currentAdminEmail = currentAdmin?.email || 'admin@crediqly.com';
 
   const [userDetail, setUserDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,7 +193,7 @@ export default function AdminCustomerDetailPage() {
       if (!nameRes.success) throw new Error(nameRes.error || 'Failed to update user profile information');
 
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_USER_PROFILE',
         entityType: 'customer',
         entityId: userDetail.profile.userId,
@@ -224,7 +227,7 @@ export default function AdminCustomerDetailPage() {
       if (!res.success) throw new Error(res.error || 'Failed to update business profile');
 
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_BUSINESS_PROFILE',
         entityType: 'customer',
         entityId: userDetail.profile.userId,
@@ -255,7 +258,7 @@ export default function AdminCustomerDetailPage() {
       const res = await triggerAdminPasswordReset(userDetail.profile.email);
       if (res.success) {
         await logAdminAction({
-          adminEmail: 'crediqly@gmail.com',
+          adminEmail: currentAdminEmail,
           action: 'TRIGGER_PASSWORD_RESET',
           entityType: 'customer',
           entityId: userDetail.profile.userId,
@@ -324,7 +327,7 @@ export default function AdminCustomerDetailPage() {
         durationMonths: grantDuration > 0 ? grantDuration : undefined,
         isIndefinite: grantDuration === 0,
         reason: grantReason.trim(),
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
       });
       setFeedback({
         type: 'success',
@@ -352,7 +355,7 @@ export default function AdminCustomerDetailPage() {
       await revokeAdminPlanAccess({
         userId,
         reason: revokeReason.trim(),
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
       });
       setFeedback({
         type: 'success',
@@ -381,7 +384,7 @@ export default function AdminCustomerDetailPage() {
         userId,
         additionalMonths: extendMonths,
         reason: extendReason.trim(),
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
       });
       setFeedback({
         type: 'success',
@@ -405,7 +408,7 @@ export default function AdminCustomerDetailPage() {
     try {
       const created = await addAdminCustomerNote({
         userId,
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         content: newNoteContent.trim(),
       });
       setNotes((prev) => [created, ...prev]);
@@ -423,7 +426,7 @@ export default function AdminCustomerDetailPage() {
       await deleteAdminCustomerNote({
         noteId,
         userId,
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
       });
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
       setFeedback({ type: 'success', message: 'Internal note deleted.' });

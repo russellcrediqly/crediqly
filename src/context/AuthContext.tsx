@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
-import { UserRole, AccountStatus } from '@/types/user';
+import { UserRole, AccountStatus, isAuthorizedAdminEmail } from '@/types/user';
 import { updateCustomerProfile } from '@/lib/supabase/profileService';
 import { isProfileInformationComplete } from '@/types/business';
 
@@ -113,8 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {}
     }
 
-    // Dedicated Administrator Account (Step 8 / Section 21)
-    if (email.toLowerCase() === 'crediqly@gmail.com') {
+    // Dedicated Administrator Accounts (crediqly@gmail.com, raselandahmed@gmail.com, etc.)
+    if (isAuthorizedAdminEmail(email)) {
       role = 'admin';
     }
 
@@ -374,7 +374,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {};
     } else {
       // Local fallback mode
-      const role: UserRole = email.toLowerCase() === 'crediqly@gmail.com'
+      const role: UserRole = isAuthorizedAdminEmail(email)
         ? 'admin'
         : (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true' ? 'admin' : 'user');
 

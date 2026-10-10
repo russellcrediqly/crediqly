@@ -33,6 +33,7 @@ import { STAGE_DEFINITIONS, TASK_DEFINITIONS, BaseTaskDefinition } from '@/lib/r
 import type { RoadmapStageId, TaskPriority } from '@/lib/roadmap/types';
 import type { RoadmapAdminSettings } from '@/types/settings';
 import { logAdminAction } from '@/lib/supabase/adminAuditService';
+import { useAuth } from '@/context/AuthContext';
 
 const STAGE_KEYS: RoadmapStageId[] = [
   'foundation',
@@ -43,6 +44,9 @@ const STAGE_KEYS: RoadmapStageId[] = [
 ];
 
 export default function AdminRoadmapManagementPage() {
+  const { user: currentAdmin } = useAuth();
+  const currentAdminEmail = currentAdmin?.email || 'admin@crediqly.com';
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [roadmapSettings, setRoadmapSettings] = useState<RoadmapAdminSettings>({
@@ -116,7 +120,7 @@ export default function AdminRoadmapManagementPage() {
     try {
       await updateRoadmapSettings(updated);
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'TOGGLE_ROADMAP_STAGE',
         entityType: 'roadmap',
         entityId: stageId,
@@ -142,7 +146,7 @@ export default function AdminRoadmapManagementPage() {
     try {
       await updateRoadmapSettings(updated);
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_ROADMAP_MILESTONE',
         entityType: 'roadmap',
         entityId: taskKey,
@@ -208,7 +212,7 @@ export default function AdminRoadmapManagementPage() {
 
       await updateRoadmapSettings(updated);
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_ROADMAP_MILESTONE',
         entityType: 'roadmap',
         entityId: editingTaskKey,
@@ -237,7 +241,7 @@ export default function AdminRoadmapManagementPage() {
     try {
       await updateRoadmapSettings(updated);
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_ROADMAP_MILESTONE',
         entityType: 'roadmap',
         entityId: taskKey,

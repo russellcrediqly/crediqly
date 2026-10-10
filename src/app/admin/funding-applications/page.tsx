@@ -26,6 +26,7 @@ import {
   updateFundingApplication,
 } from '@/lib/supabase/fundingApplicationService';
 import { logAdminAction } from '@/lib/supabase/adminAuditService';
+import { useAuth } from '@/context/AuthContext';
 import { FundingApplication, FundingApplicationStatus } from '@/types/fundingApplication';
 
 const ALL_STATUSES: FundingApplicationStatus[] = [
@@ -63,6 +64,9 @@ function getStatusBadge(status: FundingApplicationStatus) {
 }
 
 export default function AdminFundingApplicationsPage() {
+  const { user: currentAdmin } = useAuth();
+  const currentAdminEmail = currentAdmin?.email || 'admin@crediqly.com';
+
   const [applications, setApplications] = useState<(FundingApplication & { userEmail?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,7 +164,7 @@ export default function AdminFundingApplicationsPage() {
       });
 
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_APPLICATION_STATUS',
         entityType: 'funding_application',
         entityId: selectedApp.id,

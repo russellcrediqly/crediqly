@@ -1096,5 +1096,27 @@ alter table public.subscriptions add column if not exists granted_at timestamptz
 alter table public.subscriptions add column if not exists expires_at timestamptz;
 alter table public.subscriptions add column if not exists billing_status text default 'free';
 
+-- ==============================================================================
+-- 27. AUTHORIZED ADMINISTRATOR INITIALIZATION & SECURITY DEFINER TRIGGER
+-- Automatically provisions and verifies administrator role for authorized owners:
+-- crediqly@gmail.com and raselandahmed@gmail.com
+-- ==============================================================================
+create or replace function public.handle_admin_role_assignment()
+returns trigger as $$
+begin
+  if lower(trim(coalesce(new.email, ''))) in ('crediqly@gmail.com', 'raselandahmed@gmail.com', 'founder@crediqly.com', 'admin@crediqly.com') then
+    new.role := 'admin';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
 
+drop trigger if exists trigger_assign_admin_role on public.profiles;
+create trigger trigger_assign_admin_role
+  before insert or update on public.profiles
+  for each row execute function public.handle_admin_role_assignment();
 
+-- Ensure existing profile rows for authorized owners have admin role
+update public.profiles
+set role = 'admin'
+where lower(trim(coalesce(email, ''))) in ('crediqly@gmail.com', 'raselandahmed@gmail.com', 'founder@crediqly.com', 'admin@crediqly.com');

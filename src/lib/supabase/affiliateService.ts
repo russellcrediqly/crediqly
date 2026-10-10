@@ -131,21 +131,27 @@ export const DEFAULT_AFFILIATES: AffiliatePartner[] = [
   },
 ];
 
+let inMemoryAffiliates: AffiliatePartner[] = [...DEFAULT_AFFILIATES];
+
 function getLocalAffiliates(): AffiliatePartner[] {
-  if (typeof window === 'undefined') return DEFAULT_AFFILIATES;
+  if (typeof window === 'undefined') return [...inMemoryAffiliates];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        inMemoryAffiliates = parsed;
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn('Failed to parse local affiliates:', e);
   }
-  return DEFAULT_AFFILIATES;
+  return [...inMemoryAffiliates];
 }
 
 function saveLocalAffiliates(affiliates: AffiliatePartner[]): void {
+  inMemoryAffiliates = [...affiliates];
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(affiliates));

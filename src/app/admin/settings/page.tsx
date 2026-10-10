@@ -28,6 +28,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
+import { AUTHORIZED_ADMIN_EMAILS } from '@/types/user';
 import { DashboardSectionControls } from '@/components/admin/DashboardSectionControls';
 import {
   getPlatformSettings,
@@ -810,9 +811,9 @@ export default function AdminSettingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-slate-400 block text-[11px]">Primary Admin Email</span>
+              <span className="text-slate-400 block text-[11px]">Active Admin Session</span>
               <span className="font-mono text-white font-semibold">
-                {user?.email || 'crediqly@gmail.com'}
+                {user?.email || 'admin@crediqly.com'}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
@@ -820,6 +821,16 @@ export default function AdminSettingsPage() {
               <div className="flex items-center gap-1.5 text-brand-400 font-semibold uppercase">
                 <span>{user?.role || 'admin'}</span>
                 <span className="text-[10px] text-slate-500 font-normal lowercase">(full read & write permissions)</span>
+              </div>
+            </div>
+            <div className="sm:col-span-2 p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+              <span className="text-slate-400 block text-[11px]">Authorized System Owner Accounts</span>
+              <div className="flex flex-wrap gap-2">
+                {AUTHORIZED_ADMIN_EMAILS.map((adminEmail) => (
+                  <Badge key={adminEmail} variant="neutral" className="bg-slate-800 text-slate-300 font-mono text-[11px]">
+                    {adminEmail}
+                  </Badge>
+                ))}
               </div>
             </div>
           </div>

@@ -40,6 +40,19 @@ import { getAdminUsers, getAdminUserDetail } from '../src/lib/supabase/adminServ
 import { isProfileInformationComplete } from '../src/types/business';
 import { verifyAdminRequest } from '../src/lib/auth/adminAuth';
 import { getPlatformSettings, updateSectionVisibility } from '../src/lib/supabase/settingsService';
+import { isAuthorizedAdminEmail, AUTHORIZED_ADMIN_EMAILS } from '../src/types/user';
+import {
+  createAffiliateAdmin,
+  updateAffiliateAdmin,
+  getActiveAffiliatesByLocation,
+  deleteAffiliateAdmin,
+} from '../src/lib/supabase/affiliateService';
+import {
+  getContentPages,
+  createContentAdmin,
+  updateContentAdmin,
+  deleteContentAdmin,
+} from '../src/lib/supabase/contentService';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -428,6 +441,92 @@ async function runVerification() {
 
   // Restore roadmap section
   await updateSectionVisibility('roadmap', true, adminEmail);
+
+  // 16. Scenario: Authorized Administrator Owner Access & Public Account Protection
+  console.log('\n--- Phase 13: Authorized Administrator Owner Access ---');
+  assert(
+    isAuthorizedAdminEmail('crediqly@gmail.com') && isAuthorizedAdminEmail('CREDIQLY@GMAIL.COM'),
+    'Authorized Owner Account #1 (crediqly@gmail.com) verified with case-insensitivity',
+    'Owner 1 verified'
+  );
+  assert(
+    isAuthorizedAdminEmail('raselandahmed@gmail.com') && isAuthorizedAdminEmail('RaselAndAhmed@Gmail.Com'),
+    'Authorized Owner Account #2 (raselandahmed@gmail.com) verified with case-insensitivity',
+    'Owner 2 verified'
+  );
+  assert(
+    !isAuthorizedAdminEmail('customer@example.com') &&
+      !isAuthorizedAdminEmail('admin@fakecompany.com') &&
+      !isAuthorizedAdminEmail(null),
+    'Non-authorized customer accounts and spoofed claims are strictly rejected from admin roles',
+    'Verified ordinary accounts rejected'
+  );
+
+  // 17. Scenario: Affiliate Recommendation Management & Disabled Placement Suppression
+  console.log('\n--- Phase 14: Affiliate Recommendations Management ---');
+  const testAffiliate = await createAffiliateAdmin({
+    name: 'Test Commercial Credit Line',
+    description: 'High-limit unsecured revolving credit line for vetted LLCs.',
+    affiliateUrl: 'https://partner.com/apply?ref=crediqly',
+    category: 'funding',
+    displayLocation: 'dashboard_banner',
+    priority: 1,
+    status: 'active',
+    featured: true,
+    ctaText: 'Apply Now',
+  });
+
+  const activeBannersBefore = await getActiveAffiliatesByLocation('dashboard_banner');
+  assert(
+    activeBannersBefore.some((a) => a.id === testAffiliate.id),
+    'Active affiliate recommendation successfully renders in customer placement',
+    `Found ${testAffiliate.name} in active dashboard banners`
+  );
+
+  // Deactivate affiliate partner
+  await updateAffiliateAdmin(testAffiliate.id, { status: 'inactive' });
+  const activeBannersAfter = await getActiveAffiliatesByLocation('dashboard_banner');
+  assert(
+    !activeBannersAfter.some((a) => a.id === testAffiliate.id),
+    'Disabled affiliate recommendations are strictly suppressed from customer-facing placements',
+    'Disabled partner excluded from active customer queries'
+  );
+
+  // Cleanup test affiliate
+  await deleteAffiliateAdmin(testAffiliate.id);
+
+  // 18. Scenario: Website Content & Resource Management
+  console.log('\n--- Phase 15: Website Content & Resource Management ---');
+  const testContentSlug = `guide-test-${Date.now()}`;
+  const createRes = await createContentAdmin({
+    slug: testContentSlug,
+    title: 'Comprehensive Vendor Tradelines Playbook',
+    shortDescription: 'How to sequence Tier 1 Net-30 accounts to build a 80+ Paydex score.',
+    content: 'Full educational content detailing trade reference requirements and D&B reporting cadence.',
+    category: 'business_credit',
+    status: 'published',
+    featured: true,
+  });
+  const testPage = createRes.contentPage!;
+
+  const publishedGuidesBefore = await getContentPages('business_credit');
+  assert(
+    publishedGuidesBefore.some((p) => p.slug === testContentSlug),
+    'Published educational guide appears in customer-facing resource directory',
+    `Verified guide published at slug: ${testContentSlug}`
+  );
+
+  // Update status to draft
+  await updateContentAdmin(testPage.id, { status: 'draft' });
+  const publishedGuidesAfter = await getContentPages('business_credit');
+  assert(
+    !publishedGuidesAfter.some((p) => p.slug === testContentSlug),
+    'Unpublished/draft content is strictly withheld from customer view',
+    'Draft guide filtered from public customer queries'
+  );
+
+  // Cleanup test content
+  await deleteContentAdmin(testPage.id);
 
   console.log('\n======================================================');
   console.log(`  VERIFICATION RESULTS: ${passedTests}/${totalTests} TESTS PASSED  `);

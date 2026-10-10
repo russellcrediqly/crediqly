@@ -1,25 +1,10 @@
 import { NextRequest } from 'next/server';
+import { AUTHORIZED_ADMIN_EMAILS, isAuthorizedAdminEmail } from '@/types/user';
 
-/**
- * Server-side Admin Role Verification
- * 
- * Verifies if a request or user is authorized as an administrator.
- */
+export { AUTHORIZED_ADMIN_EMAILS, isAuthorizedAdminEmail };
 
-// Dedicated administrator accounts
-export const ADMIN_EMAILS = [
-  'crediqly@gmail.com',
-  'founder@crediqly.com',
-  'admin@crediqly.com',
-];
-
-/**
- * Checks if a given email is a recognized administrator email
- */
-export function isAuthorizedAdminEmail(email?: string | null): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
-}
+// Dedicated administrator accounts (includes crediqly@gmail.com and raselandahmed@gmail.com)
+export const ADMIN_EMAILS = AUTHORIZED_ADMIN_EMAILS;
 
 /**
  * Verifies if an incoming NextRequest possesses admin credentials.

@@ -27,6 +27,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { useAuth } from '@/context/AuthContext';
 import {
   getAffiliatesAdmin,
   createAffiliateAdmin,
@@ -57,6 +58,9 @@ const LOCATION_OPTIONS: { id: AffiliateDisplayLocation; label: string }[] = [
 ];
 
 export default function AdminAffiliatesPage() {
+  const { user: currentAdmin } = useAuth();
+  const currentAdminEmail = currentAdmin?.email || 'admin@crediqly.com';
+
   const [affiliates, setAffiliates] = useState<AffiliatePartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -178,7 +182,7 @@ export default function AdminAffiliatesPage() {
       if (editingAffiliate) {
         await updateAffiliateAdmin(editingAffiliate.id, payload);
         await logAdminAction({
-          adminEmail: 'crediqly@gmail.com',
+          adminEmail: currentAdminEmail,
           action: 'UPDATE_AFFILIATE',
           entityType: 'affiliate',
           entityId: editingAffiliate.id,
@@ -191,7 +195,7 @@ export default function AdminAffiliatesPage() {
       } else {
         const created = await createAffiliateAdmin(payload);
         await logAdminAction({
-          adminEmail: 'crediqly@gmail.com',
+          adminEmail: currentAdminEmail,
           action: 'CREATE_AFFILIATE',
           entityType: 'affiliate',
           entityId: created.id,
@@ -218,7 +222,7 @@ export default function AdminAffiliatesPage() {
     try {
       await updateAffiliateAdmin(partner.id, { status: newStatus });
       await logAdminAction({
-        adminEmail: 'crediqly@gmail.com',
+        adminEmail: currentAdminEmail,
         action: 'UPDATE_AFFILIATE',
         entityType: 'affiliate',
         entityId: partner.id,
@@ -243,7 +247,7 @@ export default function AdminAffiliatesPage() {
       await deleteAffiliateAdmin(id);
       if (partner) {
         await logAdminAction({
-          adminEmail: 'crediqly@gmail.com',
+          adminEmail: currentAdminEmail,
           action: 'DELETE_AFFILIATE',
           entityType: 'affiliate',
           entityId: id,

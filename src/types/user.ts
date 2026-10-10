@@ -1,6 +1,18 @@
 export type UserRole = 'admin' | 'staff' | 'user';
 export type AccountStatus = 'active' | 'disabled' | 'suspended';
 
+export const AUTHORIZED_ADMIN_EMAILS = [
+  'crediqly@gmail.com',
+  'raselandahmed@gmail.com',
+  'founder@crediqly.com',
+  'admin@crediqly.com',
+] as const;
+
+export function isAuthorizedAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(email.trim().toLowerCase() as any);
+}
+
 export interface UpdateProfileInput {
   firstName: string;
   lastName: string;
