@@ -51,21 +51,53 @@ export default function ForgotPasswordPage() {
           <CardContent className="p-6 sm:p-8">
             {message ? (
               <div className="text-center space-y-4 py-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-medium text-slate-700">{message}</p>
-                <Link href="/signin" className="inline-block pt-2">
-                  <Button variant="outline" size="sm">
-                    Return to Sign In
-                  </Button>
-                </Link>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Check Your Inbox</h3>
+                  <p className="text-sm font-medium text-slate-700 mt-1">{message}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-left text-xs text-slate-600 space-y-1.5">
+                  <div className="font-semibold text-slate-800">Important Delivery Notes:</div>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Recovery emails usually arrive within 1-2 minutes.</li>
+                    <li>Be sure to check your <strong>Spam</strong>, <strong>Junk</strong>, and <strong>Promotions</strong> folders.</li>
+                    <li>The recovery link will direct you to the secure password reset page.</li>
+                  </ul>
+                </div>
+                <div className="pt-2 flex flex-col gap-2">
+                  <Link href="/signin">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Return to Sign In
+                    </Button>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => { setMessage(null); setError(null); }}
+                    className="text-xs text-brand-600 hover:text-brand-700 font-semibold"
+                  >
+                    Send to a different email address
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                    {error}
+                  <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium space-y-2">
+                    <div>{error}</div>
+                    {error.includes('supabase.com') && (
+                      <div className="pt-1">
+                        <a
+                          href="https://supabase.com/dashboard/project/dfdvmegzwgogonefjihs"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold underline text-rose-800 hover:text-rose-900 inline-flex items-center gap-1"
+                        >
+                          Open Supabase Dashboard &rarr;
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 

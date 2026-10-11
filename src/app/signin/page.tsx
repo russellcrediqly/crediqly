@@ -94,8 +94,20 @@ export default function SignInPage() {
           <CardContent className="p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                  {error}
+                <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium space-y-1.5">
+                  <div>{error}</div>
+                  {error.includes('supabase.com') && (
+                    <div className="pt-1">
+                      <a
+                        href="https://supabase.com/dashboard/project/dfdvmegzwgogonefjihs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold underline text-rose-800 hover:text-rose-900 inline-flex items-center gap-1"
+                      >
+                        Open Supabase Dashboard to Resume Project &rarr;
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

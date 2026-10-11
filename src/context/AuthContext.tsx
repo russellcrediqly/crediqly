@@ -339,7 +339,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        return { error: error.message };
+        const msg = error.message || '';
+        if (
+          msg.includes('fetch') ||
+          msg.includes('network') ||
+          msg.includes('Failed to fetch') ||
+          msg.includes('NetworkError')
+        ) {
+          return {
+            error:
+              'Unable to reach authentication server. If your Supabase database project is paused due to inactivity, please visit https://supabase.com/dashboard/project/dfdvmegzwgogonefjihs and click "Resume project".',
+          };
+        }
+        if (msg.toLowerCase().includes('invalid login credentials')) {
+          return {
+            error:
+              'Invalid email or password. Please verify your credentials or use "Forgot password" to reset your password.',
+          };
+        }
+        return { error: msg };
       }
 
       if (data.user) {
@@ -516,15 +534,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     if (isSupabaseConfigured && supabase) {
+      const canonicalOrigin =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_APP_URL || 'https://crediqly.vercel.app');
+      const redirectTo = `${canonicalOrigin}/reset-password`;
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo,
       });
+
       if (error) {
-        return { error: error.message };
+        const msg = error.message || '';
+        if (
+          msg.includes('fetch') ||
+          msg.includes('network') ||
+          msg.includes('Failed to fetch') ||
+          msg.includes('NetworkError')
+        ) {
+          return {
+            error:
+              'Unable to reach authentication server. If your Supabase database project is paused due to inactivity, please unpause it at https://supabase.com/dashboard/project/dfdvmegzwgogonefjihs so recovery emails can be delivered.',
+          };
+        }
+        return { error: msg };
       }
       return { message: 'Password reset instructions have been sent to your email.' };
     } else {
-      return { message: 'Password reset simulated. Check your email inbox.' };
+      return {
+        error:
+          'Password recovery is currently unavailable because the authentication service is not connected. Please verify your Supabase environment variables.',
+      };
     }
   };
 
