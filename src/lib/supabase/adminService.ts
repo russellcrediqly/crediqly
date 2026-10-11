@@ -5,7 +5,7 @@ import {
   AdminUserFilters,
   AdminOverviewStats,
 } from '@/types/admin';
-import { UserRole, AccountStatus } from '@/types/user';
+import { UserRole, AccountStatus, isAuthorizedAdminEmail } from '@/types/user';
 import { BusinessProfile } from '@/types/business';
 import { AccessSource, GrantType } from '@/types/subscription';
 import { calculateReadiness } from '@/lib/scoring';
@@ -138,136 +138,379 @@ const DEMO_ADMIN_USERS: AdminUserListItem[] = [
   },
 ];
 
+export const inMemoryAdminUsers: AdminUserListItem[] = [];
+
 /**
- * Fetches all users for the Admin Directory
+ * Register an in-memory user record (used in test runners, local sandbox, and live session updates)
+ */
+export function registerInMemoryUser(user: AdminUserListItem): void {
+  const existing = inMemoryAdminUsers.findIndex((u) => u.userId === user.userId || u.id === user.id);
+  if (existing >= 0) {
+    inMemoryAdminUsers[existing] = user;
+  } else {
+    inMemoryAdminUsers.unshift(user);
+  }
+}
+
+/**
+ * Fetches all users for the Admin Directory.
+ * Performs a comprehensive union and reconciliation across:
+ * 1. public.profiles
+ * 2. public.businesses (includes customers with incomplete profiles or unjoined accounts)
+ * 3. public.subscriptions (includes paying subscribers and manual grants)
+ * 4. public.payments (includes one-time and recurring payment accounts)
+ * 5. public.consultations & funding_applications
+ * 6. Local persistent and in-memory registrations
+ *
+ * Guarantees zero silent omissions: any legitimate registered account appears with clear indicators.
  */
 export async function getAdminUsers(filters?: Partial<AdminUserFilters>): Promise<AdminUserListItem[]> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      // 1. Fetch profiles
-      const { data: profiles, error: pError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const localRegistryUsers: AdminUserListItem[] = [...inMemoryAdminUsers];
 
-      if (pError || !profiles || profiles.length === 0) {
-        return filterUsers(DEMO_ADMIN_USERS, filters);
+  // In browser environment, load registered users from localStorage cache
+  if (typeof window !== 'undefined') {
+    try {
+      const rawReg = localStorage.getItem('crediqly_registered_users');
+      if (rawReg) {
+        const parsed = JSON.parse(rawReg);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((u: any) => {
+            if (u && (u.id || u.userId) && !localRegistryUsers.some((x) => x.userId === (u.userId || u.id))) {
+              localRegistryUsers.push({
+                id: u.id || `usr_${Date.now()}`,
+                userId: u.userId || u.id,
+                email: u.email || 'customer@crediqly.com',
+                firstName: u.firstName || '',
+                lastName: u.lastName || '',
+                fullName: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email?.split('@')[0] || 'User',
+                role: u.role || 'user',
+                status: u.status || 'active',
+                createdAt: u.createdAt || new Date().toISOString(),
+                updatedAt: u.updatedAt || new Date().toISOString(),
+                profileCompleted: false,
+                plan: 'free',
+                accessSource: 'free',
+                billingStatus: 'free',
+              });
+            }
+          });
+        }
       }
 
-      // 2. Fetch businesses, readiness scores, subscriptions, consultations, and funding applications in parallel
+      // Also check individual cached user profiles
+      const userKey = localStorage.getItem('crediqly_local_user');
+      if (userKey) {
+        const parsedUser = JSON.parse(userKey);
+        if (parsedUser && parsedUser.id && !localRegistryUsers.some((x) => x.userId === parsedUser.id)) {
+          localRegistryUsers.push({
+            id: parsedUser.id,
+            userId: parsedUser.id,
+            email: parsedUser.email || 'customer@crediqly.com',
+            firstName: parsedUser.firstName || '',
+            lastName: parsedUser.lastName || '',
+            fullName: parsedUser.name || `${parsedUser.firstName || ''} ${parsedUser.lastName || ''}`.trim() || parsedUser.email?.split('@')[0] || 'User',
+            role: parsedUser.role || 'user',
+            status: parsedUser.status || 'active',
+            createdAt: parsedUser.createdAt || new Date().toISOString(),
+            updatedAt: parsedUser.updatedAt || new Date().toISOString(),
+            profileCompleted: false,
+            plan: 'free',
+            accessSource: 'free',
+            billingStatus: 'free',
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read local registry users:', e);
+    }
+  }
+
+  // 1. Privileged Server-Side Query Execution (Node environment)
+  let authUsers: any[] = [];
+  let privilegedData: any = null;
+  let usedServerPrivileges = false;
+
+  if (typeof window === 'undefined') {
+    try {
+      const adminServer = await import('./adminServer');
+      if (adminServer.isServiceRoleConfigured()) {
+        const authRes = await adminServer.fetchAuthoritativeAuthUsers();
+        if (authRes.users && authRes.users.length > 0) {
+          authUsers = authRes.users;
+        }
+        privilegedData = await adminServer.fetchPrivilegedDatabaseTables();
+        if (privilegedData) {
+          usedServerPrivileges = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Privileged server-side user lookup bypassed:', e);
+    }
+  }
+
+  let profiles: any[] = privilegedData?.profiles || [];
+  let businesses: any[] = privilegedData?.businesses || [];
+  let scores: any[] = privilegedData?.scores || [];
+  let subscriptions: any[] = privilegedData?.subscriptions || [];
+  let consultations: any[] = privilegedData?.consultations || [];
+  let fundingApps: any[] = privilegedData?.fundingApps || [];
+  let payments: any[] = privilegedData?.payments || [];
+
+  if (!usedServerPrivileges && isSupabaseConfigured && supabase) {
+    try {
       const [
-        { data: businesses },
-        { data: scores },
-        { data: subscriptions },
-        { data: consultations },
-        { data: fundingApps },
+        { data: pData, error: pError },
+        { data: bData, error: bError },
+        { data: sData, error: sError },
+        { data: subData, error: subError },
+        { data: cData },
+        { data: aData },
+        { data: payData },
       ] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('businesses').select('*'),
         supabase.from('readiness_scores').select('*'),
         supabase.from('subscriptions').select('*'),
         supabase.from('consultations').select('*').order('created_at', { ascending: false }),
         supabase.from('funding_applications').select('*'),
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
       ]);
 
-      const bizMap = new Map((businesses || []).map((b) => [b.user_id, b]));
-      const scoreMap = new Map((scores || []).map((s) => [s.user_id, s]));
-      const subMap = new Map((subscriptions || []).map((s) => [s.user_id, s]));
+      if (pError) console.warn('Profiles fetch warning:', pError.message);
+      if (bError) console.warn('Businesses fetch warning:', bError.message);
+      if (subError) console.warn('Subscriptions fetch warning:', subError.message);
 
-      const consultMap = new Map<string, any[]>();
-      (consultations || []).forEach((c) => {
-        if (!consultMap.has(c.user_id)) consultMap.set(c.user_id, []);
-        consultMap.get(c.user_id)!.push(c);
-      });
-
-      const appsMap = new Map<string, any[]>();
-      (fundingApps || []).forEach((a) => {
-        if (!appsMap.has(a.user_id)) appsMap.set(a.user_id, []);
-        appsMap.get(a.user_id)!.push(a);
-      });
-
-      const mapped: AdminUserListItem[] = profiles.map((p) => {
-        const b = bizMap.get(p.user_id);
-        const s = scoreMap.get(p.user_id);
-        const sub = subMap.get(p.user_id);
-
-        const rawPlan = (sub?.plan || sub?.plan_id || 'free').toLowerCase();
-        let plan: 'free' | 'foundation' | 'guided' = 'free';
-        if (rawPlan === 'guided' || rawPlan === 'premium_advisory' || rawPlan === 'intensive') {
-          plan = 'guided';
-        } else if (rawPlan === 'foundation' || rawPlan === 'pro' || rawPlan.includes('pro')) {
-          plan = 'foundation';
-        }
-
-        const provider = sub?.provider || (sub?.stripe_subscription_id ? 'stripe' : 'none');
-        let accessSource: AccessSource = (sub?.access_source as AccessSource) || 'free';
-        if (!sub?.access_source) {
-          if (provider === 'stripe') {
-            accessSource = sub?.stripe_subscription_id ? 'stripe_subscription' : 'stripe_onetime';
-          } else if (provider === 'admin') {
-            accessSource = sub?.grant_type === 'complimentary' ? 'complimentary' : 'admin_grant';
-          } else if (plan === 'free') {
-            accessSource = 'free';
-          }
-        }
-
-        const isAdvisory = (plan === 'guided') && (sub?.status === 'active' || sub?.status === 'trialing');
-        const userConsults = consultMap.get(p.user_id) || [];
-        const latestConsult = userConsults[0];
-        const userApps = appsMap.get(p.user_id) || [];
-
-        const fName = p.first_name || '';
-        const lName = p.last_name || '';
-        const fullName = `${fName} ${lName}`.trim() || p.email.split('@')[0];
-
-        return {
-          id: p.id,
-          userId: p.user_id,
-          email: p.email,
-          firstName: fName,
-          lastName: lName,
-          fullName,
-          role: (p.role as UserRole) || 'user',
-          status: (p.status as AccountStatus) || 'active',
-          createdAt: p.created_at,
-          updatedAt: p.updated_at,
-          businessId: b?.id,
-          businessName: b?.business_name,
-          entityType: b?.entity_type,
-          state: b?.state,
-          industry: b?.industry,
-          businessAge: b?.business_age,
-          profileCompleted: Boolean(b?.profile_completed),
-          businessReadinessScore: s?.business_readiness_score ?? b?.business_readiness_score,
-          creditReadinessScore: s?.credit_readiness_score ?? b?.credit_readiness_score,
-          fundingReadinessScore: b?.funding_readiness_score != null ? Number(b.funding_readiness_score) : undefined,
-          businessReadinessLevel: s?.business_readiness_level,
-          creditReadinessLevel: s?.credit_readiness_level,
-          fundingReadinessLevel: b?.funding_readiness_level,
-          plan,
-          subscriptionStatus: sub?.status || 'free',
-          accessSource,
-          grantType: sub?.grant_type,
-          grantedBy: sub?.granted_by,
-          grantReason: sub?.grant_reason,
-          expiresAt: sub?.expires_at || sub?.current_period_end,
-          billingStatus: sub?.billing_status || (provider === 'stripe' ? sub?.status : provider === 'admin' ? accessSource : 'free'),
-          stripeCustomerId: sub?.stripe_customer_id,
-          stripeSubscriptionId: sub?.stripe_subscription_id,
-          isAdvisory,
-          advisoryStatus: latestConsult ? latestConsult.status : 'None',
-          fundingApplicationsCount: userApps.length,
-          lastSeenAt: p.last_seen_at,
-        };
-      });
-
-      return filterUsers(mapped, filters);
+      if (pData) profiles = pData;
+      if (bData) businesses = bData;
+      if (sData) scores = sData;
+      if (subData) subscriptions = subData;
+      if (cData) consultations = cData;
+      if (aData) fundingApps = aData;
+      if (payData) payments = payData;
     } catch (err) {
-      console.warn('Supabase admin fetch fallback:', err);
-      return filterUsers(DEMO_ADMIN_USERS, filters);
+      console.warn('Supabase public client queries failed:', err);
     }
   }
 
-  return filterUsers(DEMO_ADMIN_USERS, filters);
+  try {
+    const authUserMap = new Map(authUsers.map((u) => [u.id, u]));
+    const profMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+    const bizMap = new Map((businesses || []).map((b) => [b.user_id, b]));
+    const scoreMap = new Map((scores || []).map((s) => [s.user_id, s]));
+    const subMap = new Map((subscriptions || []).map((s) => [s.user_id, s]));
+
+    const consultMap = new Map<string, any[]>();
+    (consultations || []).forEach((c) => {
+      if (!consultMap.has(c.user_id)) consultMap.set(c.user_id, []);
+      consultMap.get(c.user_id)!.push(c);
+    });
+
+    const appsMap = new Map<string, any[]>();
+    (fundingApps || []).forEach((a) => {
+      if (!appsMap.has(a.user_id)) appsMap.set(a.user_id, []);
+      appsMap.get(a.user_id)!.push(a);
+    });
+
+    const payMap = new Map<string, any[]>();
+    (payments || []).forEach((p) => {
+      if (!payMap.has(p.user_id)) payMap.set(p.user_id, []);
+      payMap.get(p.user_id)!.push(p);
+    });
+
+    // 2. Collect ALL distinct user IDs across authoritative auth.users, database tables, and local registries
+    const allUserIds = new Set<string>();
+    authUsers.forEach((u) => u.id && allUserIds.add(u.id));
+    (profiles || []).forEach((p) => p.user_id && allUserIds.add(p.user_id));
+    (businesses || []).forEach((b) => b.user_id && allUserIds.add(b.user_id));
+    (subscriptions || []).forEach((s) => s.user_id && allUserIds.add(s.user_id));
+    (payments || []).forEach((p) => p.user_id && allUserIds.add(p.user_id));
+    (consultations || []).forEach((c) => c.user_id && allUserIds.add(c.user_id));
+    (fundingApps || []).forEach((a) => a.user_id && allUserIds.add(a.user_id));
+    localRegistryUsers.forEach((u) => u.userId && allUserIds.add(u.userId));
+
+    if (allUserIds.size === 0) {
+      if (localRegistryUsers.length > 0) {
+        return filterUsers(localRegistryUsers, filters);
+      }
+      // Strictly do NOT return demo users unless explicitly requested
+      if (filters && (filters as any).includeDemo) {
+        return filterUsers(DEMO_ADMIN_USERS, filters);
+      }
+      return [];
+    }
+
+    const reconciledUsers: AdminUserListItem[] = [];
+
+    for (const userId of Array.from(allUserIds)) {
+      const authUser = authUserMap.get(userId);
+      const p = profMap.get(userId);
+      const b = bizMap.get(userId);
+      const s = scoreMap.get(userId);
+      const sub = subMap.get(userId);
+      const local = localRegistryUsers.find((x) => x.userId === userId);
+      const userConsults = consultMap.get(userId) || [];
+      const latestConsult = userConsults[0];
+      const userApps = appsMap.get(userId) || [];
+      const userPays = payMap.get(userId) || [];
+
+      // Determine plan and access source
+      const rawPlan = (sub?.plan || sub?.plan_id || local?.plan || 'free').toLowerCase();
+      let plan: 'free' | 'foundation' | 'guided' = 'free';
+      if (rawPlan === 'guided' || rawPlan === 'premium_advisory' || rawPlan === 'intensive') {
+        plan = 'guided';
+      } else if (rawPlan === 'foundation' || rawPlan === 'pro' || rawPlan.includes('pro')) {
+        plan = 'foundation';
+      }
+
+      const provider = sub?.provider || (sub?.stripe_subscription_id ? 'stripe' : local?.accessSource || 'none');
+      let accessSource: AccessSource = (sub?.access_source as AccessSource) || local?.accessSource || 'free';
+      if (!sub?.access_source && !local?.accessSource) {
+        if (provider === 'stripe') {
+          accessSource = sub?.stripe_subscription_id ? 'stripe_subscription' : 'stripe_onetime';
+        } else if (provider === 'admin') {
+          accessSource = sub?.grant_type === 'complimentary' ? 'complimentary' : 'admin_grant';
+        } else if (plan === 'free') {
+          accessSource = 'free';
+        }
+      }
+
+      const isAdvisory = (plan === 'guided') && (sub?.status === 'active' || sub?.status === 'trialing' || Boolean(local?.isAdvisory));
+
+      // Name and Email resolution
+      const rawAuthName = authUser?.userMetadata?.name || authUser?.userMetadata?.full_name || '';
+      const email =
+        authUser?.email ||
+        p?.email ||
+        local?.email ||
+        userPays[0]?.userEmail ||
+        (b?.has_business_email && b.has_business_email !== 'not_sure' ? b.has_business_email : null) ||
+        `customer-${userId.substring(0, 8)}@customer.crediqly.com`;
+
+      const fName =
+        p?.first_name ||
+        authUser?.userMetadata?.first_name ||
+        (rawAuthName ? rawAuthName.split(' ')[0] : '') ||
+        local?.firstName ||
+        (b?.business_name ? b.business_name.split(' ')[0] : '');
+
+      const lName =
+        p?.last_name ||
+        authUser?.userMetadata?.last_name ||
+        (rawAuthName ? rawAuthName.split(' ').slice(1).join(' ') : '') ||
+        local?.lastName ||
+        (b?.business_name ? b.business_name.split(' ').slice(1).join(' ') : '');
+
+      const fullName =
+        `${fName} ${lName}`.trim() ||
+        rawAuthName ||
+        local?.fullName ||
+        (b?.business_name ? b.business_name : email.split('@')[0]);
+
+      const profileCompleted = Boolean(
+        b?.profile_completed ||
+        (b?.business_name && b?.entity_type && b?.state) ||
+        local?.profileCompleted
+      );
+
+      const role: UserRole = (p?.role as UserRole) || local?.role || (isAuthorizedAdminEmail(email) ? 'admin' : 'user');
+      const status: AccountStatus = (p?.status as AccountStatus) || local?.status || 'active';
+      const createdAt =
+        authUser?.createdAt ||
+        p?.created_at ||
+        b?.created_at ||
+        sub?.created_at ||
+        local?.createdAt ||
+        new Date().toISOString();
+      const updatedAt =
+        p?.updated_at ||
+        b?.updated_at ||
+        sub?.updated_at ||
+        local?.updatedAt ||
+        new Date().toISOString();
+
+      // Auto-heal missing profile row in database
+      if (!p && typeof window === 'undefined') {
+        import('./adminServer').then(({ reconcileMissingProfileRecord }) => {
+          reconcileMissingProfileRecord({
+            id: userId,
+            email,
+            createdAt,
+            userMetadata: { name: fullName, first_name: fName, last_name: lName },
+          }).catch(() => {});
+        }).catch(() => {});
+      } else if (!p && isSupabaseConfigured && supabase) {
+        supabase
+          .from('profiles')
+          .upsert({
+            user_id: userId,
+            first_name: fName,
+            last_name: lName,
+            email,
+            role,
+            status,
+            created_at: createdAt,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
+          .then(() => {}, () => {});
+      }
+
+      reconciledUsers.push({
+        id: p?.id || local?.id || `prf_syn_${userId.substring(0, 8)}`,
+        userId,
+        email,
+        firstName: fName,
+        lastName: lName,
+        fullName,
+        role,
+        status,
+        createdAt,
+        updatedAt,
+        businessId: b?.id || local?.businessId,
+        businessName: b?.business_name || local?.businessName,
+        entityType: b?.entity_type || local?.entityType,
+        state: b?.state || local?.state,
+        industry: b?.industry || local?.industry,
+        businessAge: b?.business_age || local?.businessAge,
+        profileCompleted,
+        businessReadinessScore: s?.business_readiness_score ?? (b?.business_readiness_score != null ? Number(b.business_readiness_score) : undefined),
+        creditReadinessScore: s?.credit_readiness_score ?? (b?.credit_readiness_score != null ? Number(b.credit_readiness_score) : undefined),
+        fundingReadinessScore: b?.funding_readiness_score != null ? Number(b.funding_readiness_score) : undefined,
+        businessReadinessLevel: s?.business_readiness_level,
+        creditReadinessLevel: s?.credit_readiness_level,
+        fundingReadinessLevel: b?.funding_readiness_level,
+        plan,
+        subscriptionStatus: sub?.status || local?.subscriptionStatus || 'free',
+        accessSource,
+        grantType: sub?.grant_type || local?.grantType,
+        grantedBy: sub?.granted_by || local?.grantedBy,
+        grantReason: sub?.grant_reason || local?.grantReason,
+        expiresAt: sub?.expires_at || sub?.current_period_end || local?.expiresAt,
+        billingStatus: sub?.billing_status || (provider === 'stripe' ? sub?.status : provider === 'admin' ? accessSource : local?.billingStatus || 'free'),
+        stripeCustomerId: sub?.stripe_customer_id || local?.stripeCustomerId,
+        stripeSubscriptionId: sub?.stripe_subscription_id || local?.stripeSubscriptionId,
+        isAdvisory,
+        advisoryStatus: latestConsult ? latestConsult.status : 'None',
+        fundingApplicationsCount: userApps.length,
+        lastSeenAt: p?.last_seen_at || local?.lastSeenAt,
+        profileCreationPending: !p,
+        isOrphaned: !p,
+      });
+    }
+
+    // Sort by newest first by default
+    reconciledUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return filterUsers(reconciledUsers, filters);
+  } catch (err) {
+    console.warn('Supabase admin fetch reconciliation error, falling back to local registry:', err);
+    if (localRegistryUsers.length > 0) {
+      return filterUsers(localRegistryUsers, filters);
+    }
+    if (filters && (filters as any).includeDemo) {
+      return filterUsers(DEMO_ADMIN_USERS, filters);
+    }
+    return [];
+  }
 }
 
 function filterUsers(users: AdminUserListItem[], filters?: Partial<AdminUserFilters>): AdminUserListItem[] {
@@ -315,8 +558,8 @@ function filterUsers(users: AdminUserListItem[], filters?: Partial<AdminUserFilt
 /**
  * Fetches High-Level Admin Metrics
  */
-export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
-  const users = await getAdminUsers();
+export async function getAdminOverviewStats(preloadedUsers?: AdminUserListItem[]): Promise<AdminOverviewStats> {
+  const users = preloadedUsers || (await getAdminUsers());
   const totalUsers = users.length;
   const completedProfiles = users.filter((u) => u.profileCompleted).length;
   const totalBusinesses = users.filter((u) => u.businessName).length;
@@ -399,7 +642,92 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
  */
 export async function getAdminUserDetail(userId: string): Promise<AdminUserDetail | null> {
   const users = await getAdminUsers();
-  const userItem = users.find((u) => u.userId === userId || u.id === userId);
+  let userItem = users.find((u) => u.userId === userId || u.id === userId);
+
+  // If not found in the initial array, perform a direct targeted multi-table lookup for this specific userId
+  if (!userItem && typeof window === 'undefined') {
+    try {
+      const adminServer = await import('./adminServer');
+      const adminClient = adminServer.getSupabaseAdminClient();
+      if (adminClient) {
+        const [
+          { data: pRow },
+          { data: bRow },
+          { data: sRow },
+        ] = await Promise.all([
+          adminClient.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+          adminClient.from('businesses').select('*').eq('user_id', userId).maybeSingle(),
+          adminClient.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
+        ]);
+
+        if (pRow || bRow || sRow) {
+          const email = pRow?.email || `customer-${userId.substring(0, 8)}@customer.crediqly.com`;
+          const fName = pRow?.first_name || '';
+          const lName = pRow?.last_name || '';
+          userItem = {
+            id: pRow?.id || `prf_syn_${userId.substring(0, 8)}`,
+            userId,
+            email,
+            firstName: fName,
+            lastName: lName,
+            fullName: `${fName} ${lName}`.trim() || bRow?.business_name || email.split('@')[0],
+            role: (pRow?.role as UserRole) || 'user',
+            status: (pRow?.status as AccountStatus) || 'active',
+            createdAt: pRow?.created_at || bRow?.created_at || new Date().toISOString(),
+            updatedAt: pRow?.updated_at || bRow?.updated_at || new Date().toISOString(),
+            businessId: bRow?.id,
+            businessName: bRow?.business_name,
+            profileCompleted: Boolean(bRow?.profile_completed),
+            plan: (sRow?.plan || 'free') as any,
+            accessSource: (sRow?.access_source as any) || 'free',
+            billingStatus: sRow?.billing_status || 'free',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Privileged user lookup warning in getAdminUserDetail:', e);
+    }
+  }
+
+  if (!userItem && isSupabaseConfigured && supabase) {
+    try {
+      const [
+        { data: pRow },
+        { data: bRow },
+        { data: sRow },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('businesses').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
+      ]);
+
+      if (pRow || bRow || sRow) {
+        const email = pRow?.email || `customer-${userId.substring(0, 8)}@customer.crediqly.com`;
+        const fName = pRow?.first_name || '';
+        const lName = pRow?.last_name || '';
+        userItem = {
+          id: pRow?.id || `prf_syn_${userId.substring(0, 8)}`,
+          userId,
+          email,
+          firstName: fName,
+          lastName: lName,
+          fullName: `${fName} ${lName}`.trim() || bRow?.business_name || email.split('@')[0],
+          role: (pRow?.role as UserRole) || 'user',
+          status: (pRow?.status as AccountStatus) || 'active',
+          createdAt: pRow?.created_at || bRow?.created_at || new Date().toISOString(),
+          updatedAt: pRow?.updated_at || bRow?.updated_at || new Date().toISOString(),
+          businessId: bRow?.id,
+          businessName: bRow?.business_name,
+          profileCompleted: Boolean(bRow?.profile_completed),
+          plan: (sRow?.plan || 'free') as any,
+          accessSource: (sRow?.access_source as any) || 'free',
+          billingStatus: sRow?.billing_status || 'free',
+        };
+      }
+    } catch (e) {
+      console.warn('Targeted user lookup error in getAdminUserDetail:', e);
+    }
+  }
 
   if (!userItem) return null;
 
@@ -632,12 +960,17 @@ export async function updateAdminUserStatus(
   role: UserRole,
   status: AccountStatus
 ): Promise<{ success: boolean; error?: string }> {
+  const inMem = inMemoryAdminUsers.find((u) => u.userId === userId || u.id === userId);
+  if (inMem) {
+    inMem.role = role;
+    inMem.status = status;
+  }
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ role, status, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+        .upsert({ user_id: userId, role, status, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
 
       if (error) {
         return { success: false, error: error.message };
@@ -686,6 +1019,13 @@ export async function updateAdminUserProfile(
   userId: string,
   data: { firstName?: string; lastName?: string }
 ): Promise<{ success: boolean; error?: string }> {
+  const inMem = inMemoryAdminUsers.find((u) => u.userId === userId || u.id === userId);
+  if (inMem) {
+    if (data.firstName !== undefined) inMem.firstName = data.firstName;
+    if (data.lastName !== undefined) inMem.lastName = data.lastName;
+    inMem.fullName = `${inMem.firstName || ''} ${inMem.lastName || ''}`.trim() || inMem.email;
+  }
+
   if (isSupabaseConfigured && supabase) {
     try {
       const updates: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -694,8 +1034,7 @@ export async function updateAdminUserProfile(
 
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('user_id', userId);
+        .upsert({ user_id: userId, ...updates }, { onConflict: 'user_id' });
 
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -720,6 +1059,14 @@ export async function updateAdminBusinessProfile(
   userId: string,
   data: Partial<BusinessProfile>
 ): Promise<{ success: boolean; error?: string }> {
+  const inMem = inMemoryAdminUsers.find((u) => u.userId === userId || u.id === userId);
+  if (inMem && data.businessName) {
+    inMem.businessName = data.businessName;
+    if (data.entityType) inMem.entityType = data.entityType;
+    if (data.state) inMem.state = data.state;
+    if (data.industry) inMem.industry = data.industry;
+  }
+
   if (isSupabaseConfigured && supabase) {
     try {
       const dbRow: Record<string, any> = {
@@ -746,8 +1093,7 @@ export async function updateAdminBusinessProfile(
 
       const { error } = await supabase
         .from('businesses')
-        .update(dbRow)
-        .eq('user_id', userId);
+        .upsert({ user_id: userId, ...dbRow }, { onConflict: 'user_id' });
 
       if (error) return { success: false, error: error.message };
       return { success: true };

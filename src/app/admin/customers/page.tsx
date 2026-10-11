@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  AlertTriangle,
   ChevronRight,
   ChevronLeft,
   RefreshCw,
@@ -39,11 +40,14 @@ import {
   updateAdminUserStatus,
   triggerAdminPasswordReset,
 } from '@/lib/supabase/adminService';
+import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { AdminUserListItem } from '@/types/admin';
 import { UserRole, AccountStatus } from '@/types/user';
 import { AccessSource } from '@/types/subscription';
 
 export default function AdminCustomersPage() {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<AdminUserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +58,7 @@ export default function AdminCustomersPage() {
   const [accessSourceFilter, setAccessSourceFilter] = useState<'all' | AccessSource>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | AccountStatus>('all');
   const [billingFilter, setBillingFilter] = useState<'all' | string>('all');
+  const [onboardingFilter, setOnboardingFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
 
   // Sorting & Pagination
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'score'>('newest');
@@ -67,12 +72,85 @@ export default function AdminCustomersPage() {
   const [resetModalUser, setResetModalUser] = useState<AdminUserListItem | null>(null);
   const [statusModalUser, setStatusModalUser] = useState<{ user: AdminUserListItem; newStatus: AccountStatus } | null>(null);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<{
+    serviceRoleConfigured?: boolean;
+    authUsersReconciled?: number;
+  } | null>(null);
+
   const fetchCustomers = useCallback(async () => {
+    setLoadError(null);
     try {
+      // 1. Retrieve signed admin session token if possible using Supabase auth or active admin email
+      let token = '';
+      try {
+        let authBearer = '';
+        if (supabase) {
+          const { data: sessionData } = await supabase.auth
+            .getSession()
+            .catch(() => ({ data: { session: null } }));
+          if (sessionData?.session?.access_token) {
+            authBearer = `Bearer ${sessionData.session.access_token}`;
+          }
+        }
+        const activeAdminEmail = user?.email || 'crediqly@gmail.com';
+        const tokenHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'x-admin-email': activeAdminEmail,
+        };
+        if (authBearer) {
+          tokenHeaders['authorization'] = authBearer;
+        }
+
+        const tokenRes = await fetch('/api/admin/token', {
+          method: 'POST',
+          headers: tokenHeaders,
+          body: JSON.stringify({ email: activeAdminEmail }),
+        });
+        if (tokenRes.ok) {
+          const tokenJson = await tokenRes.json();
+          if (tokenJson.token) token = tokenJson.token;
+        }
+      } catch (e) {}
+
+      // 2. Query secured server-side API endpoint with all=true (untruncated)
+      const activeAdminEmail = user?.email || 'crediqly@gmail.com';
+      const headers: Record<string, string> = {
+        'x-admin-email': activeAdminEmail,
+      };
+      if (token) {
+        headers['x-admin-token'] = token;
+        headers['authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/admin/customers?all=true', { headers });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.customers)) {
+          setCustomers(json.customers);
+          if (json.diagnostics) {
+            setDiagnostics(json.diagnostics);
+          }
+          return;
+        }
+      }
+
+      if (res.status === 403) {
+        setLoadError('Admin authorization required. Please confirm your administrator session.');
+      }
+
+      // 3. Direct client-side reconciliation service fallback
       const data = await getAdminUsers();
       setCustomers(data);
-    } catch (e) {
-      console.error('Error fetching admin customers:', e);
+    } catch (e: any) {
+      console.warn('API fetch fallback to direct service:', e);
+      try {
+        const data = await getAdminUsers();
+        setCustomers(data);
+      } catch (err: any) {
+        console.error('Error fetching admin customers:', err);
+        setLoadError(err?.message || 'Failed to retrieve customer accounts.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,9 +195,14 @@ export default function AdminCustomersPage() {
         if (b !== billingFilter.toLowerCase()) return false;
       }
 
+      if (onboardingFilter !== 'all') {
+        if (onboardingFilter === 'completed' && !c.profileCompleted) return false;
+        if (onboardingFilter === 'in_progress' && c.profileCompleted) return false;
+      }
+
       return true;
     });
-  }, [customers, search, planFilter, accessSourceFilter, statusFilter, billingFilter]);
+  }, [customers, search, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter]);
 
   // Sort Logic
   const sortedCustomers = useMemo(() => {
@@ -146,7 +229,7 @@ export default function AdminCustomersPage() {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, planFilter, accessSourceFilter, statusFilter, billingFilter, sortBy]);
+  }, [search, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter, sortBy]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -155,7 +238,9 @@ export default function AdminCustomersPage() {
     const foundation = customers.filter((c) => c.plan === 'foundation' || c.plan === 'pro').length;
     const guided = customers.filter((c) => c.plan === 'guided' || c.plan === 'premium_advisory' || c.isAdvisory).length;
     const adminGranted = customers.filter((c) => c.accessSource === 'admin_grant' || c.accessSource === 'complimentary').length;
-    return { total, free, foundation, guided, adminGranted };
+    const completedOnboarding = customers.filter((c) => c.profileCompleted).length;
+    const pendingOnboarding = total - completedOnboarding;
+    return { total, free, foundation, guided, adminGranted, completedOnboarding, pendingOnboarding };
   }, [customers]);
 
   const clearFilters = () => {
@@ -164,6 +249,7 @@ export default function AdminCustomersPage() {
     setAccessSourceFilter('all');
     setStatusFilter('all');
     setBillingFilter('all');
+    setOnboardingFilter('all');
     setSortBy('newest');
   };
 
@@ -173,6 +259,7 @@ export default function AdminCustomersPage() {
     accessSourceFilter !== 'all' ||
     statusFilter !== 'all' ||
     billingFilter !== 'all' ||
+    onboardingFilter !== 'all' ||
     sortBy !== 'newest';
 
   // Execute Password Reset
@@ -275,8 +362,37 @@ export default function AdminCustomersPage() {
         </div>
       </div>
 
+      {/* Load Error Alert */}
+      {loadError && (
+        <div className="p-4 rounded-xl border bg-rose-950/60 border-rose-800 text-rose-200 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <div>
+              <p className="font-semibold">{loadError}</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">Retrying or refreshing will attempt fallback reconciliation.</p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleRefresh} className="border-rose-700 bg-rose-900/40 text-white text-xs h-7">
+            Retry Now
+          </Button>
+        </div>
+      )}
+
+      {/* Diagnostics Notice for Owner */}
+      {diagnostics && diagnostics.serviceRoleConfigured === false && (
+        <div className="p-3.5 rounded-xl border bg-amber-950/40 border-amber-800/80 text-amber-200 text-xs flex items-center gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="flex-1">
+            <span className="font-bold text-amber-300">Authoritative Supabase Auth Notice: </span>
+            <span className="text-slate-300">
+              <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set in environment variables. Adding this secret in Vercel allows direct queries to <code>auth.users</code> and bypasses Row Level Security on the server. Currently reconciling via database tables and registries.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* KPI Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
         <Card className="bg-slate-950 border-slate-800 text-white">
           <CardContent className="p-3.5">
             <div className="flex items-center justify-between text-xs text-slate-400">
@@ -284,7 +400,7 @@ export default function AdminCustomersPage() {
               <Users className="w-3.5 h-3.5 text-brand-400" />
             </div>
             <p className="text-xl font-black text-white mt-1">{stats.total}</p>
-            <span className="text-[10px] text-slate-500">Database users</span>
+            <span className="text-[10px] text-slate-500">All registered users</span>
           </CardContent>
         </Card>
 
@@ -321,14 +437,27 @@ export default function AdminCustomersPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-950 border-slate-800 text-white col-span-2 sm:col-span-1">
+        <Card className="bg-slate-950 border-slate-800 text-white">
           <CardContent className="p-3.5">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>Admin Grants</span>
               <Shield className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <p className="text-xl font-black text-amber-400 mt-1">{stats.adminGranted}</p>
-            <span className="text-[10px] text-slate-500">Complimentary / manual</span>
+            <span className="text-[10px] text-slate-500">Manual / complimentary</span>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-950 border-slate-800 text-white">
+          <CardContent className="p-3.5">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span>Onboarding</span>
+              <FileCheck className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <p className="text-xl font-black text-cyan-400 mt-1">
+              {stats.completedOnboarding} <span className="text-xs font-normal text-slate-400">/ {stats.total}</span>
+            </p>
+            <span className="text-[10px] text-slate-500">{stats.pendingOnboarding} in-progress</span>
           </CardContent>
         </Card>
       </div>
@@ -364,13 +493,13 @@ export default function AdminCustomersPage() {
         <CardContent className="p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
             {/* Search Input */}
-            <div className="sm:col-span-4 relative">
+            <div className="sm:col-span-3 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, email, business, or ID..."
+                placeholder="Search name, email, biz, ID..."
                 className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
               />
             </div>
@@ -385,7 +514,7 @@ export default function AdminCustomersPage() {
                 <option value="all">All Plans</option>
                 <option value="free">Free ($0)</option>
                 <option value="foundation">Foundation ($47.99/mo)</option>
-                <option value="guided">Guided ($147.99/mo or $997)</option>
+                <option value="guided">Guided ($147.99/mo / $997)</option>
               </select>
             </div>
 
@@ -412,24 +541,37 @@ export default function AdminCustomersPage() {
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
               >
-                <option value="all">All Account Statuses</option>
+                <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>
                 <option value="disabled">Disabled</option>
               </select>
             </div>
 
+            {/* Onboarding Filter */}
+            <div className="sm:col-span-1.5">
+              <select
+                value={onboardingFilter}
+                onChange={(e) => setOnboardingFilter(e.target.value as any)}
+                className="w-full px-2.5 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+              >
+                <option value="all">All Onboarding</option>
+                <option value="completed">Completed</option>
+                <option value="in_progress">In-Progress</option>
+              </select>
+            </div>
+
             {/* Sort Dropdown */}
-            <div className="sm:col-span-2 flex items-center gap-2">
+            <div className="sm:col-span-1.5 flex items-center gap-2">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                className="w-full px-2.5 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
               >
-                <option value="newest">Sort: Newest First</option>
-                <option value="oldest">Sort: Oldest First</option>
-                <option value="name">Sort: Name (A-Z)</option>
-                <option value="score">Sort: Highest Score</option>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="name">Name A-Z</option>
+                <option value="score">Score High</option>
               </select>
             </div>
           </div>
@@ -570,7 +712,14 @@ export default function AdminCustomersPage() {
                     <tr key={c.userId} className="hover:bg-slate-900/40 transition-colors">
                       {/* Customer Name & Email */}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-100">{c.fullName}</div>
+                        <div className="font-bold text-slate-100 flex items-center gap-1.5 flex-wrap">
+                          <span>{c.fullName}</span>
+                          {c.profileCreationPending && (
+                            <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-1.5 py-0.2 rounded">
+                              Profile Sync Pending
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 text-slate-500 shrink-0" />
                           <span className="truncate max-w-[180px]">{c.email}</span>
@@ -596,7 +745,12 @@ export default function AdminCustomersPage() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-slate-500 italic text-[11px]">No business profile</span>
+                          <div className="space-y-1">
+                            <span className="text-amber-400/90 bg-amber-950/40 border border-amber-900/60 px-2 py-0.5 rounded text-[10px] inline-block font-medium">
+                              No business profile yet
+                            </span>
+                            <div className="text-[10px] text-slate-500 italic">Onboarding pending</div>
+                          </div>
                         )}
                       </td>
 
@@ -688,9 +842,12 @@ export default function AdminCustomersPage() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-amber-400/90 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-900">
-                            Incomplete
-                          </span>
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-900 font-medium inline-block">
+                              Onboarding In-Progress
+                            </span>
+                            <div className="text-[9px] text-slate-500">Readiness pending</div>
+                          </div>
                         )}
                       </td>
 

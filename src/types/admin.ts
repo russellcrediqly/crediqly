@@ -53,6 +53,8 @@ export interface AdminUserListItem {
   advisoryStatus?: string;
   fundingApplicationsCount?: number;
   lastSeenAt?: string;
+  profileCreationPending?: boolean;
+  isOrphaned?: boolean;
 }
 
 export interface AdminUserDetail {

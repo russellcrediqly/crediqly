@@ -20,5 +20,14 @@ export const supabase = isSupabaseConfigured
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
+      global: {
+        fetch: (url, options = {}) => {
+          if (!options.signal && typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+            return fetch(url, { ...options, signal: AbortSignal.timeout(3000) });
+          }
+          return fetch(url, options);
+        },
+      },
     })
   : null;
+

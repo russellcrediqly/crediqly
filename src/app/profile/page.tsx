@@ -19,13 +19,28 @@ import {
   AlertCircle, 
   Lock, 
   Building2,
-  Loader2
+  Loader2,
+  CreditCard,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSubscription } from '@/context/SubscriptionContext';
 
 export default function UserProfilePage() {
   const { user, updateProfile, signOut } = useAuth();
   const { business } = useBusiness();
+  const {
+    subscription,
+    isFoundation,
+    isGuided,
+    isPro,
+    isAdvisory,
+    openCustomerPortal,
+  } = useSubscription();
+
+  const hasFoundation = isFoundation || isPro;
+  const hasGuided = isGuided || isAdvisory;
 
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
@@ -400,6 +415,120 @@ export default function UserProfilePage() {
                 >
                   Sign Out
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SUBSCRIPTION & BILLING ENTITLEMENTS */}
+          <Card className="shadow-xs border-slate-200">
+            <CardHeader className="border-b border-slate-100 pb-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-brand-600" />
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    Plan &amp; Billing Entitlements
+                  </CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      hasGuided
+                        ? 'bg-indigo-100 text-indigo-800'
+                        : hasFoundation
+                        ? 'bg-brand-100 text-brand-800'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {hasGuided ? 'Guided Plan' : hasFoundation ? 'Foundation Plan' : 'Free Starter'}
+                  </span>
+                </div>
+              </div>
+              <CardDescription className="text-xs text-slate-500 mt-1">
+                Manage your membership tier, commercial funding entitlements, and Stripe billing invoices.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    Current Plan
+                  </span>
+                  <div className="font-bold text-slate-900 text-sm">
+                    {hasGuided ? 'Guided ($147.99/mo)' : hasFoundation ? 'Foundation ($47.99/mo)' : 'Free ($0)'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {hasGuided
+                      ? 'Full platform + monthly strategy consultation & priority review'
+                      : hasFoundation
+                      ? 'Self-service funding readiness roadmap & score tracking'
+                      : 'Introductory funding readiness preview'}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    Access Source
+                  </span>
+                  <div className="font-bold text-slate-900 capitalize">
+                    {subscription?.accessSource === 'stripe_subscription'
+                      ? 'Stripe Subscription'
+                      : subscription?.accessSource === 'stripe_onetime'
+                      ? '12-Month Program (One-Time)'
+                      : subscription?.accessSource === 'admin_grant'
+                      ? 'Owner Administrative Grant'
+                      : subscription?.accessSource === 'complimentary'
+                      ? 'Complimentary Access'
+                      : 'Standard Free Member'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Billing Status: <span className="font-medium text-slate-700 capitalize">{subscription?.status || 'Active'}</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    Entitlement Term
+                  </span>
+                  <div className="font-bold text-slate-900">
+                    {subscription?.expiresAt
+                      ? `Expires ${new Date(subscription.expiresAt).toLocaleDateString()}`
+                      : subscription?.currentPeriodEnd
+                      ? `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                      : 'Ongoing Access'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Verified through trusted server authorization
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  Need to change payment methods or download invoices?
+                </div>
+                <div className="flex items-center gap-2">
+                  {subscription?.stripeCustomerId ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openCustomerPortal}
+                      className="text-xs font-semibold gap-1.5"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-brand-600" />
+                      <span>Manage Billing in Stripe</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </Button>
+                  ) : null}
+                  <Link href="/pricing">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white"
+                    >
+                      {hasGuided ? 'Compare Plans' : 'Upgrade Plan'}
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>

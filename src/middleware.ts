@@ -17,8 +17,9 @@ export function middleware(request: NextRequest) {
   }
 
   // 2. Server-side Protection for Admin API Endpoints & Sensitive System Config
+  // Note: /api/admin/token performs its own dedicated cryptographic and Supabase credential verification
   if (
-    pathname.startsWith('/api/admin') ||
+    (pathname.startsWith('/api/admin') && pathname !== '/api/admin/token') ||
     pathname.startsWith('/api/stripe/save-config') ||
     pathname.startsWith('/api/stripe/verify-config')
   ) {
@@ -31,7 +32,17 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Continue with normal request processing for other routes
+  // 3. Server-side Protection for Admin HTML Pages (/admin, /admin/*)
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    const verification = verifyAdminRequest(request);
+    if (!verification.authorized) {
+      const signInUrl = new URL('/signin', request.url);
+      signInUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(signInUrl);
+    }
+  }
+
+  // 4. Continue with normal request processing for other routes
   return NextResponse.next();
 }
 

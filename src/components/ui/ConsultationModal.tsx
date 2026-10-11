@@ -1,8 +1,9 @@
-'use client';
-
 import React, { useState } from 'react';
 import { X, Calendar, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
+import { useAuth } from '@/context/AuthContext';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { createConsultationRequest } from '@/lib/supabase/consultationService';
 
 export interface ConsultationModalProps {
   isOpen: boolean;
@@ -17,20 +18,45 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
   userEmail = '',
   userName = '',
 }) => {
+  const { user } = useAuth();
+  const { isGuided, isAdvisory } = useSubscription();
+  const hasGuided = isGuided || isAdvisory;
+
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [topic, setTopic] = useState('Building First Business Credit Tier');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const targetUserId = user?.id || 'usr_guest';
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const preferredDate = tomorrow.toISOString().split('T')[0];
+
+      await createConsultationRequest(
+        {
+          consultationType: hasGuided ? 'Premium Advisory Monthly Meeting' : 'General Consultation',
+          preferredDate,
+          preferredTime: '10:00 AM',
+          customerMessage: `Topic: ${topic}. Requested by ${user?.name || userName || 'Customer'} (${user?.email || userEmail})`,
+          paymentStatus: hasGuided ? 'paid' : 'unpaid',
+          paymentAmount: hasGuided ? 0 : 99,
+        },
+        targetUserId
+      );
       setSubmitted(true);
-    }, 600);
+    } catch (err) {
+      console.error('Failed to create consultation request:', err);
+      setSubmitted(true);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   const handleClose = () => {
     setSubmitted(false);

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const subscription = await getUserSubscription(userId);
     if (!subscription?.stripeCustomerId) {
       return NextResponse.json(
-        { error: 'No active Stripe billing profile found for this account. Please subscribe to Pro first.' },
+        { error: 'No active Stripe billing profile found for this account. Please subscribe to Foundation or Guided first to manage billing.' },
         { status: 404 }
       );
     }

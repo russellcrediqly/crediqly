@@ -116,11 +116,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Dedicated Administrator Accounts (crediqly@gmail.com, raselandahmed@gmail.com, etc.)
     if (isAuthorizedAdminEmail(email)) {
       role = 'admin';
+      if (typeof window !== 'undefined') {
+        try {
+          document.cookie = `crediqly_admin_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+        } catch (e) {}
+      }
     }
 
     // Local dev admin override helper
     if (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true') {
       role = 'admin';
+      try {
+        document.cookie = 'crediqly_dev_admin=true; path=/; max-age=86400; SameSite=Lax';
+      } catch (e) {}
     }
 
     return { id: userId, email, name, firstName, lastName, role, status };
@@ -218,6 +226,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const current = localStorage.getItem('crediqly_dev_admin') === 'true';
     const nextState = !current;
     localStorage.setItem('crediqly_dev_admin', nextState ? 'true' : 'false');
+    try {
+      document.cookie = `crediqly_dev_admin=${nextState ? 'true' : 'false'}; path=/; max-age=86400; SameSite=Lax`;
+    } catch (e) {}
     if (user) {
       setUser({ ...user, role: nextState ? 'admin' : 'user' });
     }
@@ -260,6 +271,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(fullUser);
         try {
           localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(fullUser));
+          const rawReg = localStorage.getItem('crediqly_registered_users');
+          const regList = rawReg ? JSON.parse(rawReg) : [];
+          if (!regList.some((u: any) => u.id === fullUser.id || u.email === fullUser.email)) {
+            regList.unshift(fullUser);
+            localStorage.setItem('crediqly_registered_users', JSON.stringify(regList));
+          }
         } catch (e) {}
 
         // Ensure profile row exists in public.profiles table
@@ -296,7 +313,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'user',
         status: 'active',
       };
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(mockUser));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(mockUser));
+        const rawReg = localStorage.getItem('crediqly_registered_users');
+        const regList = rawReg ? JSON.parse(rawReg) : [];
+        if (!regList.some((u: any) => u.id === mockUser.id || u.email === mockUser.email)) {
+          regList.unshift(mockUser);
+          localStorage.setItem('crediqly_registered_users', JSON.stringify(regList));
+        }
+      } catch (e) {}
       setUser(mockUser);
       return {
         user: mockUser,
@@ -481,6 +506,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+      if (typeof window !== 'undefined') {
+        document.cookie = 'crediqly_admin_email=; path=/; max-age=0';
+        document.cookie = 'crediqly_dev_admin=; path=/; max-age=0';
+      }
     } catch (e) {}
     setUser(null);
   };

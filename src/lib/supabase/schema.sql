@@ -1120,3 +1120,87 @@ create trigger trigger_assign_admin_role
 update public.profiles
 set role = 'admin'
 where lower(trim(coalesce(email, ''))) in ('crediqly@gmail.com', 'raselandahmed@gmail.com', 'founder@crediqly.com', 'admin@crediqly.com');
+
+-- ==============================================================================
+-- 28. BACKFILL & RECONCILIATION FOR MISSING PROFILES
+-- Ensures any auth.user or customer in businesses/subscriptions has a profile record
+-- ==============================================================================
+create or replace function public.reconcile_missing_customer_profiles()
+returns integer as $$
+declare
+  missing_count integer := 0;
+begin
+  -- Backfill from auth.users
+  insert into public.profiles (user_id, email, first_name, last_name, role, status, created_at, updated_at)
+  select 
+    u.id as user_id,
+    u.email as email,
+    coalesce(split_part(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), ' ', 1), split_part(u.email, '@', 1)) as first_name,
+    nullif(substr(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), length(split_part(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), ' ', 1)) + 2), '') as last_name,
+    case when lower(trim(coalesce(u.email, ''))) in ('crediqly@gmail.com', 'raselandahmed@gmail.com', 'founder@crediqly.com', 'admin@crediqly.com') then 'admin' else 'user' end as role,
+    'active' as status,
+    u.created_at,
+    now()
+  from auth.users u
+  where not exists (select 1 from public.profiles p where p.user_id = u.id)
+  on conflict (user_id) do nothing;
+
+  get diagnostics missing_count = row_count;
+  return missing_count;
+end;
+$$ language plpgsql security definer;
+
+-- ==============================================================================
+-- 29. SECURE DIRECTORY RPC FOR ADMINISTRATORS
+-- Provides unified access to auth.users joined with public profiles, businesses,
+-- and subscriptions for authorized administrators without disabling RLS.
+-- ==============================================================================
+create or replace function public.get_admin_directory_users()
+returns table (
+  user_id uuid,
+  email text,
+  first_name text,
+  last_name text,
+  role text,
+  status text,
+  created_at timestamptz,
+  business_id uuid,
+  business_name text,
+  entity_type text,
+  profile_completed boolean,
+  plan text,
+  subscription_status text,
+  access_source text,
+  billing_status text
+) as $$
+begin
+  -- Strictly verify administrator role
+  if not (public.is_admin() or auth.role() = 'service_role') then
+    raise exception 'Unauthorized: Only platform administrators can retrieve directory records.';
+  end if;
+
+  return query
+  select
+    u.id as user_id,
+    u.email::text as email,
+    coalesce(p.first_name, split_part(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), ' ', 1), split_part(u.email, '@', 1)) as first_name,
+    coalesce(p.last_name, nullif(substr(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), length(split_part(coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', ''), ' ', 1)) + 2), '')) as last_name,
+    coalesce(p.role, case when lower(trim(coalesce(u.email, ''))) in ('crediqly@gmail.com', 'raselandahmed@gmail.com') then 'admin' else 'user' end) as role,
+    coalesce(p.status, 'active') as status,
+    u.created_at,
+    b.id as business_id,
+    b.business_name,
+    b.entity_type,
+    coalesce(b.profile_completed, false) as profile_completed,
+    coalesce(s.plan_id, 'free') as plan,
+    coalesce(s.status, 'active') as subscription_status,
+    coalesce(s.access_source, case when s.plan_id in ('foundation', 'guided', 'pro') then 'stripe_subscription' else 'free' end) as access_source,
+    coalesce(s.billing_status, 'free') as billing_status
+  from auth.users u
+  left join public.profiles p on p.user_id = u.id
+  left join public.businesses b on b.user_id = u.id
+  left join public.subscriptions s on s.user_id = u.id
+  order by u.created_at desc;
+end;
+$$ language plpgsql security definer;
+

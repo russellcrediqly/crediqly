@@ -220,6 +220,7 @@ export function calculateEffectiveEntitlement(
   // 1. Check if user has active Stripe recurring subscription
   const isStripeActive =
     provider === 'stripe' &&
+    accessSource !== 'stripe_onetime' &&
     (status === 'active' || status === 'trialing') &&
     (!subscription.currentPeriodEnd || new Date(subscription.currentPeriodEnd).getTime() > Date.now());
 
@@ -238,8 +239,9 @@ export function calculateEffectiveEntitlement(
 
   // 2. Check if user has active One-Time 12-Month Guided purchase
   const hasOneTimeGuided =
-    (accessSource === 'stripe_onetime' || rawPlan === 'guided') &&
-    payments?.some((p) => (p.paymentType === 'guided_onetime' || p.paymentType === 'intensive') && p.status === 'paid');
+    accessSource === 'stripe_onetime' ||
+    (rawPlan === 'guided' &&
+      Boolean(payments?.some((p) => (p.paymentType === 'guided_onetime' || p.paymentType === 'intensive') && p.status === 'paid')));
 
   if (hasOneTimeGuided) {
     const isPeriodValid =

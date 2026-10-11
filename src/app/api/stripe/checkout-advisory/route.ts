@@ -31,41 +31,23 @@ export async function POST(req: Request) {
 
     const baseUrl = getAppBaseUrl(req);
 
-    // Build line items: $499 one-time setup fee + $149/month recurring advisory
-    const setupLineItem: any = STRIPE_CONFIG.advisorySetupPriceId
-      ? { price: STRIPE_CONFIG.advisorySetupPriceId, quantity: 1 }
-      : {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Crediqly Premium Advisory — Strategy & Onboarding Setup',
-              description: 'One-time onboarding, comprehensive business profile & funding audit, and strategic blueprint.',
+    // Standardized Guided Plan ($147.99/month recurring, zero legacy setup fee)
+    const lineItems: any[] = STRIPE_CONFIG.guidedPriceId
+      ? [{ price: STRIPE_CONFIG.guidedPriceId, quantity: 1 }]
+      : [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Crediqly Guided',
+                description: 'Ongoing dedicated commercial guidance, 1 included 1-on-1 strategy meeting per month, application sequencing, and priority support.',
+              },
+              unit_amount: STRIPE_CONFIG.guidedPriceCents, // 14799 cents ($147.99/mo)
+              recurring: { interval: 'month' },
             },
-            unit_amount: STRIPE_CONFIG.advisorySetupPriceCents,
+            quantity: 1,
           },
-          quantity: 1,
-        };
-
-    // Resolve monthly recurring price ID (guarding against legacy one-time price ID)
-    let monthlyPriceId = STRIPE_CONFIG.advisoryMonthlyPriceId;
-    if (monthlyPriceId === 'price_1UCGFADzJxX7FxJayDvw7XVZ') {
-      monthlyPriceId = 'price_1UCIXzDzJxX7FxJaQ2BIUoLs';
-    }
-
-    const monthlyLineItem: any = monthlyPriceId
-      ? { price: monthlyPriceId, quantity: 1 }
-      : {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Crediqly Premium Advisory — Monthly Retainer',
-              description: 'Ongoing dedicated commercial advisory, 1 included 1-on-1 strategy meeting per month, and priority support.',
-            },
-            unit_amount: STRIPE_CONFIG.advisoryMonthlyPriceCents,
-            recurring: { interval: 'month' },
-          },
-          quantity: 1,
-        };
+        ];
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -73,24 +55,24 @@ export async function POST(req: Request) {
       payment_method_types: ['card'],
       customer: existingCustomerId || undefined,
       customer_email: !existingCustomerId ? (customerEmail || undefined) : undefined,
-      line_items: [setupLineItem, monthlyLineItem],
+      line_items: lineItems,
       success_url: `${baseUrl}/advisory?onboarding=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/advisory?canceled=true`,
       metadata: {
         userId,
         crediqly_user_id: userId,
-        plan: 'premium_advisory',
-        crediqly_plan: 'advisory',
-        paymentType: 'advisory',
+        plan: 'guided',
+        crediqly_plan: 'guided',
+        paymentType: 'guided_subscription',
         supersededProSubscriptionId: existingProSubId,
       },
       subscription_data: {
         metadata: {
           userId,
           crediqly_user_id: userId,
-          plan: 'premium_advisory',
-          crediqly_plan: 'advisory',
-          paymentType: 'advisory',
+          plan: 'guided',
+          crediqly_plan: 'guided',
+          paymentType: 'guided_subscription',
           supersededProSubscriptionId: existingProSubId,
         },
       },

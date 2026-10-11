@@ -7,20 +7,25 @@ import {
 } from '@/types/consultation';
 
 const LOCAL_CONSULTATIONS_KEY = 'crediqly_consultations';
+const inMemoryConsultations: Consultation[] = [];
 
 function getLocalConsultations(): Consultation[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return [...inMemoryConsultations];
   try {
     const raw = localStorage.getItem(LOCAL_CONSULTATIONS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? JSON.parse(raw) : [...inMemoryConsultations];
   } catch (err) {
     console.error('Failed to read local consultations:', err);
-    return [];
+    return [...inMemoryConsultations];
   }
 }
 
 function saveLocalConsultations(items: Consultation[]): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    inMemoryConsultations.length = 0;
+    inMemoryConsultations.push(...items);
+    return;
+  }
   try {
     localStorage.setItem(LOCAL_CONSULTATIONS_KEY, JSON.stringify(items));
   } catch (err) {

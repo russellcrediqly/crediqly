@@ -145,12 +145,34 @@ export default function AdminCustomerDetailPage() {
   const fetchDetail = useCallback(async () => {
     if (!userId) return;
     try {
-      const [data, products, checkIns, fetchedNotes] = await Promise.all([
-        getAdminUserDetail(userId),
+      let data: AdminUserDetail | null = null;
+
+      // 1. Attempt secured server-side API endpoint
+      try {
+        const res = await fetch(`/api/admin/customers/${userId}`, {
+          headers: { 'x-admin-email': currentAdminEmail },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.customer) {
+            data = json.customer;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API detail fetch fallback to direct service:', apiErr);
+      }
+
+      // 2. Direct service fallback
+      if (!data) {
+        data = await getAdminUserDetail(userId);
+      }
+
+      const [products, checkIns, fetchedNotes] = await Promise.all([
         getAllProductsAdmin().catch(() => []),
         getMonthlyCheckIns(userId).catch(() => []),
         getAdminCustomerNotes(userId).catch(() => []),
       ]);
+
       if (data) {
         setUserDetail(data);
         setFirstName(data.profile.firstName || '');
@@ -169,7 +191,7 @@ export default function AdminCustomerDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, currentAdminEmail]);
 
   useEffect(() => {
     fetchDetail();
@@ -723,6 +745,15 @@ export default function AdminCustomerDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
+            {!userDetail.business?.businessName && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-950/30 border border-amber-900/50 flex items-start gap-3 text-xs text-amber-200">
+                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-white block font-semibold mb-0.5">Onboarding In-Progress: No Business Profile Created Yet</strong>
+                  <span>This customer registered their account but has not yet completed the business onboarding questions. You can assist them by entering their legal business details below (saved via upsert), or manage their plan and credentials in the other tabs.</span>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSaveBusiness} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
