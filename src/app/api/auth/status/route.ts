@@ -10,7 +10,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    '';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crediqly.vercel.app';
 
   let hostname = '';
@@ -81,7 +84,9 @@ export async function GET() {
     supabaseDashboardUrl: projectRef
       ? `https://supabase.com/dashboard/project/${projectRef}`
       : 'https://supabase.com/dashboard',
-    actionRequired: isPaused
+    actionRequired: !Boolean(supabaseUrl && anonKey)
+      ? 'Supabase environment variables are missing in this environment. Please configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your deployment environment settings (e.g. Vercel Project Settings > Environment Variables) and redeploy.'
+      : isPaused
       ? `Project '${projectRef}' appears to be PAUSED by Supabase due to inactivity. Go to https://supabase.com/dashboard/project/${projectRef} and click 'Resume project' (or Unpause). Once resumed, DNS and database access will be restored.`
       : null,
   };

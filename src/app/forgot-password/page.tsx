@@ -98,6 +98,18 @@ export default function ForgotPasswordPage() {
                         </a>
                       </div>
                     )}
+                    {error.includes('environment variables') && (
+                      <div className="pt-1">
+                        <a
+                          href="https://vercel.com/dashboard"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold underline text-rose-800 hover:text-rose-900 inline-flex items-center gap-1"
+                        >
+                          Open Vercel Project Settings &rarr;
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
