@@ -32,6 +32,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string; message?: string }>;
+  changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile?: (data: { firstName: string; lastName: string }) => Promise<{ success: boolean; error?: string }>;
   refreshUser?: () => Promise<void>;
   toggleDevAdmin?: () => void;
@@ -568,6 +569,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: 'Authentication required. Please sign in.' };
+    }
+    if (newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
+    }
+    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return { success: false, error: 'Password must contain both letters and numbers.' };
+    }
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    }
+    return { success: true };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -578,6 +599,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         resetPassword,
+        changePassword,
         updateProfile,
         refreshUser,
         toggleDevAdmin,

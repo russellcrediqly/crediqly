@@ -128,6 +128,14 @@ async function runSuite() {
   assert(!resetContent.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Service role key never in reset-password page');
   assert(!resetContent.includes('STRIPE_SECRET_KEY'), 'Stripe secret key never in reset-password page');
 
+  // Test 11: Authenticated Password Change Support
+  console.log('\n--- Test 11: Authenticated Password Change Implementation ---');
+  assert(authContextContent.includes('changePassword:'), 'AuthContext exposes changePassword function');
+  const profilePagePath = path.join(process.cwd(), 'src/app/profile/page.tsx');
+  const profileContent = fs.readFileSync(profilePagePath, 'utf8');
+  assert(profileContent.includes('Security & Password'), 'Profile page provides Security & Password management');
+  assert(profileContent.includes('handlePasswordChange'), 'Profile page implements authenticated password submit handler');
+
   console.log('\n================================================================');
   console.log(`  VERIFICATION RESULTS: ${passed}/${passed + failed} CHECKS PASSED`);
   console.log('================================================================\n');

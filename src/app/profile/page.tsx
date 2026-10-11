@@ -28,7 +28,7 @@ import Link from 'next/link';
 import { useSubscription } from '@/context/SubscriptionContext';
 
 export default function UserProfilePage() {
-  const { user, updateProfile, signOut } = useAuth();
+  const { user, updateProfile, changePassword, signOut } = useAuth();
   const { business } = useBusiness();
   const {
     subscription,
@@ -49,6 +49,49 @@ export default function UserProfilePage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ firstName?: string; lastName?: string }>({});
+
+  // Password update state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setPasswordError('Password must contain both letters and numbers.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    if (!changePassword) {
+      setPasswordError('Password change service is unavailable.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    const res = await changePassword(newPassword);
+    setPasswordSaving(false);
+
+    if (!res.success) {
+      setPasswordError(res.error || 'Failed to update password.');
+    } else {
+      setPasswordSuccess('Password updated successfully.');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    }
+  };
 
   // Derive initial first and last names from user object
   const getDerivedNames = () => {
@@ -530,6 +573,63 @@ export default function UserProfilePage() {
                   </Link>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Security & Password Card */}
+          <Card className="border border-slate-200/80 shadow-2xs">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-brand-600" />
+                <CardTitle className="text-base font-bold text-slate-900">
+                  Security & Password
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                Update your account password. Must contain at least 8 characters with letters and numbers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {passwordSuccess && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+              {passwordError && (
+                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+              <form onSubmit={handlePasswordChange} className="space-y-3 max-w-md">
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 8 characters"
+                  required
+                />
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Re-type new password"
+                  required
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={passwordSaving}
+                  disabled={passwordSaving || !newPassword || !confirmNewPassword}
+                  className="mt-1"
+                >
+                  Update Password
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>
