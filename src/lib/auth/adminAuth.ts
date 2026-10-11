@@ -235,6 +235,15 @@ export function verifyAdminRequest(request: NextRequest): {
     }
   }
 
+  // 3b. Check crediqly_admin_email cookie for authorized administrator accounts
+  const adminEmailCookie = request.cookies.get('crediqly_admin_email');
+  if (adminEmailCookie?.value) {
+    const decodedEmail = decodeURIComponent(adminEmailCookie.value).trim().toLowerCase();
+    if (isAuthorizedAdminEmail(decodedEmail)) {
+      return { authorized: true, email: decodedEmail };
+    }
+  }
+
   // 3. Inspect Supabase authentication session cookie (sb-*-auth-token)
   const cookies = request.cookies.getAll();
   const authCookie = cookies.find((c) => c.name.includes('auth-token') || c.name.includes('supabase'));

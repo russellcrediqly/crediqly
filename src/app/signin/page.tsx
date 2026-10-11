@@ -153,6 +153,136 @@ export default function SignInPage() {
               </Button>
             </form>
 
+            {/* Quick Demo & Account Switcher */}
+            <div className="mt-6 pt-5 border-t border-slate-200">
+              <div className="text-center mb-3">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Quick Sign-In Accounts
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setEmail('crediqly@gmail.com');
+                    setPassword('CrediqlyPass2026!');
+                    setSubmitting(true);
+                    setError(null);
+                    try {
+                      const res = await signIn('crediqly@gmail.com', 'CrediqlyPass2026!');
+                      if (res.error) {
+                        setError(res.error);
+                        setSubmitting(false);
+                      } else {
+                        router.replace(res.destination || '/admin');
+                      }
+                    } catch (e: any) {
+                      setError(e?.message || 'Login failed');
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-brand-200 bg-brand-50/70 hover:bg-brand-100 text-left transition-colors text-xs"
+                >
+                  <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
+                  <div>
+                    <div className="font-semibold text-brand-900">Admin Console</div>
+                    <div className="text-[11px] text-brand-700 font-mono truncate max-w-[130px]">crediqly@gmail.com</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setEmail('sarah@beaconclean.com');
+                    setPassword('CustomerPass2026!');
+                    setSubmitting(true);
+                    setError(null);
+                    try {
+                      const res = await signIn('sarah@beaconclean.com', 'CustomerPass2026!');
+                      if (res.error) {
+                        setError(res.error);
+                        setSubmitting(false);
+                      } else {
+                        router.replace(res.destination || '/dashboard');
+                      }
+                    } catch (e: any) {
+                      setError(e?.message || 'Login failed');
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-left transition-colors text-xs"
+                >
+                  <div className="w-4 h-4 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold text-[9px] shrink-0">F</div>
+                  <div>
+                    <div className="font-semibold text-emerald-900">Customer (Foundation)</div>
+                    <div className="text-[11px] text-emerald-700 font-mono truncate max-w-[130px]">sarah@beaconclean.com</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setEmail('david@titanbuilds.com');
+                    setPassword('CustomerPass2026!');
+                    setSubmitting(true);
+                    setError(null);
+                    try {
+                      const res = await signIn('david@titanbuilds.com', 'CustomerPass2026!');
+                      if (res.error) {
+                        setError(res.error);
+                        setSubmitting(false);
+                      } else {
+                        router.replace(res.destination || '/dashboard');
+                      }
+                    } catch (e: any) {
+                      setError(e?.message || 'Login failed');
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-left transition-colors text-xs"
+                >
+                  <div className="w-4 h-4 rounded-full bg-purple-200 text-purple-800 flex items-center justify-center font-bold text-[9px] shrink-0">G</div>
+                  <div>
+                    <div className="font-semibold text-purple-900">Customer (Guided)</div>
+                    <div className="text-[11px] text-purple-700 font-mono truncate max-w-[130px]">david@titanbuilds.com</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setEmail('marcus@rapidcouriers.net');
+                    setPassword('CustomerPass2026!');
+                    setSubmitting(true);
+                    setError(null);
+                    try {
+                      const res = await signIn('marcus@rapidcouriers.net', 'CustomerPass2026!');
+                      if (res.error) {
+                        setError(res.error);
+                        setSubmitting(false);
+                      } else {
+                        router.replace(res.destination || '/onboarding');
+                      }
+                    } catch (e: any) {
+                      setError(e?.message || 'Login failed');
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-left transition-colors text-xs"
+                >
+                  <div className="w-4 h-4 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center font-bold text-[9px] shrink-0">O</div>
+                  <div>
+                    <div className="font-semibold text-amber-900">New Onboarding</div>
+                    <div className="text-[11px] text-amber-700 font-mono truncate max-w-[130px]">marcus@rapidcouriers.net</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-xs text-slate-400">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>Zero sensitive data stored. Safe & encrypted.</span>

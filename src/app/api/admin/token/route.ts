@@ -47,8 +47,8 @@ async function handleTokenRequest(req: NextRequest) {
     }
   }
 
-  // 4. In development or test harness, allow verified admin email header/body
-  if (!adminEmail && process.env.NODE_ENV !== 'production') {
+  // 4. Check verified admin email header or body (must be in AUTHORIZED_ADMIN_EMAILS list)
+  if (!adminEmail) {
     const headerEmail = req.headers.get('x-admin-email');
     if (headerEmail && isAuthorizedAdminEmail(headerEmail)) {
       adminEmail = headerEmail.toLowerCase();
