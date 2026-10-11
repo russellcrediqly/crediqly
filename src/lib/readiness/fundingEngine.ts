@@ -66,13 +66,16 @@ function calculateAgePoints(age?: string): number {
 function calculateRevenuePoints(revenue?: string): number {
   switch (revenue) {
     case '$1,000,000+':
+    case '$1 million+':
     case '$500,000+':
+    case '$500,000–$1 million':
     case '$250,000–$500,000':
       return 10;
     case '$100,000–$250,000':
       return 8;
     case '$50,000–$100,000':
       return 5;
+    case 'Under $50,000':
     case '$10,000–$50,000':
       return 3;
     case 'Pre-revenue':
@@ -88,18 +91,23 @@ function calculateRevenuePoints(revenue?: string): number {
  */
 function calculatePersonalCreditPoints(range?: string): number {
   switch (range) {
+    case '800+':
+    case '740–799':
     case '720+':
     case '720–850':
     case 'Excellent (720+)':
       return 10;
+    case '670–739':
     case '680–719':
     case 'Good (680–719)':
       return 8;
     case '640–679':
     case 'Fair (640–679)':
       return 5;
+    case '580–669':
     case '600–639':
       return 3;
+    case 'Below 580':
     case 'Under 600':
     case 'Poor':
       return 1;

@@ -3,6 +3,7 @@ import { UserProfile, UpdateProfileInput } from '@/types/user';
 
 const LOCAL_STORAGE_PROFILE_PREFIX = 'crediqly_user_profile_';
 const LOCAL_STORAGE_SAVED_PREFIX = 'crediqly_saved_profile_';
+const inMemoryProfiles = new Map<string, UserProfile>();
 
 /**
  * Fetch a customer's profile from Supabase with safe offline fallback
@@ -23,7 +24,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
         const lastName = data.last_name || '';
         const fullName = `${firstName} ${lastName}`.trim() || data.email?.split('@')[0] || 'User';
 
-        return {
+        const profile: UserProfile = {
           id: data.id,
           userId: data.user_id,
           firstName,
@@ -35,6 +36,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         };
+        inMemoryProfiles.set(userId, profile);
+        return profile;
       }
     } catch (err) {
       console.warn('Failed to load user profile from Supabase:', err);
@@ -46,12 +49,14 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     try {
       const cached = localStorage.getItem(`${LOCAL_STORAGE_PROFILE_PREFIX}${userId}`);
       if (cached) {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        inMemoryProfiles.set(userId, parsed);
+        return parsed;
       }
     } catch (e) {}
   }
 
-  return null;
+  return inMemoryProfiles.get(userId) || null;
 }
 
 /**
@@ -60,14 +65,21 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
  */
 export async function updateCustomerProfile(
   userId: string,
-  input: UpdateProfileInput
+  input: UpdateProfileInput & { fullName?: string; phone?: string; companyName?: string }
 ): Promise<{ success: boolean; error?: string; profile?: UserProfile }> {
   if (!userId) {
     return { success: false, error: 'Authentication required. Please sign in.' };
   }
 
-  const firstName = (input.firstName || '').trim();
-  const lastName = (input.lastName || '').trim();
+  let firstName = (input.firstName || '').trim();
+  let lastName = (input.lastName || '').trim();
+
+  // If fullName is supplied instead of firstName/lastName, parse it cleanly
+  if ((!firstName || !lastName) && input.fullName) {
+    const parts = input.fullName.trim().split(/\s+/);
+    if (!firstName) firstName = parts[0] || '';
+    if (!lastName) lastName = parts.slice(1).join(' ') || (parts.length === 1 ? parts[0] : '');
+  }
 
   // 1. Basic validation
   if (!firstName) {
@@ -184,5 +196,6 @@ export async function updateCustomerProfile(
     }
   }
 
+  inMemoryProfiles.set(userId, updatedProfile);
   return { success: true, profile: updatedProfile };
 }

@@ -82,8 +82,18 @@ export default function AdminPaymentsPage() {
       }
 
       // 3. Type filter
-      if (typeFilter !== 'all' && p.paymentType !== typeFilter) {
-        return false;
+      if (typeFilter !== 'all') {
+        if (typeFilter === 'foundation') {
+          if (p.paymentType !== 'foundation_subscription' && p.paymentType !== 'subscription') return false;
+        } else if (typeFilter === 'guided_subscription') {
+          if (p.paymentType !== 'guided_subscription' && p.paymentType !== 'advisory_subscription') return false;
+        } else if (typeFilter === 'guided_onetime') {
+          if (p.paymentType !== 'guided_onetime' && p.paymentType !== 'intensive') return false;
+        } else if (typeFilter === 'consultation') {
+          if (p.paymentType !== 'consultation') return false;
+        } else if (p.paymentType !== typeFilter) {
+          return false;
+        }
       }
 
       return true;
@@ -97,21 +107,33 @@ export default function AdminPaymentsPage() {
       .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [payments]);
 
-  const advisorySetupRevenue = useMemo(() => {
+  const foundationRevenue = useMemo(() => {
     return payments
-      .filter((p) => p.status === 'paid' && p.paymentType === 'advisory_setup')
+      .filter(
+        (p) =>
+          p.status === 'paid' &&
+          (p.paymentType === 'foundation_subscription' || p.paymentType === 'subscription')
+      )
       .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [payments]);
 
-  const proRevenue = useMemo(() => {
+  const guidedOneTimeRevenue = useMemo(() => {
     return payments
-      .filter((p) => p.status === 'paid' && p.paymentType === 'subscription')
+      .filter(
+        (p) =>
+          p.status === 'paid' &&
+          (p.paymentType === 'guided_onetime' || p.paymentType === 'intensive')
+      )
       .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [payments]);
 
-  const advisoryMonthlyRevenue = useMemo(() => {
+  const guidedMonthlyRevenue = useMemo(() => {
     return payments
-      .filter((p) => p.status === 'paid' && p.paymentType === 'advisory_subscription')
+      .filter(
+        (p) =>
+          p.status === 'paid' &&
+          (p.paymentType === 'guided_subscription' || p.paymentType === 'advisory_subscription')
+      )
       .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [payments]);
 
@@ -177,23 +199,23 @@ export default function AdminPaymentsPage() {
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
           <span className="text-xs text-slate-400 uppercase font-semibold">Foundation Subscriptions ($47.99)</span>
           <div className="text-2xl font-black text-brand-300 mt-1">
-            ${(proRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${(foundationRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5">Recurring Foundation revenue</p>
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
-          <span className="text-xs text-slate-400 uppercase font-semibold">Advisory Setups ($499)</span>
+          <span className="text-xs text-slate-400 uppercase font-semibold">Guided 12-Month ($997)</span>
           <div className="text-2xl font-black text-purple-300 mt-1">
-            ${(advisorySetupRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${(guidedOneTimeRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">One-time file audits</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">One-time 12-mo program</p>
         </Card>
 
         <Card className="bg-slate-950 border-slate-800 text-white p-4">
           <span className="text-xs text-slate-400 uppercase font-semibold">Guided Retainers ($147.99)</span>
           <div className="text-2xl font-black text-purple-400 mt-1">
-            ${(advisoryMonthlyRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${(guidedMonthlyRevenue / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5">Monthly Guided tiers</p>
         </Card>
@@ -232,11 +254,9 @@ export default function AdminPaymentsPage() {
               className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
             >
               <option value="all">All Products</option>
-              <option value="subscription">Foundation ($47.99/mo)</option>
+              <option value="foundation">Foundation ($47.99/mo)</option>
               <option value="guided_subscription">Guided Monthly ($147.99/mo)</option>
-              <option value="intensive">Guided 12-Month ($997)</option>
-              <option value="advisory_setup">Legacy Advisory Setup ($499)</option>
-              <option value="advisory_subscription">Legacy Advisory Monthly ($147.99/mo)</option>
+              <option value="guided_onetime">Guided 12-Month ($997)</option>
               <option value="consultation">Historical Consult ($99)</option>
             </select>
           </div>

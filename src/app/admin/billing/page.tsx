@@ -83,16 +83,16 @@ export default function AdminBillingPage() {
     );
   }
 
-  const proMrr = Math.round((metrics?.activeProCustomers || 0) * 47.99);
-  const advisoryMrr = Math.round((metrics?.activeAdvisoryCustomers || 0) * 147.99);
-  const totalMrrVal = proMrr + advisoryMrr;
+  const proMrr = Math.round((metrics?.foundationCustomers || 0) * 47.99);
+  const guidedMrr = Math.round((metrics?.guidedMonthlyCustomers || 0) * 147.99);
+  const totalMrrVal = proMrr + guidedMrr;
 
   const mrr = totalMrrVal.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
   });
 
-  const advisorySetupRevenue = (((metrics?.advisorySetupRevenueCents || 0)) / 100).toLocaleString('en-US', {
+  const oneTimeRevenue = (((metrics?.oneTimeRevenueCents || 0)) / 100).toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
   });
@@ -179,7 +179,7 @@ export default function AdminBillingPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Total MRR</span>
+              <span className="text-xs font-semibold text-slate-400">Total Recurring MRR</span>
               <div className="w-8 h-8 rounded-lg bg-emerald-950/60 text-emerald-400 flex items-center justify-center border border-emerald-900/60">
                 <TrendingUp className="w-4 h-4" />
               </div>
@@ -187,7 +187,7 @@ export default function AdminBillingPage() {
             <div className="mt-3">
               <span className="text-2xl sm:text-3xl font-black text-white">{mrr}</span>
               <span className="text-xs text-slate-400 block mt-0.5">
-                ${proMrr} Foundation + ${advisoryMrr} Guided
+                ${proMrr} Foundation + ${guidedMrr} Guided
               </span>
             </div>
           </CardContent>
@@ -197,19 +197,19 @@ export default function AdminBillingPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Guided ($147.99/mo)</span>
+              <span className="text-xs font-semibold text-slate-400">Guided Monthly ($147.99)</span>
               <div className="w-8 h-8 rounded-lg bg-indigo-950/60 text-indigo-400 flex items-center justify-center border border-indigo-900/60">
                 <Headphones className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-indigo-400">
-                {metrics?.activeAdvisoryCustomers || 0}
+                {metrics?.guidedMonthlyCustomers || 0}
               </span>
               <Badge variant="info" className="text-[10px] bg-indigo-950 text-indigo-300 border-indigo-800">Active</Badge>
             </div>
             <span className="text-xs text-slate-400 block mt-1">
-              {advisorySetupRevenue} setup volume
+              ${guidedMrr} recurring monthly
             </span>
           </CardContent>
         </Card>
@@ -225,7 +225,7 @@ export default function AdminBillingPage() {
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-brand-400">
-                {metrics?.activeProCustomers || 0}
+                {metrics?.foundationCustomers || 0}
               </span>
               <Badge variant="info" className="text-[10px]">Active</Badge>
             </div>
@@ -235,23 +235,23 @@ export default function AdminBillingPage() {
           </CardContent>
         </Card>
 
-        {/* Past Consultations */}
+        {/* Guided 12-Month Program */}
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Past Consultations</span>
-              <div className="w-8 h-8 rounded-lg bg-sky-950/60 text-sky-400 flex items-center justify-center border border-sky-900/60">
-                <Calendar className="w-4 h-4" />
+              <span className="text-xs font-semibold text-slate-400">Guided 12-Mo ($997)</span>
+              <div className="w-8 h-8 rounded-lg bg-purple-950/60 text-purple-400 flex items-center justify-center border border-purple-900/60">
+                <CreditCard className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black text-sky-300">
-                {metrics?.totalPaidConsultations || 0}
+              <span className="text-2xl sm:text-3xl font-black text-purple-300">
+                {metrics?.guidedOneTimeCustomers || 0}
               </span>
-              <span className="text-xs text-slate-400">Historical</span>
+              <span className="text-xs text-slate-400">Paid Non-recurring</span>
             </div>
             <span className="text-xs text-slate-400 block mt-1">
-              {consultationRevenue} lifetime revenue
+              {oneTimeRevenue} total one-time volume
             </span>
           </CardContent>
         </Card>
@@ -272,7 +272,7 @@ export default function AdminBillingPage() {
               <span className="text-xs text-slate-400">Registered</span>
             </div>
             <span className="text-xs text-slate-400 block mt-1">
-              {metrics?.freeCustomers || 0} on Free plan ($0/mo)
+              {metrics?.freeCustomers || 0} Free • {metrics?.adminGrantedCustomers || 0} Grants
             </span>
           </CardContent>
         </Card>
@@ -469,13 +469,25 @@ export default function AdminBillingPage() {
                           {sub.userId.substring(0, 16)}...
                         </td>
                         <td className="py-3.5 px-4 font-bold uppercase">
-                          {sub.plan === 'guided' || sub.plan === 'premium_advisory' ? (
+                          {sub.accessSource === 'stripe_onetime' || sub.billingStatus === 'paid_onetime' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-950 text-purple-300 border border-purple-700">
+                              Guided 12-Mo ($997)
+                            </span>
+                          ) : sub.accessSource === 'admin_grant' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-950 text-blue-300 border border-blue-700">
+                              Admin Grant ({sub.plan})
+                            </span>
+                          ) : sub.accessSource === 'complimentary' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-cyan-950 text-cyan-300 border border-cyan-700">
+                              Complimentary ({sub.plan})
+                            </span>
+                          ) : sub.plan === 'guided' || sub.plan === 'premium_advisory' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-950 text-indigo-300 border border-indigo-700">
-                              Guided ($147.99)
+                              Guided ($147.99/mo)
                             </span>
                           ) : sub.plan === 'foundation' || sub.plan === 'pro' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-brand-950 text-brand-300 border border-brand-800">
-                              Foundation ($47.99)
+                              Foundation ($47.99/mo)
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300">

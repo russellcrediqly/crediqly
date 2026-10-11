@@ -4,6 +4,7 @@ import type {
   FundingMatchResult,
   FundingMatchLevel,
 } from '../../types/fundingProduct.ts';
+import { INITIAL_FUNDING_PRODUCTS } from './initialFundingProducts.ts';
 
 function parseBusinessAgeMonths(age?: string | number): number | null {
   if (typeof age === 'number') return age;
@@ -70,10 +71,11 @@ export function parseMinPersonalCreditRequirement(creditStr?: string): number {
 export function matchFundingProducts(
   profile: Partial<BusinessProfile> | null,
   fundingReadinessScore: number,
-  products: FundingProduct[]
+  products: FundingProduct[] = INITIAL_FUNDING_PRODUCTS
 ): FundingMatchResult[] {
   const p = profile || {};
-  const activeProducts = products.filter((item) => item.status === 'active');
+  const safeProducts = Array.isArray(products) && products.length > 0 ? products : INITIAL_FUNDING_PRODUCTS;
+  const activeProducts = safeProducts.filter((item) => item.status === 'active');
 
   const anyProfile = p as any;
   const userAgeMonths = parseBusinessAgeMonths(p.businessAge || anyProfile.business_age);

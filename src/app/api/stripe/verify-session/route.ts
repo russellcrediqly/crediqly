@@ -44,12 +44,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Resolve target Crediqly user ID
-    const targetUserId =
+    // Security Check: Verify customer isolation so Customer A cannot claim Customer B's session
+    const sessionOwnerId =
       session.metadata?.crediqly_user_id ||
       session.metadata?.userId ||
-      session.client_reference_id ||
-      userId;
+      session.client_reference_id;
+
+    if (sessionOwnerId && userId && sessionOwnerId !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden: Checkout session belongs to a different customer account.' },
+        { status: 403 }
+      );
+    }
+
+    // Resolve target Crediqly user ID
+    const targetUserId = sessionOwnerId || userId;
 
     if (!targetUserId) {
       return NextResponse.json(
@@ -70,6 +79,9 @@ export async function POST(req: Request) {
         userId: targetUserId,
         plan: 'guided',
         status: 'active',
+        provider: 'stripe',
+        accessSource: 'stripe_onetime',
+        billingStatus: 'paid_onetime',
         stripeCustomerId: customerId,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: oneYearLater.toISOString(),
@@ -111,6 +123,9 @@ export async function POST(req: Request) {
       userId: targetUserId,
       plan: mappedPlan,
       status: 'active',
+      provider: 'stripe',
+      accessSource: 'stripe_subscription',
+      billingStatus: 'active',
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
       currentPeriodStart: subObj?.current_period_start ? new Date(subObj.current_period_start * 1000).toISOString() : undefined,

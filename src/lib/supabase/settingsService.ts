@@ -229,6 +229,27 @@ export async function updatePlatformSettings(
     updatedBy: adminUserId || current.updatedBy,
   };
 
+  // 1. Try server-side API route if in browser
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: newSettings }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.settings) {
+          saveLocalSettings(json.settings);
+          return json.settings;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('API /api/admin/settings call failed, falling back to direct Supabase:', apiErr);
+    }
+  }
+
+  // 2. Direct Supabase upsert fallback
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase

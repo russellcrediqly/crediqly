@@ -1,10 +1,31 @@
 import { NextResponse } from 'next/server';
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/stripeServer';
-import { upsertSubscription, recordPayment, getSubscriptionByCustomerId } from '@/lib/supabase/subscriptionService';
+import {
+  upsertSubscription,
+  recordPayment,
+  getSubscriptionByCustomerId,
+  getUserSubscription,
+} from '@/lib/supabase/subscriptionService';
 import { updateConsultationPaymentStatus } from '@/lib/supabase/consultationService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { logAdminAction } from '@/lib/supabase/adminAuditService';
 
 export const dynamic = 'force-dynamic';
+
+// In-memory cache for fast local and test suite idempotency deduplication
+const processedEventsCache = new Set<string>();
+
+function getPrivilegedDbClient() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { getSupabaseAdminClient } = require('@/lib/supabase/adminServer');
+      const adminClient = getSupabaseAdminClient();
+      if (adminClient) return adminClient;
+    } catch {}
+  }
+  return supabase;
+}
 
 export async function GET() {
   return NextResponse.json({
@@ -61,27 +82,38 @@ export async function POST(req: Request) {
   try {
     const eventType = event.type;
     const dataObject = event.data?.object || {};
+    const db = getPrivilegedDbClient();
 
-    // Phase 18: Idempotency Verification — prevent duplicate execution of the same Stripe event
-    if (isSupabaseConfigured && supabase && event.id) {
-      try {
-        const { data: existingEvent } = await supabase
-          .from('stripe_webhook_logs')
-          .select('id')
-          .eq('event_id', event.id)
-          .maybeSingle();
+    // Idempotency Check (In-memory + Database stripe_webhook_logs)
+    if (event.id) {
+      if (processedEventsCache.has(event.id)) {
+        console.log(`Webhook event ${event.id} (${event.type}) duplicate caught in cache. Returning idempotent 200.`);
+        return NextResponse.json({ received: true, idempotent: true });
+      }
 
-        if (existingEvent) {
-          console.log(`Webhook event ${event.id} (${event.type}) already processed. Returning idempotent 200.`);
-          return NextResponse.json({ received: true, idempotent: true });
+      if (isSupabaseConfigured && db) {
+        try {
+          const { data: existingEvent } = await db
+            .from('stripe_webhook_logs')
+            .select('id')
+            .eq('event_id', event.id)
+            .maybeSingle();
+
+          if (existingEvent) {
+            processedEventsCache.add(event.id);
+            console.log(`Webhook event ${event.id} (${event.type}) already processed. Returning idempotent 200.`);
+            return NextResponse.json({ received: true, idempotent: true });
+          }
+        } catch (idempErr) {
+          console.warn('Could not query webhook idempotency log:', idempErr);
         }
-      } catch (idempErr) {
-        console.warn('Could not query webhook idempotency log:', idempErr);
       }
     }
 
     switch (eventType) {
-      // 1. Checkout Session Completed (Subscriptions, Advisory, or One-Time Consultations)
+      // -----------------------------------------------------------------------
+      // 1. Checkout Session Completed
+      // -----------------------------------------------------------------------
       case 'checkout.session.completed': {
         const session = dataObject;
         const userId = session.metadata?.crediqly_user_id || session.metadata?.userId || session.client_reference_id;
@@ -91,7 +123,7 @@ export async function POST(req: Request) {
         const consultationId = session.metadata?.consultationId;
 
         if (userId) {
-          // Handle Guided 12-Month Program ($997 One-Time)
+          // Handle Guided 12-Month Program ($997 One-Time Purchase)
           if (paymentType === 'intensive' || paymentType === 'guided_onetime') {
             const now = new Date();
             const oneYearLater = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
@@ -109,15 +141,18 @@ export async function POST(req: Request) {
               userId,
               plan: 'guided',
               status: 'active',
+              provider: 'stripe',
+              accessSource: 'stripe_onetime',
+              billingStatus: 'paid_onetime',
               stripeCustomerId: session.customer as string,
               currentPeriodStart: now.toISOString(),
               currentPeriodEnd: oneYearLater.toISOString(),
-              cancelAtPeriodEnd: true,
+              cancelAtPeriodEnd: true, // Defined 12-month program, no auto-renewal
             });
             break;
           }
 
-          // Handle Guided or Legacy Advisory Checkout
+          // Handle Guided Monthly Subscription ($147.99/mo)
           const isGuided = plan === 'guided' || plan === 'advisory' || plan === 'premium_advisory';
           if (isGuided) {
             await recordPayment({
@@ -135,6 +170,9 @@ export async function POST(req: Request) {
               userId,
               plan: 'guided',
               status: 'active',
+              provider: 'stripe',
+              accessSource: 'stripe_subscription',
+              billingStatus: 'active',
               stripeCustomerId: session.customer as string,
               stripeSubscriptionId: session.subscription as string,
             });
@@ -161,11 +199,14 @@ export async function POST(req: Request) {
                 paidAt: new Date().toISOString(),
               });
             } else {
-              // Foundation Subscription Checkout
+              // Foundation Subscription Checkout ($47.99/mo)
               await upsertSubscription({
                 userId,
                 plan: 'foundation',
                 status: 'active',
+                provider: 'stripe',
+                accessSource: 'stripe_subscription',
+                billingStatus: 'active',
                 stripeCustomerId: session.customer as string,
                 stripeSubscriptionId: session.subscription as string,
               });
@@ -175,7 +216,9 @@ export async function POST(req: Request) {
         break;
       }
 
+      // -----------------------------------------------------------------------
       // 2. Subscription Created or Updated
+      // -----------------------------------------------------------------------
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = dataObject;
@@ -215,6 +258,9 @@ export async function POST(req: Request) {
             stripeSubscriptionId: sub.id,
             plan: mappedPlan,
             status: mappedStatus,
+            provider: 'stripe',
+            accessSource: 'stripe_subscription',
+            billingStatus: sub.status,
             currentPeriodStart: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : undefined,
             currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : undefined,
             cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
@@ -223,7 +269,9 @@ export async function POST(req: Request) {
         break;
       }
 
-      // 3. Subscription Deleted (Expired / Terminated)
+      // -----------------------------------------------------------------------
+      // 3. Subscription Deleted (Terminated / Expired)
+      // -----------------------------------------------------------------------
       case 'customer.subscription.deleted': {
         const sub = dataObject;
         let userId = sub.metadata?.crediqly_user_id || sub.metadata?.userId;
@@ -237,25 +285,55 @@ export async function POST(req: Request) {
         }
 
         if (userId) {
-          await upsertSubscription({
-            userId,
-            plan: 'free',
-            status: 'expired',
-            cancelAtPeriodEnd: false,
-          });
+          const existingSub = await getUserSubscription(userId);
+          const hasAdminGrant =
+            (existingSub.provider === 'admin' ||
+              existingSub.accessSource === 'admin_grant' ||
+              existingSub.accessSource === 'complimentary') &&
+            (!existingSub.expiresAt || new Date(existingSub.expiresAt).getTime() > Date.now());
+
+          if (hasAdminGrant) {
+            // Preserve active admin grant while recording Stripe cancellation
+            await upsertSubscription({
+              userId,
+              stripeSubscriptionId: undefined,
+              billingStatus: 'expired',
+            });
+          } else {
+            // Revert cleanly to Free tier
+            await upsertSubscription({
+              userId,
+              plan: 'free',
+              status: 'expired',
+              accessSource: 'free',
+              billingStatus: 'expired',
+              cancelAtPeriodEnd: false,
+              stripeSubscriptionId: undefined,
+            });
+          }
         }
         break;
       }
 
-      // 4. Invoice Paid (Recurring monthly renewal success)
+      // -----------------------------------------------------------------------
+      // 4. Invoice Paid (Recurring Renewal Success)
+      // -----------------------------------------------------------------------
       case 'invoice.paid':
       case 'invoice.payment_succeeded': {
         const invoice = dataObject;
         const customerId = invoice.customer as string;
         const subscriptionId = invoice.subscription as string;
         const lineMeta = invoice.lines?.data?.[0]?.metadata;
-        let userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
-        const planMeta = lineMeta?.crediqly_plan || lineMeta?.plan || invoice.subscription_details?.metadata?.crediqly_plan || invoice.subscription_details?.metadata?.plan;
+        let userId =
+          lineMeta?.crediqly_user_id ||
+          lineMeta?.userId ||
+          invoice.subscription_details?.metadata?.crediqly_user_id ||
+          invoice.subscription_details?.metadata?.userId;
+        const planMeta =
+          lineMeta?.crediqly_plan ||
+          lineMeta?.plan ||
+          invoice.subscription_details?.metadata?.crediqly_plan ||
+          invoice.subscription_details?.metadata?.plan;
 
         if (!userId && customerId) {
           const existing = await getSubscriptionByCustomerId(customerId);
@@ -281,6 +359,9 @@ export async function POST(req: Request) {
             userId,
             plan: isGuided ? 'guided' : 'foundation',
             status: 'active',
+            provider: 'stripe',
+            accessSource: 'stripe_subscription',
+            billingStatus: 'active',
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
           });
@@ -288,12 +369,25 @@ export async function POST(req: Request) {
         break;
       }
 
-      // 5. Invoice Payment Failed
+      // -----------------------------------------------------------------------
+      // 5. Invoice Payment Failed (Enters 7-Day Grace Period)
+      // -----------------------------------------------------------------------
       case 'invoice.payment_failed': {
         const invoice = dataObject;
         const customerId = invoice.customer as string;
         const lineMeta = invoice.lines?.data?.[0]?.metadata;
-        const userId = lineMeta?.crediqly_user_id || lineMeta?.userId || invoice.subscription_details?.metadata?.crediqly_user_id || invoice.subscription_details?.metadata?.userId;
+        let userId =
+          lineMeta?.crediqly_user_id ||
+          lineMeta?.userId ||
+          invoice.subscription_details?.metadata?.crediqly_user_id ||
+          invoice.subscription_details?.metadata?.userId;
+
+        if (!userId && customerId) {
+          const existing = await getSubscriptionByCustomerId(customerId);
+          if (existing?.userId) {
+            userId = existing.userId;
+          }
+        }
 
         if (userId) {
           await recordPayment({
@@ -309,12 +403,67 @@ export async function POST(req: Request) {
           await upsertSubscription({
             userId,
             status: 'past_due',
+            billingStatus: 'past_due',
           });
         }
         break;
       }
 
-      // 6. Payment Intent Succeeded
+      // -----------------------------------------------------------------------
+      // 6. Charge Refunded (Immediate Revocation of Refunded Entitlements)
+      // -----------------------------------------------------------------------
+      case 'charge.refunded': {
+        const charge = dataObject;
+        const customerId = charge.customer as string;
+        const paymentIntentId = charge.payment_intent as string;
+
+        let userId: string | undefined = undefined;
+        if (customerId) {
+          const existing = await getSubscriptionByCustomerId(customerId);
+          if (existing?.userId) {
+            userId = existing.userId;
+          }
+        }
+
+        // Update payment row in database to 'refunded'
+        if (db && (paymentIntentId || charge.id)) {
+          try {
+            await db
+              .from('payments')
+              .update({ status: 'refunded', updated_at: new Date().toISOString() })
+              .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_checkout_session_id.eq.${charge.id}`);
+          } catch (refErr) {
+            console.warn('Could not update payment status to refunded in DB:', refErr);
+          }
+        }
+
+        if (userId) {
+          const existingSub = await getUserSubscription(userId);
+          // If customer access was based on one-time purchase that was refunded, revert to Free
+          if (existingSub.accessSource === 'stripe_onetime') {
+            await upsertSubscription({
+              userId,
+              plan: 'free',
+              status: 'free',
+              accessSource: 'free',
+              billingStatus: 'refunded',
+            });
+          }
+
+          await logAdminAction({
+            adminEmail: 'stripe_webhook@crediqly.com',
+            action: 'PAYMENT_REFUNDED',
+            entityType: 'customer',
+            entityId: userId,
+            description: `Stripe charge refunded (${((charge.amount_refunded || 0) / 100).toFixed(2)} ${charge.currency?.toUpperCase() || 'USD'}). Entitlements reconciled.`,
+          });
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // 7. Payment Intent Succeeded
+      // -----------------------------------------------------------------------
       case 'payment_intent.succeeded': {
         const paymentIntent = dataObject;
         const userId = paymentIntent.metadata?.crediqly_user_id || paymentIntent.metadata?.userId;
@@ -337,30 +486,34 @@ export async function POST(req: Request) {
       }
 
       default:
-        // Other events received and acknowledged cleanly
+        // Acknowledge receipt of other Stripe lifecycle events cleanly
         break;
     }
 
-    // Record processed event in stripe_webhook_logs for auditability and future idempotency
-    if (isSupabaseConfigured && supabase && event.id) {
-      try {
-        await supabase.from('stripe_webhook_logs').insert([
-          {
-            event_id: event.id,
-            event_type: event.type,
-            status: 'success',
-            summary: `Successfully processed ${event.type} for ${dataObject?.id || 'event'}`,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      } catch (logErr) {
-        console.warn('Could not record webhook event log:', logErr);
+    // Record processed event in stripe_webhook_logs for auditability and idempotency
+    if (event.id) {
+      processedEventsCache.add(event.id);
+
+      if (isSupabaseConfigured && db) {
+        try {
+          await db.from('stripe_webhook_logs').insert([
+            {
+              event_id: event.id,
+              event_type: event.type,
+              status: 'success',
+              summary: `Successfully processed ${event.type} for ${dataObject?.id || 'event'}`,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+        } catch (logErr) {
+          console.warn('Could not record webhook event log:', logErr);
+        }
       }
     }
 
     return NextResponse.json({ received: true });
   } catch (err: any) {
-    console.error(`Error processing Stripe webhook event ${event.type}:`, err);
+    console.error(`Error processing Stripe webhook event ${event?.type}:`, err);
     return NextResponse.json(
       { error: 'Webhook processing error.' },
       { status: 500 }

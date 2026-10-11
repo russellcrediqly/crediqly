@@ -6,10 +6,13 @@ export { AUTHORIZED_ADMIN_EMAILS, isAuthorizedAdminEmail };
 // Dedicated administrator accounts (includes crediqly@gmail.com and raselandahmed@gmail.com)
 export const ADMIN_EMAILS = AUTHORIZED_ADMIN_EMAILS;
 
-const ADMIN_SECRET =
-  process.env.ADMIN_API_SECRET ||
-  process.env.STRIPE_SECRET_KEY ||
-  'crediqly-production-admin-secure-key-2026';
+export function getAdminSecret(): string {
+  return (
+    process.env.ADMIN_API_SECRET ||
+    process.env.STRIPE_SECRET_KEY ||
+    'crediqly-production-admin-secure-key-2026'
+  );
+}
 
 /* Portable SHA-256 and HMAC-SHA256 (fully compatible with Node.js and Next.js Edge Runtime) */
 function sha256Bytes(bytes: number[]): number[] {
@@ -143,7 +146,7 @@ export function createSignedAdminToken(email: string): string {
   const normalized = email.toLowerCase().trim();
   const timestamp = Date.now();
   const payload = `${normalized}:${timestamp}`;
-  const hmac = computeHmacSha256(ADMIN_SECRET, payload);
+  const hmac = computeHmacSha256(getAdminSecret(), payload);
   return encodeBase64(`${payload}:${hmac}`);
 }
 
@@ -167,7 +170,7 @@ export function verifySignedAdminToken(token: string): { valid: boolean; email?:
       return { valid: false };
     }
 
-    const expectedHmac = computeHmacSha256(ADMIN_SECRET, `${email}:${timestamp}`);
+    const expectedHmac = computeHmacSha256(getAdminSecret(), `${email}:${timestamp}`);
 
     if (constantTimeEqual(hmac, expectedHmac)) {
       return { valid: true, email: email.toLowerCase() };
@@ -193,7 +196,7 @@ export function verifyAdminRequest(request: NextRequest): {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // 1. Check Server-to-Server Admin Key or Service Role Key
-  const adminSecret = process.env.ADMIN_API_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || ADMIN_SECRET;
+  const adminSecret = process.env.ADMIN_API_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || getAdminSecret();
   const customAdminHeader = request.headers.get('x-admin-key');
 
   if (customAdminHeader && adminSecret && customAdminHeader === adminSecret) {

@@ -21,6 +21,7 @@ import { WhatShouldIDoNextCard } from '@/components/dashboard/WhatShouldIDoNextC
 import { getTopRecommendedActions } from '@/lib/recommendations/nextActionsEngine';
 import { getPersonalizedFundingMatches } from '@/lib/funding/personalizedMatchesEngine';
 import { FundingMatchesForYouCard } from '@/components/funding/FundingMatchesForYouCard';
+import { CustomerPlanOverviewCard } from '@/components/dashboard/CustomerPlanOverviewCard';
 import { CrediqlyAIMentorCard } from '@/components/dashboard/CrediqlyAIMentorCard';
 import { PersonalizedRecommendationsCard } from '@/components/dashboard/PersonalizedRecommendationsCard';
 import {
@@ -65,10 +66,12 @@ export default function DashboardPage() {
   const { roadmap, completedTasks, toggleTaskCompletion } = useRoadmap();
   const { sections, settings } = usePlatformSections();
   const {
+    subscription,
     isFoundation,
     isGuided,
     isPro,
     isAdvisory,
+    loading: subscriptionLoading,
     upgradeToFoundation,
     upgradeToGuided,
     requestIntensive,
@@ -89,16 +92,22 @@ export default function DashboardPage() {
       const isUpgraded = params.get('upgraded') === 'true';
       const sessionId = params.get('session_id');
 
-      if (isUpgraded || sessionId) {
-        setUpgradedNotice(true);
-        if (sessionId) {
-          verifyCheckoutSession(sessionId);
-        } else {
-          refreshSubscription();
-        }
+      if (sessionId) {
+        verifyCheckoutSession(sessionId).then(() => {
+          refreshSubscription().then(() => {
+            setUpgradedNotice(true);
+          });
+        }).catch(() => {});
+      } else if (isUpgraded) {
+        refreshSubscription().then(() => {
+          // Only show banner if verified server state confirms active paid subscription
+          if (hasFoundation || hasGuided) {
+            setUpgradedNotice(true);
+          }
+        });
       }
     }
-  }, [verifyCheckoutSession, refreshSubscription]);
+  }, [verifyCheckoutSession, refreshSubscription, hasFoundation, hasGuided]);
 
   // Redirect administrators to admin portal
   useEffect(() => {
@@ -359,14 +368,17 @@ export default function DashboardPage() {
                     status={isProfileComplete ? 'Verified' : 'Needs Attention'}
                     size="sm"
                   />
-                  {hasGuided && (
-                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                  {hasGuided ? (
+                    <span className="text-[11px] font-bold text-purple-900 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded">
                       Guided Member
                     </span>
-                  )}
-                  {hasFoundation && !hasGuided && (
-                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                  ) : hasFoundation ? (
+                    <span className="text-[11px] font-bold text-brand-900 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">
                       Foundation Member
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                      Free Starter
                     </span>
                   )}
                 </div>
@@ -427,6 +439,20 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* ================================================================= */}
+          {/* CUSTOMER PLAN, ENTITLEMENTS & UPGRADE OVERVIEW                     */}
+          {/* ================================================================= */}
+          <CustomerPlanOverviewCard
+            subscription={subscription}
+            hasFoundation={hasFoundation}
+            hasGuided={hasGuided}
+            loading={subscriptionLoading}
+            upgradeToFoundation={upgradeToFoundation}
+            upgradeToGuided={upgradeToGuided}
+            openCustomerPortal={openCustomerPortal}
+            onOpenConsultation={() => setConsultationOpen(true)}
+          />
+
           {/* Incomplete Profile Alert (When profile questions need completion) */}
           {!isProfileComplete && sections.business_profile !== false && (
             <Card className="border-slate-200/90 bg-white shadow-xs rounded-2xl p-6 sm:p-7">
@@ -470,13 +496,15 @@ export default function DashboardPage() {
                   {/* Left Column: Authoritative 0-100 Readiness Display */}
                   <div className="lg:col-span-5 space-y-4">
                     <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                          READINESS INDEX
+                          {isProfileComplete ? 'READINESS INDEX' : 'PRELIMINARY READINESS'}
                         </span>
                         <StatusBadge
                           status={
-                            fundingReadiness.score >= 70
+                            !isProfileComplete
+                              ? 'Needs Attention'
+                              : fundingReadiness.score >= 70
                               ? 'Strong Match'
                               : fundingReadiness.score >= 50
                               ? 'Potential Match'
@@ -495,6 +523,11 @@ export default function DashboardPage() {
 
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
                       <strong>Current Standing:</strong> {fundingReadiness.level}. Evaluated across {milestoneReadiness.totalMilestonesCount} institutional underwriting benchmarks.
+                      {!isProfileComplete && (
+                        <span className="block mt-1 text-xs text-amber-700 font-medium">
+                          Profile setup in progress: Complete remaining foundational business fields to calculate your verified score.
+                        </span>
+                      )}
                     </p>
 
                     <div className="pt-1">

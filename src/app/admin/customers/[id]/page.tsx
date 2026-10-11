@@ -147,11 +147,46 @@ export default function AdminCustomerDetailPage() {
     try {
       let data: AdminUserDetail | null = null;
 
-      // 1. Attempt secured server-side API endpoint
+      // 1. Attempt secured server-side API endpoint with admin token
       try {
-        const res = await fetch(`/api/admin/customers/${userId}`, {
-          headers: { 'x-admin-email': currentAdminEmail },
-        });
+        let token = '';
+        try {
+          let authBearer = '';
+          const { supabase } = await import('@/lib/supabase/client');
+          if (supabase) {
+            const { data: sessionData } = await supabase.auth
+              .getSession()
+              .catch(() => ({ data: { session: null } }));
+            if (sessionData?.session?.access_token) {
+              authBearer = `Bearer ${sessionData.session.access_token}`;
+            }
+          }
+          const tokenHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'x-admin-email': currentAdminEmail,
+          };
+          if (authBearer) tokenHeaders['authorization'] = authBearer;
+
+          const tokenRes = await fetch('/api/admin/token', {
+            method: 'POST',
+            headers: tokenHeaders,
+            body: JSON.stringify({ email: currentAdminEmail }),
+          });
+          if (tokenRes.ok) {
+            const tokenJson = await tokenRes.json();
+            if (tokenJson.token) token = tokenJson.token;
+          }
+        } catch (e) {}
+
+        const headers: Record<string, string> = {
+          'x-admin-email': currentAdminEmail,
+        };
+        if (token) {
+          headers['x-admin-token'] = token;
+          headers['authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`/api/admin/customers/${userId}`, { headers });
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.customer) {

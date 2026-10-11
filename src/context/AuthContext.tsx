@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cached = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (localStorage.getItem('crediqly_dev_admin') === 'true') {
+          if (process.env.NODE_ENV !== 'production' && localStorage.getItem('crediqly_dev_admin') === 'true') {
             parsed.role = 'admin';
           }
           return parsed;
@@ -124,8 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Local dev admin override helper
-    if (typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true') {
+    // Local dev admin override helper (strictly development / non-production only)
+    if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && localStorage.getItem('crediqly_dev_admin') === 'true') {
       role = 'admin';
       try {
         document.cookie = 'crediqly_dev_admin=true; path=/; max-age=86400; SameSite=Lax';

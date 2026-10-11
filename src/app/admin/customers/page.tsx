@@ -54,6 +54,7 @@ export default function AdminCustomersPage() {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'foundation' | 'guided'>('all');
   const [accessSourceFilter, setAccessSourceFilter] = useState<'all' | AccessSource>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | AccountStatus>('all');
@@ -178,6 +179,8 @@ export default function AdminCustomersPage() {
         if (!matchName && !matchEmail && !matchBiz && !matchId) return false;
       }
 
+      if (roleFilter !== 'all' && c.role !== roleFilter) return false;
+
       if (planFilter !== 'all') {
         const p = c.plan || 'free';
         if (p !== planFilter) return false;
@@ -202,7 +205,7 @@ export default function AdminCustomersPage() {
 
       return true;
     });
-  }, [customers, search, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter]);
+  }, [customers, search, roleFilter, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter]);
 
   // Sort Logic
   const sortedCustomers = useMemo(() => {
@@ -229,7 +232,7 @@ export default function AdminCustomersPage() {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter, sortBy]);
+  }, [search, roleFilter, planFilter, accessSourceFilter, statusFilter, billingFilter, onboardingFilter, sortBy]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -245,6 +248,7 @@ export default function AdminCustomersPage() {
 
   const clearFilters = () => {
     setSearch('');
+    setRoleFilter('all');
     setPlanFilter('all');
     setAccessSourceFilter('all');
     setStatusFilter('all');
@@ -255,6 +259,7 @@ export default function AdminCustomersPage() {
 
   const hasActiveFilters =
     search ||
+    roleFilter !== 'all' ||
     planFilter !== 'all' ||
     accessSourceFilter !== 'all' ||
     statusFilter !== 'all' ||
@@ -535,16 +540,29 @@ export default function AdminCustomersPage() {
             </div>
 
             {/* Account Status Filter */}
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-1.5">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+                className="w-full px-2.5 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
               >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>
                 <option value="disabled">Disabled</option>
+              </select>
+            </div>
+
+            {/* Role Filter (Distinguish Customers vs Admins) */}
+            <div className="sm:col-span-1.5">
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value as any)}
+                className="w-full px-2.5 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500"
+              >
+                <option value="all">All Roles</option>
+                <option value="user">Customers Only</option>
+                <option value="admin">Administrators</option>
               </select>
             </div>
 
@@ -714,6 +732,16 @@ export default function AdminCustomersPage() {
                       <td className="py-3 px-4">
                         <div className="font-bold text-slate-100 flex items-center gap-1.5 flex-wrap">
                           <span>{c.fullName}</span>
+                          {c.role === 'admin' ? (
+                            <span className="text-[9px] font-bold text-brand-300 bg-brand-950/90 border border-brand-800 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                              <Shield className="w-2.5 h-2.5 text-brand-400" />
+                              Admin
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded inline-flex items-center">
+                              Customer
+                            </span>
+                          )}
                           {c.profileCreationPending && (
                             <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-1.5 py-0.2 rounded">
                               Profile Sync Pending

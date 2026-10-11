@@ -51,7 +51,12 @@ create policy "Users can view their own profile"
 drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
-  with check (auth.uid() = user_id or public.is_admin());
+  with check (
+    public.is_admin() or (
+      auth.uid() = user_id and
+      (role is null or role = 'user')
+    )
+  );
 
 drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
@@ -221,7 +226,7 @@ create table if not exists public.subscriptions (
 -- Enable Row Level Security (RLS)
 alter table public.subscriptions enable row level security;
 
--- Subscriptions RLS Policies (Users view their own; Admins view/manage all)
+-- Subscriptions RLS Policies (Users view their own; Only Admins can manage plans/updates)
 drop policy if exists "Users can view their own subscription" on public.subscriptions;
 create policy "Users can view their own subscription"
   on public.subscriptions for select
@@ -230,12 +235,22 @@ create policy "Users can view their own subscription"
 drop policy if exists "Users can insert their own subscription" on public.subscriptions;
 create policy "Users can insert their own subscription"
   on public.subscriptions for insert
-  with check (auth.uid() = user_id or public.is_admin());
+  with check (
+    public.is_admin() or (
+      auth.uid() = user_id and
+      (plan_id is null or plan_id = 'free')
+    )
+  );
 
 drop policy if exists "Users can update their own subscription" on public.subscriptions;
-create policy "Users can update their own subscription"
+create policy "Admins can update subscriptions"
   on public.subscriptions for update
-  using (auth.uid() = user_id or public.is_admin());
+  using (public.is_admin());
+
+drop policy if exists "Admins can delete subscriptions" on public.subscriptions;
+create policy "Admins can delete subscriptions"
+  on public.subscriptions for delete
+  using (public.is_admin());
 
 create index if not exists idx_subscriptions_user_id on public.subscriptions(user_id);
 
@@ -941,12 +956,24 @@ create policy "Users can view their own subscription"
 drop policy if exists "Admins can insert subscriptions" on public.subscriptions;
 create policy "Admins can insert subscriptions"
   on public.subscriptions for insert
-  with check (public.is_admin() or auth.uid() = user_id);
+  with check (
+    public.is_admin() or (
+      auth.uid() = user_id and
+      (plan is null or plan = 'free') and
+      (status is null or status = 'free') and
+      (access_source is null or access_source = 'free')
+    )
+  );
 
 drop policy if exists "Admins can update subscriptions" on public.subscriptions;
 create policy "Admins can update subscriptions"
   on public.subscriptions for update
-  using (public.is_admin() or auth.uid() = user_id);
+  using (public.is_admin());
+
+drop policy if exists "Admins can delete subscriptions" on public.subscriptions;
+create policy "Admins can delete subscriptions"
+  on public.subscriptions for delete
+  using (public.is_admin());
 
 create index if not exists idx_subscriptions_user_id on public.subscriptions(user_id);
 create index if not exists idx_subscriptions_stripe_customer on public.subscriptions(stripe_customer_id);
@@ -983,11 +1010,16 @@ create policy "Users can view their own payments"
 drop policy if exists "Admins can insert payments" on public.payments;
 create policy "Admins can insert payments"
   on public.payments for insert
-  with check (public.is_admin() or auth.uid() = user_id);
+  with check (public.is_admin());
 
 drop policy if exists "Admins can update payments" on public.payments;
 create policy "Admins can update payments"
   on public.payments for update
+  using (public.is_admin());
+
+drop policy if exists "Admins can delete payments" on public.payments;
+create policy "Admins can delete payments"
+  on public.payments for delete
   using (public.is_admin());
 
 create index if not exists idx_payments_user_id on public.payments(user_id);

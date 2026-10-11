@@ -66,6 +66,7 @@ export interface AdminUserDetail {
     email: string;
     role: UserRole;
     status: AccountStatus;
+    profileCompleted?: boolean;
     lastSeenAt?: string;
     createdAt: string;
     updatedAt: string;

@@ -732,10 +732,19 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   if (!userItem) return null;
 
   let businessProfile: BusinessProfile | null = null;
+  let dbClient: any = supabase;
 
-  if (isSupabaseConfigured && supabase) {
+  if (typeof window === 'undefined') {
     try {
-      const { data } = await supabase
+      const adminServer = await import('./adminServer');
+      const adminClient = adminServer.getSupabaseAdminClient();
+      if (adminClient) dbClient = adminClient;
+    } catch {}
+  }
+
+  if (isSupabaseConfigured && dbClient) {
+    try {
+      const { data } = await dbClient
         .from('businesses')
         .select('*')
         .eq('user_id', userItem.userId)
@@ -784,28 +793,15 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   }
 
   if (!businessProfile && userItem.businessName) {
+    // Only populate known fields honestly without fabricated defaults
     businessProfile = {
       userId: userItem.userId,
       businessName: userItem.businessName,
-      entityType: userItem.entityType || 'LLC',
-      state: userItem.state || 'Texas',
-      industry: userItem.industry || 'Trucking & Transportation',
-      businessAge: '1–2 years',
-      profileCompleted: userItem.profileCompleted,
-      hasEIN: 'yes',
-      hasBusinessBankAccount: 'yes',
-      hasWebsite: 'yes',
-      hasBusinessPhone: 'yes',
-      hasBusinessEmail: 'yes',
-      hasBusinessAddress: 'yes',
-      hasBusinessLicense: 'yes',
-      hasDuns: 'yes',
-      hasBusinessCreditProfile: 'yes',
-      hasReportingAccounts: 'yes',
-      businessCreditAccountCount: '4-5',
-      hasBusinessCreditCard: 'yes',
-      annualRevenueRange: '$250,000–$500,000',
-      fundingAmount: '$50,000–$100,000',
+      entityType: userItem.entityType || '',
+      state: userItem.state || '',
+      industry: userItem.industry || '',
+      businessAge: userItem.businessAge || '',
+      profileCompleted: Boolean(userItem.profileCompleted),
     };
   }
 
@@ -820,7 +816,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
     tasks: [],
   };
 
-  if (isSupabaseConfigured && supabase) {
+  if (isSupabaseConfigured && dbClient) {
     try {
       const [
         { data: subRes },
@@ -829,11 +825,11 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
         { data: appsRes },
         { data: tasksRes },
       ] = await Promise.all([
-        supabase.from('subscriptions').select('*').eq('user_id', userItem.userId).maybeSingle(),
-        supabase.from('payments').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
-        supabase.from('consultations').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
-        supabase.from('funding_applications').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
-        supabase.from('user_roadmap_tasks').select('*').eq('user_id', userItem.userId),
+        dbClient.from('subscriptions').select('*').eq('user_id', userItem.userId).maybeSingle(),
+        dbClient.from('payments').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
+        dbClient.from('consultations').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
+        dbClient.from('funding_applications').select('*').eq('user_id', userItem.userId).order('created_at', { ascending: false }),
+        dbClient.from('user_roadmap_tasks').select('*').eq('user_id', userItem.userId),
       ]);
 
       if (subRes) {
@@ -884,24 +880,34 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   // If subscription data wasn't in DB, fetch from local subscription store
   if (!subscriptionData) {
     const localSub = await getUserSubscription(userItem.userId);
-    if (localSub) {
-      subscriptionData = {
-        planId: localSub.plan,
-        status: localSub.status,
-        provider: localSub.provider || 'internal',
-        accessSource: localSub.accessSource || userItem.accessSource || 'free',
-        grantType: localSub.grantType || userItem.grantType,
-        grantedBy: localSub.grantedBy || userItem.grantedBy,
-        grantReason: localSub.grantReason || userItem.grantReason,
-        grantedAt: localSub.grantedAt,
-        expiresAt: localSub.expiresAt || userItem.expiresAt,
-        currentPeriodEnd: localSub.currentPeriodEnd,
-        stripeCustomerId: localSub.stripeCustomerId || userItem.stripeCustomerId,
-        stripeSubscriptionId: localSub.stripeSubscriptionId || userItem.stripeSubscriptionId,
-        billingStatus: localSub.billingStatus || userItem.billingStatus || 'free',
-        createdAt: localSub.createdAt,
-      };
-    }
+    const resolvedPlan = (localSub && localSub.plan && localSub.plan !== 'free')
+      ? localSub.plan
+      : (userItem.plan || 'free');
+    const resolvedAccessSource = (localSub && localSub.accessSource && localSub.accessSource !== 'free')
+      ? localSub.accessSource
+      : (userItem.accessSource || 'free');
+    const resolvedBillingStatus = (localSub && localSub.billingStatus && localSub.billingStatus !== 'free')
+      ? localSub.billingStatus
+      : (userItem.billingStatus || 'free');
+
+    subscriptionData = {
+      planId: resolvedPlan,
+      status: (localSub && localSub.status && localSub.status !== 'free')
+        ? localSub.status
+        : (userItem.subscriptionStatus || 'active'),
+      provider: (localSub && localSub.provider) || (resolvedAccessSource.startsWith('stripe') ? 'stripe' : 'internal'),
+      accessSource: resolvedAccessSource,
+      grantType: (localSub && localSub.grantType) || userItem.grantType,
+      grantedBy: (localSub && localSub.grantedBy) || userItem.grantedBy,
+      grantReason: (localSub && localSub.grantReason) || userItem.grantReason,
+      grantedAt: localSub?.grantedAt,
+      expiresAt: (localSub && localSub.expiresAt) || userItem.expiresAt,
+      currentPeriodEnd: localSub?.currentPeriodEnd,
+      stripeCustomerId: (localSub && localSub.stripeCustomerId) || userItem.stripeCustomerId,
+      stripeSubscriptionId: (localSub && localSub.stripeSubscriptionId) || userItem.stripeSubscriptionId,
+      billingStatus: resolvedBillingStatus,
+      createdAt: localSub?.createdAt || userItem.createdAt,
+    };
   }
 
   // Fetch internal admin notes for this customer
@@ -916,6 +922,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       email: userItem.email,
       role: userItem.role,
       status: userItem.status,
+      profileCompleted: Boolean(businessProfile ? businessProfile.profileCompleted : userItem.profileCompleted),
       lastSeenAt: userItem.lastSeenAt,
       createdAt: userItem.createdAt,
       updatedAt: userItem.updatedAt,

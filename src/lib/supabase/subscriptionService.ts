@@ -6,11 +6,25 @@ import type {
   PaymentRecord,
   AccessSource,
   GrantType,
+  EffectiveEntitlement,
 } from '@/types/subscription';
+import { resolveEffectiveEntitlement } from '@/lib/services/entitlementResolver';
 import { logAdminAction } from './adminAuditService';
 
 const SUBSCRIPTION_STORAGE_PREFIX = 'crediqly_sub_';
 const inMemorySubs = new Map<string, Subscription>();
+
+function getPrivilegedClient() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { getSupabaseAdminClient } = require('./adminServer');
+      const adminClient = getSupabaseAdminClient();
+      if (adminClient) return adminClient;
+    } catch {}
+  }
+  return supabase;
+}
 
 function getLocalSubscription(userId: string): Subscription | null {
   if (typeof window !== 'undefined') {
@@ -163,21 +177,32 @@ export async function getUserSubscription(userId: string): Promise<Subscription>
     return defaultFreeSubscription('guest');
   }
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+  if (isSupabaseConfigured) {
+    const db = getPrivilegedClient();
+    if (db) {
+      try {
+        const { data, error } = await db
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      if (!error && data) {
-        const sub = fromDbSubscription(data);
-        saveLocalSubscription(userId, sub);
-        return sub;
+        if (!error) {
+          if (data) {
+            const sub = fromDbSubscription(data);
+            saveLocalSubscription(userId, sub);
+            return sub;
+          } else {
+            // Authoritative DB response indicates no subscription row exists:
+            // Ensure customer is on default Free plan, never allowing local cache tampering
+            const fallback = defaultFreeSubscription(userId);
+            saveLocalSubscription(userId, fallback);
+            return fallback;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase subscriptions fetch failed, using fallback:', err);
       }
-    } catch (err) {
-      console.warn('Supabase subscriptions fetch failed, using fallback:', err);
     }
   }
 
@@ -190,6 +215,51 @@ export async function getUserSubscription(userId: string): Promise<Subscription>
 }
 
 export const getSubscription = getUserSubscription;
+
+/**
+ * Returns the fully reconciled authoritative subscription, effective entitlement,
+ * and payment ledger for a customer.
+ */
+export async function getAuthoritativeCustomerSubscription(userId: string): Promise<{
+  subscription: Subscription;
+  entitlement: EffectiveEntitlement;
+  payments: PaymentRecord[];
+}> {
+  const db = getPrivilegedClient();
+  let sub: Subscription = defaultFreeSubscription(userId);
+  let payments: PaymentRecord[] = [];
+
+  if (isSupabaseConfigured && db && userId) {
+    try {
+      const [subRes, payRes] = await Promise.all([
+        db.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
+        db.from('payments').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      ]);
+      if (subRes.data) {
+        sub = fromDbSubscription(subRes.data);
+      }
+      if (payRes.data) {
+        payments = payRes.data.map(fromDbPayment);
+      }
+    } catch (e) {
+      console.warn('Failed to load authoritative subscription & payments:', e);
+    }
+  }
+
+  const entitlement = resolveEffectiveEntitlement(sub, payments);
+  const reconciledSub: Subscription = {
+    ...sub,
+    plan: entitlement.effectivePlan,
+    accessSource: entitlement.accessSource,
+    billingStatus: entitlement.billingStatus,
+  };
+
+  return {
+    subscription: reconciledSub,
+    entitlement,
+    payments,
+  };
+}
 
 /**
  * Upsert or update a customer subscription (Authoritative server sync & admin).
@@ -233,9 +303,10 @@ export async function upsertSubscription(
   if (subscription.advisorySetupCheckoutSessionId !== undefined) payload.advisory_setup_checkout_session_id = subscription.advisorySetupCheckoutSessionId;
   if (subscription.advisorySetupPaymentIntentId !== undefined) payload.advisory_setup_payment_intent_id = subscription.advisorySetupPaymentIntentId;
 
-  if (isSupabaseConfigured && supabase) {
+  const db = getPrivilegedClient();
+  if (isSupabaseConfigured && db) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('subscriptions')
         .upsert(payload, { onConflict: 'user_id' })
         .select()
@@ -243,7 +314,7 @@ export async function upsertSubscription(
 
       // Also update profiles table for admin / user list consistency
       try {
-        await supabase
+        await db
           .from('profiles')
           .update({
             plan: subscription.plan || 'free',
@@ -352,17 +423,28 @@ export async function revokeAdminPlanAccess(params: {
   let fallbackAccessSource: AccessSource = 'free';
   let fallbackBillingStatus = 'free';
 
-  // Check if valid Stripe subscription exists
+  // Check if valid Stripe subscription or one-time 12-month program exists
   if (existing.stripeSubscriptionId && existing.stripeCustomerId) {
     const isPeriodValid = existing.currentPeriodEnd
       ? new Date(existing.currentPeriodEnd).getTime() > Date.now()
       : false;
     if (isPeriodValid) {
-      fallbackPlan = (existing.plan === 'guided' ? 'guided' : 'foundation');
+      fallbackPlan = (existing.plan === 'guided' && existing.accessSource !== 'admin_grant' ? 'guided' : 'foundation');
       fallbackStatus = 'active';
       fallbackProvider = 'stripe';
       fallbackAccessSource = 'stripe_subscription';
       fallbackBillingStatus = 'active';
+    }
+  } else if (existing.accessSource === 'stripe_onetime' || existing.billingStatus === 'paid_onetime') {
+    const isPeriodValid = existing.currentPeriodEnd
+      ? new Date(existing.currentPeriodEnd).getTime() > Date.now()
+      : false;
+    if (isPeriodValid) {
+      fallbackPlan = 'guided';
+      fallbackStatus = 'active';
+      fallbackProvider = 'stripe';
+      fallbackAccessSource = 'stripe_onetime';
+      fallbackBillingStatus = 'paid_onetime';
     }
   }
 
@@ -452,9 +534,10 @@ export async function recordPayment(
     updated_at: now,
   };
 
-  if (isSupabaseConfigured && supabase) {
+  const db = getPrivilegedClient();
+  if (isSupabaseConfigured && db) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('payments')
         .upsert(payload, { onConflict: 'stripe_checkout_session_id' })
         .select()
@@ -521,13 +604,14 @@ export async function getAdminBillingMetrics(): Promise<AdminBillingMetrics> {
   let recentSubscriptions: Subscription[] = [];
   let recentPayments: PaymentRecord[] = [];
 
-  if (isSupabaseConfigured && supabase) {
+  const db = getPrivilegedClient();
+  if (isSupabaseConfigured && db) {
     try {
       const [profilesRes, subsRes, paymentsRes, consultsRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('subscriptions').select('*').order('updated_at', { ascending: false }).limit(100),
-        supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(100),
-        supabase.from('consultations').select('id, payment_status, payment_amount'),
+        db.from('profiles').select('id', { count: 'exact' }),
+        db.from('subscriptions').select('*').order('updated_at', { ascending: false }).limit(100),
+        db.from('payments').select('*').order('created_at', { ascending: false }).limit(100),
+        db.from('consultations').select('id, payment_status, payment_amount'),
       ]);
 
       totalCustomers = profilesRes.count || 0;
